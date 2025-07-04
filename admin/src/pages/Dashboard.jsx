@@ -475,22 +475,124 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                <ChartCard mode={mode} loading={loadingOrderAmount} title="">
-                  <LineChart salesReport={salesReport} />
-                </ChartCard>
+                
+                {/* Modern Bar Chart */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex space-x-4">
+                      <button className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-semibold">Sales</button>
+                      <button className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Orders</button>
+                    </div>
+                  </div>
+                  
+                  {/* Bar Chart Area */}
+                  <div className="h-64 flex items-end justify-between space-x-3 px-4">
+                    {/* Day 1 */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-24 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-60"></div>
+                      <span className="text-xs text-gray-500">Day 1</span>
+                    </div>
+                    {/* Day 2 */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-32 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-70"></div>
+                      <span className="text-xs text-gray-500">Day 2</span>
+                    </div>
+                    {/* Day 3 */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-40 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-80"></div>
+                      <span className="text-xs text-gray-500">Day 3</span>
+                    </div>
+                    {/* Day 4 */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-48 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-85"></div>
+                      <span className="text-xs text-gray-500">Day 4</span>
+                    </div>
+                    {/* Day 5 */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-56 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-90"></div>
+                      <span className="text-xs text-gray-500">Day 5</span>
+                    </div>
+                    {/* Day 6 */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-44 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-75"></div>
+                      <span className="text-xs text-gray-500">Day 6</span>
+                    </div>
+                    {/* Day 7 */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-60 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg"></div>
+                      <span className="text-xs text-gray-500">Day 7</span>
+                    </div>
+                  </div>
+                </div>
               </GlassCard>
 
-              {/* Top Products */}
+              {/* Top Selling Products */}
               <GlassCard className="p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">Best Selling Products</h3>
+                  <h3 className="text-2xl font-bold text-gray-900">Top Selling Products</h3>
                   <button className="text-blue-600 hover:text-blue-700 font-semibold">
                     View All Products
                   </button>
                 </div>
-                <ChartCard mode={mode} loading={loadingBestSellerProduct} title="">
-                  <PieChart data={bestSellerProductChart} />
-                </ChartCard>
+                
+                {/* Product List */}
+                <div className="space-y-4">
+                  {/* Product 1 - Mega Combo Deal */}
+                  <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                      <FiStar className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">Mega Combo Deal</h4>
+                      <p className="text-sm text-gray-600">45% of total sales • {currency}25,420</p>
+                    </div>
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-full h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full"></div>
+                    </div>
+                  </div>
+
+                  {/* Product 2 - Britannia Sweets */}
+                  <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                      <FiStar className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">Britannia Sweets & Salt</h4>
+                      <p className="text-sm text-gray-600">30% of total sales • {currency}15,680</p>
+                    </div>
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-3/4 h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"></div>
+                    </div>
+                  </div>
+
+                  {/* Product 3 - Betty Crocker */}
+                  <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                      <FiStar className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">Betty Crocker Vanilla Cake</h4>
+                      <p className="text-sm text-gray-600">20% of total sales • {currency}8,940</p>
+                    </div>
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-1/2 h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"></div>
+                    </div>
+                  </div>
+
+                  {/* Product 4 - Smartline Water */}
+                  <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-cyan-50 to-cyan-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center">
+                      <FiStar className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">Smartline Water</h4>
+                      <p className="text-sm text-gray-600">15% of total sales • {currency}4,320</p>
+                    </div>
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-1/3 h-full bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
               </GlassCard>
             </div>
           </div>
