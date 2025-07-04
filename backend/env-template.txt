@@ -1,0 +1,67 @@
+# =============================================================================
+# E-COMMERCE APPLICATION CONFIGURATION
+# =============================================================================
+
+# Server Configuration
+PORT=5055
+NODE_ENV=development
+
+# Database Configuration
+MONGO_URI=mongodb://127.0.0.1:27017/saptmarkets?authSource=admin
+
+# JWT Configuration
+JWT_SECRET=saptmarkets-jwt-secret-key-local
+JWT_SECRET_FOR_VERIFY=saptmarkets-jwt-secret-for-verify-local
+
+# Application URLs
+STORE_URL=http://localhost:3000
+API_URL=http://localhost:3000/api
+ADMIN_URL=http://localhost:4000
+
+# Encryption Configuration
+ENCRYPT_PASSWORD=your-secret-encryption-key-saptmarkets
+
+# =============================================================================
+# EMAIL CONFIGURATION
+# =============================================================================
+
+# Email Service
+SERVICE=gmail
+
+# SendGrid Configuration
+SENDGRID_API_KEY=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
+SENDER_EMAIL=itadmin@saptmarkets.com
+
+# =============================================================================
+# ODOO SYNC CONFIGURATION
+# =============================================================================
+
+# Odoo Connection Settings
+ODOO_HOST=127.0.0.1
+ODOO_PORT=8069
+ODOO_DATABASE=forapi_17
+ODOO_USERNAME=admin
+ODOO_PASSWORD=admin
+
+# Odoo Sync Performance Settings
+ODOO_BATCH_SIZE=100
+ODOO_MAX_RETRIES=3
+
+# =============================================================================
+# OPTIONAL: ADDITIONAL INTEGRATIONS
+# =============================================================================
+
+# Payment Gateway Configuration (Add when needed)
+# STRIPE_SECRET_KEY=your-stripe-secret-key
+# PAYPAL_CLIENT_ID=your-paypal-client-id
+# PAYPAL_CLIENT_SECRET=your-paypal-client-secret
+
+# SMS Configuration (Add when needed)
+# TWILIO_ACCOUNT_SID=your-twilio-account-sid
+# TWILIO_AUTH_TOKEN=your-twilio-auth-token
+# TWILIO_PHONE_NUMBER=your-twilio-phone-number
+
+# Cloudinary Configuration (Add when needed)
+# CLOUDINARY_NAME=your-cloudinary-name
+# CLOUDINARY_API_KEY=your-cloudinary-api-key
+# CLOUDINARY_API_SECRET=your-cloudinary-api-secret 

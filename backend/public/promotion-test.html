@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promotion API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Promotion API Test</h1>
+        
+        <div>
+            <button id="testDirectBtn">Test Direct Endpoint</button>
+            <button id="testActiveBtn">Test Active Promotions</button>
+            <button id="testAllBtn">Test All Promotions</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <h2>Response:</h2>
+        <pre id="response">Click a button to test the API...</pre>
+    </div>
+
+    <script>
+        // Base API URL - change this if needed
+        const API_BASE_URL = window.location.origin;
+        
+        // Set status message
+        function setStatus(message, isError = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'status error' : 'status success';
+        }
+        
+        // Display API response
+        function displayResponse(data) {
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // Generic fetch function with error handling
+        async function fetchEndpoint(url) {
+            try {
+                setStatus(`Fetching ${url}...`);
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                setStatus(`Successfully fetched data from ${url}`);
+                displayResponse(data);
+                return data;
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, true);
+                displayResponse({ error: error.message });
+                console.error('API Error:', error);
+            }
+        }
+        
+        // Test direct endpoint
+        document.getElementById('testDirectBtn').addEventListener('click', () => {
+            fetchEndpoint(`${API_BASE_URL}/api/direct-test/promotions`);
+        });
+        
+        // Test active promotions
+        document.getElementById('testActiveBtn').addEventListener('click', () => {
+            fetchEndpoint(`${API_BASE_URL}/api/promotions/active`);
+        });
+        
+        // Test all promotions
+        document.getElementById('testAllBtn').addEventListener('click', () => {
+            fetchEndpoint(`${API_BASE_URL}/api/promotions`);
+        });
+    </script>
+</body>
+</html> 

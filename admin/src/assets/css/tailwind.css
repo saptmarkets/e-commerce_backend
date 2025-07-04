@@ -1,0 +1,44 @@
+/* TailwindCss */
+/* Saudi Riyal Font */
+@font-face {
+  font-family: 'saudi_riyal';
+  src: url('../../../node_modules/@emran-alhaddad/saudi-riyal-font/fonts/saudi_riyal.woff2') format('woff2'),
+       url('../../../node_modules/@emran-alhaddad/saudi-riyal-font/fonts/saudi_riyal.woff') format('woff'),
+       url('../../../node_modules/@emran-alhaddad/saudi-riyal-font/fonts/saudi_riyal.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Ensure the icon class correctly loads the Riyal symbol */
+.icon-saudi_riyal::before {
+  content: "\e900";
+  font-family: 'saudi_riyal' !important;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ------------------------------------------------------- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Admin UI custom scale & sidebar tweaks --- */
+@media (min-width: 1280px) {
+  html { font-size: 87.5%; } /* 14px */
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  html { font-size: 93.75%; } /* 15px */
+}
+
+/* Sidebar compact styling */
+.sidebar li button,
+.sidebar li a {
+  line-height: 1.25rem; /* tighten row height */
+}
+.sidebar li ul {
+  padding-left: 0.5rem; /* smaller indent */
+}
+.sidebar li svg.w-5 {
+  width: 1rem;
+  height: 1rem;
+}

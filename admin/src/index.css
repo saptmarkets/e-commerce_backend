@@ -1,0 +1,43 @@
+/* Add RTL support for Arabic language */
+[dir="rtl"],
+html[lang="ar"] {
+  text-align: right;
+}
+
+html[lang="ar"] body {
+  direction: rtl;
+}
+
+/* Flip icons and other directional elements in RTL mode */
+html[lang="ar"] .transform-flip-x {
+  transform: scaleX(-1);
+}
+
+/* Adjust form controls for RTL */
+html[lang="ar"] input, 
+html[lang="ar"] textarea {
+  text-align: right;
+}
+
+/* RTL menu adjustments */
+html[lang="ar"] .dropdown-content {
+  right: 0;
+  left: auto;
+}
+
+/* RTL for flex items */
+html[lang="ar"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+html[lang="ar"] .mr-3 {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
+html[lang="ar"] .ml-3 {
+  margin-left: 0;
+  margin-right: 0.75rem;
+}
+
+/* Add this to your existing CSS file */ 

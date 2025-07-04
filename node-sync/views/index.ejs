@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Multi-Units Tab Styling */
+        .multi-units-table th {
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .multi-units-table td {
+            font-size: 0.8rem;
+            vertical-align: middle;
+        }
+        .barcode-cell {
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .pricing-rules-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .unit-summary-cards .card {
+            transition: transform 0.2s;
+        }
+        .unit-summary-cards .card:hover {
+            transform: translateY(-2px);
+        }
+        .nav-tabs .nav-link {
+            font-size: 0.9rem;
+        }
+        .tab-content {
+            min-height: 400px;
+        }
+        /* Enhanced table styling for multi-units */
+        .table-responsive {
+            border-radius: 0.375rem;
+            border: 1px solid #dee2e6;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+        /* Enhanced pricing table styling */
+        .pricing-rules-table th {
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .pricing-rules-table td {
+            font-size: 0.75rem;
+            vertical-align: middle;
+        }
+        .pricing-summary-cards .card {
+            transition: transform 0.2s;
+        }
+        .pricing-summary-cards .card:hover {
+            transform: translateY(-2px);
+        }
+        /* Priority badge styling */
+        .badge.bg-danger {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Odoo Sync</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/view/products">Products</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/view/categories">Categories</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Main Tab Navigation -->
+        <ul class="nav nav-pills mb-4 justify-content-center" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#sync-panel" type="button">
+                    <i class="fas fa-sync-alt"></i> Sync Operations
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#products-panel" type="button">
+                    <i class="fas fa-box"></i> Product Details
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#logs-panel" type="button">
+                    <i class="fas fa-file-alt"></i> Sync Logs
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Sync Operations Panel -->
+            <div class="tab-pane fade show active" id="sync-panel" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-plug"></i> Connection Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Host:</strong> <%= odooHost %>:<%= odooPort %></p>
+                                <p><strong>Database:</strong> <%= odooDb %></p>
+                                <p id="connectionStatus">Checking connection...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <button id="startSync" class="btn btn-success w-100 mb-2">
+                                    <i class="fas fa-sync"></i> Full Sync (All Data)
+                                </button>
+                                <button id="startProductSync" class="btn btn-info w-100">
+                                    <i class="fas fa-box"></i> Products Only
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Individual Sync Operations -->
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-sitemap fa-2x text-primary mb-3"></i>
+                                <h6>Categories</h6>
+                                <p class="text-muted small">Product categories</p>
+                                <button class="btn btn-primary btn-sm" onclick="syncType('categories')">
+                                    <i class="fas fa-sync"></i> Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-ruler fa-2x text-info mb-3"></i>
+                                <h6>Units of Measure</h6>
+                                <p class="text-muted small">Product units</p>
+                                <button class="btn btn-info btn-sm" onclick="syncType('uom')">
+                                    <i class="fas fa-sync"></i> Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-tags fa-2x text-warning mb-3"></i>
+                                <h6>Price Lists</h6>
+                                <p class="text-muted small">Pricing structures</p>
+                                <button class="btn btn-warning btn-sm" onclick="syncType('pricelists')">
+                                    <i class="fas fa-sync"></i> Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-box fa-2x text-success mb-3"></i>
+                                <h6>Products</h6>
+                                <p class="text-muted small">Products with variants</p>
+                                <button class="btn btn-success btn-sm" onclick="syncType('products')">
+                                    <i class="fas fa-sync"></i> Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-warehouse fa-2x text-danger mb-3"></i>
+                                <h6>Stock</h6>
+                                <p class="text-muted small">Inventory quantities</p>
+                                <button class="btn btn-danger btn-sm" onclick="syncType('stock')">
+                                    <i class="fas fa-sync"></i> Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-percent fa-2x text-secondary mb-3"></i>
+                                <h6>Promotions</h6>
+                                <p class="text-muted small">Price rules</p>
+                                <button class="btn btn-secondary btn-sm" onclick="syncType('promotions')">
+                                    <i class="fas fa-sync"></i> Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- NEW: Barcode Units -->
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-barcode fa-2x text-info mb-3"></i>
+                                <h6>Barcode Units</h6>
+                                <p class="text-muted small">Multi-unit barcodes</p>
+                                <button class="btn btn-info btn-sm" onclick="syncType('barcode_units')">
+                                    <i class="fas fa-sync"></i> Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-chart-line"></i> Sync Status</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="syncStatus">Ready to sync.</div>
+                                <div class="progress mt-3" style="display: none;" id="syncProgress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                                </div>
+                                
+                                <!-- Multi-Unit Support Info -->
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> 
+                                        <strong>Multi-Unit Support:</strong> This system supports products with different sale and purchase units of measure. 
+                                        UoM data is automatically synced and displayed in product details.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Details Panel -->
+            <div class="tab-pane fade" id="products-panel" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-box"></i> Product List</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <!-- Search and Filter -->
+                                <div class="p-3 border-bottom">
+                                    <div class="row g-2">
+                                        <div class="col-md-8">
+                                            <input type="text" id="productSearch" class="form-control form-control-sm" placeholder="Search products...">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button class="btn btn-primary btn-sm w-100" onclick="loadProducts()">
+                                                <i class="fas fa-search"></i> Search
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Product List -->
+                                <div id="productList" style="height: 500px; overflow-y: auto;">
+                                    <div class="text-center p-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Loading products...</p>
+                                        <br>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="loadProducts()">
+                                            <i class="fas fa-sync"></i> Load Products
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Pagination -->
+                                <div class="p-3 border-top">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted" id="productCount">0 products</small>
+                                        <div>
+                                            <button class="btn btn-outline-secondary btn-sm" id="prevPage" onclick="changePage(-1)" disabled>
+                                                <i class="fas fa-chevron-left"></i>
+                                            </button>
+                                            <span class="mx-2" id="pageInfo">Page 1 of 1</span>
+                                            <button class="btn btn-outline-secondary btn-sm" id="nextPage" onclick="changePage(1)" disabled>
+                                                <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div id="productDetails">
+                            <div class="text-center text-muted" style="padding: 100px 20px;">
+                                <i class="fas fa-mouse-pointer fa-3x mb-3"></i>
+                                <h5>Select a Product</h5>
+                                <p>Click on a product from the list to view detailed information.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Panel -->
+            <div class="tab-pane fade" id="logs-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between">
+                        <h6 class="mb-0"><i class="fas fa-file-alt"></i> Sync Logs</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="logContainer" style="height: 300px; overflow-y: auto; background-color: #f8f9fa; padding: 1rem; border-radius: 0.375rem; font-family: monospace; font-size: 0.85rem;">
+                            <div class="text-muted">Logs will appear here...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let syncInProgress = false;
+        let logContainer = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkConnection();
+            logContainer = document.getElementById('logContainer');
+            
+            // Product search enter key
+            document.getElementById('productSearch').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loadProducts();
+            });
+
+            // Start sync button
+            document.getElementById('startSync').addEventListener('click', startFullSync);
+            document.getElementById('startProductSync').addEventListener('click', () => syncType('products'));
+            
+            // Load products when Products tab is clicked
+            const productsTabButton = document.querySelector('[data-bs-target="#products-panel"]');
+            if (productsTabButton) {
+                productsTabButton.addEventListener('click', function() {
+                    setTimeout(() => loadProducts(), 100); // Small delay to ensure tab is active
+                });
+            }
+            
+            // Load products initially if on products tab
+            setTimeout(() => {
+                // Check if we should load products initially
+                if (window.location.hash === '#products' || window.location.search.includes('tab=products')) {
+                    loadProducts();
+                }
+            }, 500);
+        });
+
+        // Check connection status
+        async function checkConnection() {
+            try {
+                const response = await fetch('/sync/status');
+                const data = await response.json();
+                const statusElement = document.getElementById('connectionStatus');
+                
+                if (data.status === 'connected') {
+                    statusElement.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Connected</span>';
+                } else {
+                    statusElement.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Disconnected</span>';
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').innerHTML = 
+                    '<span class="text-danger"><i class="fas fa-exclamation-circle"></i> Connection Error</span>';
+            }
+        }
+
+        // Full sync
+        async function startFullSync() {
+            if (syncInProgress) return;
+            syncInProgress = true;
+            
+            try {
+                addLog('Starting full synchronization...');
+                showProgress('Initializing full sync...', 10);
+
+                const response = await fetch('/sync/start', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showProgress('Full sync completed!', 100);
+                    addLog(`Full sync completed! Categories: ${data.categories}, UoM: ${data.uom || 0}, Pricelists: ${data.pricelists || 0}, Products: ${data.products}, Barcode Units: ${data.barcode_units || 0}, Stock: ${data.stock || 0}, Promotions: ${data.promotions || 0}`);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                showProgress(`Error: ${error.message}`, 0);
+                addLog(`Full sync failed: ${error.message}`);
+            } finally {
+                syncInProgress = false;
+                setTimeout(() => {
+                    document.getElementById('syncProgress').style.display = 'none';
+                    document.getElementById('syncStatus').innerHTML = 'Ready to sync.';
+                }, 3000);
+            }
+        }
+
+        // Individual sync
+        async function syncType(type) {
+            if (syncInProgress) return;
+            syncInProgress = true;
+            
+            try {
+                addLog(`Starting ${type} synchronization...`);
+                showProgress(`Syncing ${type}...`, 30);
+
+                const response = await fetch(`/sync/${type}`, { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showProgress(`${type} sync completed!`, 100);
+                    addLog(`${type} sync completed! Synced: ${data.synced} records`);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                showProgress(`Error syncing ${type}: ${error.message}`, 0);
+                addLog(`${type} sync failed: ${error.message}`);
+            } finally {
+                syncInProgress = false;
+                setTimeout(() => {
+                    document.getElementById('syncProgress').style.display = 'none';
+                    document.getElementById('syncStatus').innerHTML = 'Ready to sync.';
+                }, 3000);
+            }
+        }
+
+        function showProgress(message, percentage) {
+            const statusDiv = document.getElementById('syncStatus');
+            const progressDiv = document.getElementById('syncProgress');
+            const progressBar = progressDiv.querySelector('.progress-bar');
+            
+            statusDiv.innerHTML = `<i class="fas fa-sync fa-spin"></i> ${message}`;
+            progressDiv.style.display = 'block';
+            progressBar.style.width = `${percentage}%`;
+            
+            if (percentage >= 100) {
+                progressBar.classList.remove('progress-bar-animated');
+                statusDiv.innerHTML = `<i class="fas fa-check text-success"></i> ${message}`;
+            }
+        }
+
+        // Product list management
+        let currentPage = 1;
+        let totalPages = 1;
+        let productsData = [];
+
+        async function loadProducts(page = 1) {
+            const search = document.getElementById('productSearch').value;
+            const listContainer = document.getElementById('productList');
+            
+            // Show loading
+            listContainer.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading products...</p>
+                </div>
+            `;
+            
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: 20,
+                    search: search
+                });
+                
+                console.log('Fetching products with URL:', `/view/api/products?${params}`);
+                const response = await fetch(`/view/api/products?${params}`);
+                console.log('Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok && data.success) {
+                    productsData = data.products;
+                    currentPage = data.page;
+                    totalPages = data.pages;
+                    
+                    displayProductList(data.products);
+                    updatePagination(data);
+                    
+                    console.log(`Loaded ${data.products.length} products`);
+                } else {
+                    throw new Error(data.error || 'Failed to load products');
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                listContainer.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        <i class="fas fa-exclamation-circle"></i> Error loading products: ${error.message}
+                        <br><small class="text-muted">Check console for more details</small>
+                    </div>
+                `;
+            }
+        }
+
+        function displayProductList(products) {
+            const container = document.getElementById('productList');
+            
+            if (products.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-box-open fa-2x mb-2"></i>
+                        <p>No products found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="list-group list-group-flush">';
+            
+            products.forEach(product => {
+                const stock = product.qty_available || 0;
+                const price = product.list_price || 0;
+                const sku = product.default_code || 'No SKU';
+                
+                html += `
+                    <div class="list-group-item list-group-item-action product-item" onclick="selectProduct(${product.product_id})" style="cursor: pointer;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 text-truncate" style="max-width: 200px;" title="${product.name}">
+                                    ${product.name}
+                                </h6>
+                                <p class="mb-1 small text-muted">
+                                    <strong>ID:</strong> ${product.product_id} | 
+                                    <strong>SKU:</strong> ${sku}
+                                </p>
+                                <small class="text-muted">${product.category_name || 'No Category'}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">$${price.toFixed(2)}</span>
+                                <br>
+                                <small class="text-muted mt-1 d-block">Stock: ${stock}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function updatePagination(data) {
+            document.getElementById('productCount').textContent = `${data.total} products`;
+            document.getElementById('pageInfo').textContent = `Page ${data.page} of ${data.pages}`;
+            
+            document.getElementById('prevPage').disabled = data.page <= 1;
+            document.getElementById('nextPage').disabled = data.page >= data.pages;
+        }
+
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                loadProducts(newPage);
+            }
+        }
+
+        async function selectProduct(productId) {
+            const container = document.getElementById('productDetails');
+            
+            // Highlight selected product
+            document.querySelectorAll('.product-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.product-item').classList.add('active');
+            
+            // Show loading
+            container.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Loading product details...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`/view/api/product/${productId}`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    displayProductDetails(data.data, productId);
+                } else {
+                    container.innerHTML = `<div class="alert alert-warning">Product details not found</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayProductDetails(details, productId) {
+            const container = document.getElementById('productDetails');
+            
+            let html = `
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-box"></i> Product ${productId} Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" role="tablist">
+                            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#basic-${productId}">Basic Info</button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#category-${productId}">Category & UoM</button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock-${productId}">Stock Info</button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pricing-${productId}">Pricing</button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#multiunits-${productId}"><i class="fas fa-barcode"></i> Multi-Units</button></li>
+                        </ul>
+                        <div class="tab-content mt-3">
+                            <div class="tab-pane fade show active" id="basic-${productId}">
+                                <table class="table table-sm">
+                                    <tbody>`;
+            
+            details.basicInfo.forEach(item => {
+                html += `<tr><td><strong>${item.field}:</strong></td><td>${item.value}</td></tr>`;
+            });
+            
+            html += `</tbody></table></div>
+                            <div class="tab-pane fade" id="category-${productId}">
+                                <table class="table table-sm">
+                                    <thead><tr><th>Type</th><th>Name</th><th>Details</th></tr></thead>
+                                    <tbody>`;
+            
+            details.categoryInfo.forEach(item => {
+                html += `<tr><td>${item.type}</td><td>${item.name}</td><td>${item.details}</td></tr>`;
+            });
+            
+            html += `</tbody></table></div>
+                            <div class="tab-pane fade" id="stock-${productId}">
+                                <table class="table table-sm">
+                                    <thead><tr><th>Location</th><th>Quantity</th><th>Reserved</th><th>Available</th></tr></thead>
+                                    <tbody>`;
+            
+            details.stockInfo.forEach(item => {
+                html += `<tr><td>${item.location}</td><td>${item.quantity}</td><td>${item.reserved}</td><td>${item.available}</td></tr>`;
+            });
+            
+            html += `</tbody></table></div>
+                            <div class="tab-pane fade" id="pricing-${productId}">`;
+            
+            // Enhanced Pricing Tab Content
+            if (details.pricingInfo && details.pricingInfo.length > 0) {
+                const multiUnitRules = details.pricingInfo.filter(rule => rule.barcodeUnit !== 'N/A');
+                const standardRules = details.pricingInfo.filter(rule => rule.barcodeUnit === 'N/A');
+                
+                html += `
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-tags"></i> 
+                        <strong>Enhanced Pricing Rules:</strong> This product has ${details.pricingInfo.length} pricing rule(s) including ${multiUnitRules.length} multi-unit specific rule(s).
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped pricing-rules-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Rule ID</th>
+                                    <th>Type</th>
+                                    <th>Pricelist</th>
+                                    <th>Applied On</th>
+                                    <th>Barcode Unit</th>
+                                    <th>Min Qty</th>
+                                    <th>Max Qty</th>
+                                    <th>Compute Method</th>
+                                    <th>Fixed Price</th>
+                                    <th>Discount %</th>
+                                    <th>Valid Period</th>
+                                    <th>Priority</th>
+                                    <th>Last Sync</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                details.pricingInfo.forEach(rule => {
+                    const isMultiUnit = rule.barcodeUnit !== 'N/A';
+                    const isBaseRule = rule.ruleId.startsWith('BASE');
+                    const rowClass = isMultiUnit ? 'table-warning' : (isBaseRule ? 'table-info' : '');
+                    
+                    const ruleTypeIcon = isMultiUnit ? '<i class="fas fa-barcode text-warning"></i>' : 
+                                        isBaseRule ? '<i class="fas fa-tag text-info"></i>' : 
+                                        '<i class="fas fa-percent text-success"></i>';
+                    
+                    html += `
+                        <tr class="${rowClass}">
+                            <td><strong>${rule.ruleId}</strong></td>
+                            <td>
+                                ${ruleTypeIcon} <strong>${rule.ruleType}</strong>
+                            </td>
+                            <td>${rule.pricelist}</td>
+                            <td>
+                                <span class="badge bg-secondary">${rule.appliedOn}</span>
+                            </td>
+                            <td>
+                                ${isMultiUnit ? 
+                                    `<strong class="text-warning">${rule.barcodeUnitName}</strong><br><small class="text-muted">ID: ${rule.barcodeUnit}</small>` : 
+                                    '<span class="text-muted">Standard</span>'
+                                }
+                            </td>
+                            <td><strong>${rule.minQuantity}</strong></td>
+                            <td>
+                                ${rule.maxQuantity !== 'No limit' ? 
+                                    `<strong class="text-danger">${rule.maxQuantity}</strong>` : 
+                                    '<span class="text-muted">No limit</span>'
+                                }
+                            </td>
+                            <td>
+                                <span class="badge ${rule.computePrice === 'Fixed Price' ? 'bg-success' : 
+                                                   rule.computePrice === 'Percentage Discount' ? 'bg-warning' : 'bg-info'}">
+                                    ${rule.computePrice}
+                                </span>
+                            </td>
+                            <td>
+                                ${rule.fixedPrice !== 'N/A' ? 
+                                    `<strong class="text-success">${rule.fixedPrice}</strong>` : 
+                                    '<span class="text-muted">N/A</span>'
+                                }
+                            </td>
+                            <td>
+                                ${rule.priceDiscount !== 'N/A' ? 
+                                    `<strong class="text-warning">${rule.priceDiscount}</strong>` : 
+                                    '<span class="text-muted">N/A</span>'
+                                }
+                            </td>
+                            <td>
+                                <small>
+                                    <strong>From:</strong> ${rule.validFrom}<br>
+                                    <strong>To:</strong> ${rule.validTo}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge ${parseInt(rule.priority) < 100 ? 'bg-danger' : 
+                                                   parseInt(rule.priority) < 500 ? 'bg-warning' : 'bg-secondary'}">
+                                    ${rule.priority}
+                                </span>
+                            </td>
+                            <td><small class="text-muted">${rule.lastSync}</small></td>
+                        </tr>
+                    `;
+                });
+                
+                html += `</tbody></table></div>`;
+                
+                // Add pricing summary statistics
+                const totalRules = details.pricingInfo.length;
+                const multiUnitRulesCount = multiUnitRules.length;
+                const activeRules = details.pricingInfo.filter(rule => rule.active === 'Yes').length;
+                const discountRules = details.pricingInfo.filter(rule => rule.priceDiscount !== 'N/A').length;
+                const fixedPriceRules = details.pricingInfo.filter(rule => rule.fixedPrice !== 'N/A' && !rule.ruleId.startsWith('BASE')).length;
+                
+                html += `
+                    <div class="row mt-3 pricing-summary-cards">
+                        <div class="col-md-2">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Total Rules</h6>
+                                    <h4 class="text-primary">${totalRules}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Multi-Unit</h6>
+                                    <h4 class="text-warning">${multiUnitRulesCount}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Active Rules</h6>
+                                    <h4 class="text-success">${activeRules}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Discount Rules</h6>
+                                    <h4 class="text-info">${discountRules}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Fixed Price Rules</h6>
+                                    <h4 class="text-danger">${fixedPriceRules}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add rule type legend
+                html += `
+                    <div class="mt-3">
+                        <h6>Rule Type Legend:</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <small>
+                                    <i class="fas fa-barcode text-warning"></i> <strong>Multi-Unit Rules:</strong> Apply to specific barcode units<br>
+                                    <i class="fas fa-tag text-info"></i> <strong>Base Rules:</strong> Product standard pricing<br>
+                                    <i class="fas fa-percent text-success"></i> <strong>Custom Rules:</strong> Pricelist-specific rules
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <small>
+                                    <span class="badge bg-danger">High Priority</span> Priority < 100<br>
+                                    <span class="badge bg-warning">Medium Priority</span> Priority 100-499<br>
+                                    <span class="badge bg-secondary">Low Priority</span> Priority ≥ 500
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <small>
+                                    <span class="table-warning">Multi-Unit Row</span><br>
+                                    <span class="table-info">Base Price Row</span><br>
+                                    <span class="">Standard Rule Row</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>No Pricing Rules:</strong> This product doesn't have any custom pricing rules configured.
+                    </div>
+                    <div class="text-center text-muted p-4">
+                        <i class="fas fa-tags fa-3x mb-3"></i>
+                        <p>Configure pricing rules in Odoo pricelists to enable advanced pricing for this product.</p>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+            
+            html += `</tbody></table></div>
+                            <div class="tab-pane fade" id="multiunits-${productId}">`;
+            
+            // NEW: Multi-Units Tab Content
+            if (details.multiUnitsInfo && details.multiUnitsInfo.length > 0) {
+                html += `
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Multi-Unit Barcode System:</strong> This product has ${details.multiUnitsInfo.length} barcode unit(s) configured with different packaging and pricing options.
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped multi-units-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Unit ID</th>
+                                    <th>Name</th>
+                                    <th>Sequence</th>
+                                    <th>Barcode</th>
+                                    <th>Quantity</th>
+                                    <th>Unit</th>
+                                    <th>Price</th>
+                                    <th>Avg Cost</th>
+                                    <th>Purchase</th>
+                                    <th>Sales+VAT</th>
+                                    <th>Active</th>
+                                    <th>Pricing Rules</th>
+                                    <th>Last Sync</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                details.multiUnitsInfo.forEach(unit => {
+                    const isActive = unit.active === 'Yes';
+                    const rowClass = isActive ? '' : 'table-secondary';
+                    const activeIcon = isActive ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>';
+                    
+                    html += `
+                        <tr class="${rowClass}">
+                            <td><strong>${unit.unitId}</strong></td>
+                            <td>
+                                <strong>${unit.name}</strong>
+                                ${unit.barcode !== 'No barcode' ? `<br><small class="text-muted"><i class="fas fa-barcode"></i> ${unit.barcode}</small>` : ''}
+                            </td>
+                            <td><span class="badge bg-secondary">${unit.sequence}</span></td>
+                            <td>
+                                ${unit.barcode !== 'No barcode' ? 
+                                    `<code class="text-primary">${unit.barcode}</code>` : 
+                                    '<span class="text-muted">No barcode</span>'
+                                }
+                            </td>
+                            <td><strong>${unit.quantity}</strong></td>
+                            <td>${unit.unit}</td>
+                            <td><strong class="text-success">${unit.price}</strong></td>
+                            <td>${unit.avCost}</td>
+                            <td>
+                                <small>Qty: ${unit.purchaseQty}</small><br>
+                                <small>Cost: ${unit.purchaseCost}</small>
+                            </td>
+                            <td>
+                                <small>VAT: ${unit.salesVat}</small><br>
+                                <small>Qty: ${unit.saleQty}</small>
+                            </td>
+                            <td>${activeIcon} ${unit.active}</td>
+                            <td>
+                                <small class="text-muted" title="${unit.pricingRules}">
+                                    ${unit.pricingRules.length > 50 ? 
+                                        unit.pricingRules.substring(0, 50) + '...' : 
+                                        unit.pricingRules
+                                    }
+                                </small>
+                            </td>
+                            <td><small class="text-muted">${unit.lastSync}</small></td>
+                        </tr>
+                    `;
+                });
+                
+                html += `</tbody></table></div>`;
+                
+                // Add summary statistics
+                const activeUnits = details.multiUnitsInfo.filter(unit => unit.active === 'Yes').length;
+                const unitsWithBarcodes = details.multiUnitsInfo.filter(unit => unit.barcode !== 'No barcode').length;
+                const totalPrice = details.multiUnitsInfo
+                    .filter(unit => unit.active === 'Yes')
+                    .reduce((sum, unit) => sum + parseFloat(unit.price.replace('$', '')), 0);
+                
+                html += `
+                                         <div class="row mt-3 unit-summary-cards">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Total Units</h6>
+                                    <h4 class="text-primary">${details.multiUnitsInfo.length}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Active Units</h6>
+                                    <h4 class="text-success">${activeUnits}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">With Barcodes</h6>
+                                    <h4 class="text-info">${unitsWithBarcodes}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Total Value</h6>
+                                    <h4 class="text-warning">$${totalPrice.toFixed(2)}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>No Multi-Units Configured:</strong> This product doesn't have any barcode units configured. 
+                        Multi-unit barcodes allow different packaging options with individual pricing and barcodes.
+                    </div>
+                    <div class="text-center text-muted p-4">
+                        <i class="fas fa-barcode fa-3x mb-3"></i>
+                        <p>Configure barcode units in Odoo to enable multi-unit functionality for this product.</p>
+                    </div>
+                `;
+            }
+            
+            html += `</div></div></div></div>`;
+            
+            container.innerHTML = html;
+        }
+
+        // Logging
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            
+            if (logContainer.textContent.includes('Logs will appear here')) {
+                logContainer.textContent = '';
+            }
+            
+            logContainer.textContent += logEntry;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLogs() {
+            logContainer.innerHTML = '<div class="text-muted">Logs cleared.</div>';
+        }
+
+        // Check connection every 30 seconds
+        setInterval(checkConnection, 30000);
+    </script>
+</body>
+</html>

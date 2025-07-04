@@ -1,0 +1,70 @@
+:root {
+  /* Brand Colors */
+  --color-brand-primary: #0e7d4a; /* SAPT green */
+  --color-brand-secondary: #8a3ab9; /* SAPT purple */
+  --color-brand-tertiary: #3498db; /* SAPT blue */
+
+  /* UI Colors */
+  --color-heading: #1e293b;
+  --color-text: #4b5563;
+  --color-muted: #6b7280;
+  --color-light: #f3f4f6;
+  --color-background: #ffffff;
+  --color-border: #e5e7eb;
+
+  /* State Colors */
+  --color-success: var(--color-brand-primary);
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: var(--color-brand-tertiary);
+}
+
+/* Set primary brand color as default text primary */
+.text-primary {
+  color: var(--color-brand-primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--color-brand-primary) !important;
+}
+
+.border-primary {
+  border-color: var(--color-brand-primary) !important;
+}
+
+.hover\:bg-primary:hover {
+  background-color: var(--color-brand-primary) !important;
+}
+
+.hover\:border-primary:hover {
+  border-color: var(--color-brand-primary) !important;
+}
+
+.hover\:text-primary:hover {
+  color: var(--color-brand-primary) !important;
+}
+
+/* Brand Secondary */
+.text-secondary {
+  color: var(--color-brand-secondary) !important;
+}
+
+.bg-secondary {
+  background-color: var(--color-brand-secondary) !important;
+}
+
+.border-secondary {
+  border-color: var(--color-brand-secondary) !important;
+}
+
+.hover\:bg-secondary:hover {
+  background-color: var(--color-brand-secondary) !important;
+}
+
+.hover\:border-secondary:hover {
+  border-color: var(--color-brand-secondary) !important;
+}
+
+.hover\:text-secondary:hover {
+  color: var(--color-brand-secondary) !important;
+} 

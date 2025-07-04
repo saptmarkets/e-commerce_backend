@@ -1,0 +1,12 @@
+{
+  "saved_ports": [
+    "4100",
+    "5055"
+  ],
+  "projects": {
+    "backend": "C:/Users/Asad/Desktop/app projects/kachabazar/saptmarkets v1/backend",
+    "admin": "C:/Users/Asad/Desktop/app projects/kachabazar/saptmarkets v1/admin",
+    "customer": "C:/Users/Asad/Desktop/app projects/kachabazar/saptmarkets v1/customer",
+    "SaptMarketsDeliveryApp": "C:/Users/Asad/Desktop/app projects/kachabazar/saptmarkets v1/SaptMarketsDeliveryApp"
+  }
+}
