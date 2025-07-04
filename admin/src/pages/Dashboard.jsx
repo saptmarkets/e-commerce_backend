@@ -180,28 +180,29 @@ const Dashboard = () => {
     );
     setYesterdayOrderAmount(yesterdayReport);
 
-    // sales orders chart data
-    const salesOrderChartData = dashboardOrderAmount?.ordersData?.filter(
-      (order) =>
-        dayjs(order.updatedAt).isBetween(
-          new Date().setDate(new Date().getDate() - 7),
-          new Date()
-        )
-    );
+    // === Sales and Orders Chart Data (Last 7 Days) ===
+    const dailyReportMap = {};
+    const today = dayjs();
 
-    salesOrderChartData?.reduce((res, value) => {
-      let onlyDate = value.updatedAt.split("T")[0];
+    // Initialize 7 days with default values
+    for (let i = 6; i >= 0; i--) {
+      const date = today.subtract(i, 'day').format('YYYY-MM-DD');
+      dailyReportMap[date] = { date: date, total: 0, order: 0 };
+    }
 
-      if (!res[onlyDate]) {
-        res[onlyDate] = { date: onlyDate, total: 0, order: 0 };
-        salesReport.push(res[onlyDate]);
+    // Populate with actual order data
+    dashboardOrderAmount?.ordersData?.forEach((value) => {
+      const onlyDate = dayjs(value.updatedAt).format('YYYY-MM-DD');
+      if (dailyReportMap[onlyDate]) {
+        dailyReportMap[onlyDate].total += value.total;
+        dailyReportMap[onlyDate].order += 1;
       }
-      res[onlyDate].total += value.total;
-      res[onlyDate].order += 1;
-      return res;
-    }, {});
+    });
 
-    setSalesReport(salesReport);
+    // Convert map to sorted array
+    const newSalesReport = Object.values(dailyReportMap).sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+    setSalesReport(newSalesReport);
+    console.log("Weekly Performance salesReport data:", newSalesReport); // Updated log
 
     const todayPaymentMethodData = [];
     const yesterDayPaymentMethodData = [];
@@ -542,12 +543,22 @@ const Dashboard = () => {
                         : 'from-blue-500 to-blue-300';
                       
                       return (
-                        <div key={index} className="flex flex-col items-center space-y-2">
+                        <div key={index} className="relative flex flex-col items-center space-y-2">
                           <div 
                             style={{ height: `${barHeight}px`, opacity: barOpacity }} 
                             className={`w-8 bg-gradient-to-t ${barGradient} rounded-t-lg transition-all duration-300 ease-out`}
                           ></div>
-                          <span className="text-xs text-gray-500">Day {index + 1}</span>
+                          {/* Vertical Value Label */}
+                          <div
+                            className="absolute top-0 text-xs font-bold text-gray-800 dark:text-gray-200 transform -rotate-90 origin-bottom-left z-10"
+                            style={{
+                              top: `calc(${barHeight}px / 2)`, // Position roughly in the middle of the bar vertically
+                              left: `calc(50% - 10px)`, // Adjust horizontally for rotation
+                            }}
+                          >
+                            {activeChartTab === 'Sales' ? `${currency}${getNumberTwo(value)}` : value}
+                          </div>
+                          <span className="text-xs text-gray-500">{dayjs(item.date).format('MMM DD')}</span>
                         </div>
                       );
                     })}
