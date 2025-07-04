@@ -6,6 +6,10 @@ import {
   TableFooter,
   TableHeader,
   WindmillContext,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@windmill/react-ui";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -13,8 +17,9 @@ import isToday from "dayjs/plugin/isToday";
 import isYesterday from "dayjs/plugin/isYesterday";
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FiCheck, FiRefreshCw, FiShoppingCart, FiTruck, FiTrendingUp, FiDollarSign, FiPackage, FiClock, FiActivity, FiEye, FiDownload, FiFilter, FiStar, FiZap, FiTarget, FiUsers } from "react-icons/fi";
+import { FiCheck, FiRefreshCw, FiShoppingCart, FiTruck, FiTrendingUp, FiDollarSign, FiPackage, FiClock, FiActivity, FiEye, FiDownload, FiFilter, FiStar, FiZap, FiTarget, FiUsers, FiTrash2 } from "react-icons/fi";
 import { ImCreditCard, ImStack } from "react-icons/im";
+import { useHistory } from "react-router-dom";
 
 //internal import
 import useAsync from "@/hooks/useAsync";
@@ -116,10 +121,12 @@ const Dashboard = () => {
   const [yesterdayCashPayment, setYesterdayCashPayment] = useState(0);
   const [yesterdayCardPayment, setYesterdayCardPayment] = useState(0);
   const [yesterdayCreditPayment, setYesterdayCreditPayment] = useState(0);
+  const [activeChartTab, setActiveChartTab] = useState('Sales'); // New state for chart selection
 
   // New state for low stock and promotions
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [activePromotions, setActivePromotions] = useState([]);
+  const [showLowStockModal, setShowLowStockModal] = useState(false);
 
   const {
     data: bestSellerProductChart,
@@ -140,6 +147,19 @@ const Dashboard = () => {
   );
 
   const { dataTable, serviceData } = useFilter(dashboardRecentOrder?.orders);
+
+  const history = useHistory();
+  const handleViewOrder = (order) => {
+    if (order._id) {
+      history.push(`/order/${order._id}`);
+    }
+  };
+  const handleDeleteOrder = (order) => {
+    // TODO: Implement delete logic (e.g., show confirmation, call API)
+    if (window.confirm(`Are you sure you want to delete order #${order.invoice}?`)) {
+      alert(`Order #${order.invoice} deleted!`);
+    }
+  };
 
   useEffect(() => {
     // today orders show
@@ -299,8 +319,12 @@ const Dashboard = () => {
 
     // Fetch low stock products and active promotions
     ProductUnitServices.getUnitsRequiringRefill().then(res => {
-      setLowStockProducts(res?.data || []);
-    }).catch(() => setLowStockProducts([]));
+      setLowStockProducts(res || []); // Use 'res' directly as it contains the array
+      console.log("Dashboard Low Stock Products:", res);
+    }).catch(err => {
+      console.error("Error fetching low stock products:", err);
+      setLowStockProducts([]);
+    });
     PromotionServices.getActivePromotions().then(res => {
       setActivePromotions(Array.isArray(res) ? res : (res?.promotions || []));
     }).catch(() => setActivePromotions([]));
@@ -421,7 +445,7 @@ const Dashboard = () => {
                 sparkle={true}
               />
             </div>
-          </div>
+        </div>
 
           {/* Order Metrics */}
           <div className="mx-6 mb-8">
@@ -474,54 +498,59 @@ const Dashboard = () => {
                       <span className="font-medium text-gray-600">Orders</span>
                     </div>
                   </div>
-                </div>
-                
+        </div>
+
                 {/* Modern Bar Chart */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex space-x-4">
-                      <button className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-semibold">Sales</button>
-                      <button className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Orders</button>
+                      <button
+                        onClick={() => setActiveChartTab('Sales')}
+                        className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                          activeChartTab === 'Sales'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'text-gray-500 hover:bg-gray-100'
+                        }`}
+                      >
+                        Sales
+                      </button>
+                      <button
+                        onClick={() => setActiveChartTab('Orders')}
+                        className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                          activeChartTab === 'Orders'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'text-gray-500 hover:bg-gray-100'
+                        }`}
+                      >
+                        Orders
+                      </button>
                     </div>
                   </div>
                   
                   {/* Bar Chart Area */}
                   <div className="h-64 flex items-end justify-between space-x-3 px-4">
-                    {/* Day 1 */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-8 h-24 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-60"></div>
-                      <span className="text-xs text-gray-500">Day 1</span>
-                    </div>
-                    {/* Day 2 */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-8 h-32 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-70"></div>
-                      <span className="text-xs text-gray-500">Day 2</span>
-                    </div>
-                    {/* Day 3 */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-8 h-40 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-80"></div>
-                      <span className="text-xs text-gray-500">Day 3</span>
-                    </div>
-                    {/* Day 4 */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-8 h-48 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-85"></div>
-                      <span className="text-xs text-gray-500">Day 4</span>
-                    </div>
-                    {/* Day 5 */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-8 h-56 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-90"></div>
-                      <span className="text-xs text-gray-500">Day 5</span>
-                    </div>
-                    {/* Day 6 */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-8 h-44 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg opacity-75"></div>
-                      <span className="text-xs text-gray-500">Day 6</span>
-                    </div>
-                    {/* Day 7 */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-8 h-60 bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-lg"></div>
-                      <span className="text-xs text-gray-500">Day 7</span>
-                    </div>
+                    {salesReport.length > 0 && salesReport.map((item, index) => {
+                      const value = activeChartTab === 'Sales' ? item.total : item.order;
+                      const maxValue = Math.max(...salesReport.map(reportItem => activeChartTab === 'Sales' ? reportItem.total : reportItem.order));
+                      // Scale bar height to fit within h-64 (256px) container
+                      const barHeight = maxValue > 0 ? (value / maxValue) * 256 : 0;
+                      // Base opacity, increase slightly with height for visual effect
+                      const barOpacity = 0.6 + (value / maxValue) * 0.4; 
+
+                      const barGradient = activeChartTab === 'Sales' 
+                        ? 'from-emerald-500 to-emerald-300' 
+                        : 'from-blue-500 to-blue-300';
+                      
+                      return (
+                        <div key={index} className="flex flex-col items-center space-y-2">
+                          <div 
+                            style={{ height: `${barHeight}px`, opacity: barOpacity }} 
+                            className={`w-8 bg-gradient-to-t ${barGradient} rounded-t-lg transition-all duration-300 ease-out`}
+                          ></div>
+                          <span className="text-xs text-gray-500">Day {index + 1}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </GlassCard>
@@ -534,9 +563,8 @@ const Dashboard = () => {
                     View All Products
                   </button>
                 </div>
-                
-                {/* Product List */}
-                <div className="space-y-4">
+                {/* Product List with Scrollbar */}
+                <div className="space-y-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
                   {/* Product 1 - Mega Combo Deal */}
                   <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl">
                     <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
@@ -577,7 +605,7 @@ const Dashboard = () => {
                     <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div className="w-1/2 h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"></div>
                     </div>
-                  </div>
+        </div>
 
                   {/* Product 4 - Smartline Water */}
                   <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-cyan-50 to-cyan-100 rounded-2xl">
@@ -628,6 +656,14 @@ const Dashboard = () => {
                   <div className="text-center">
                     <p className="text-3xl font-bold text-blue-600">{lowStockProducts.length}</p>
                     <p className="text-gray-500">Low Stock Alerts</p>
+                    {lowStockProducts.length > 0 && (
+                      <button
+                        onClick={() => setShowLowStockModal(true)}
+                        className="mt-2 px-4 py-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg text-sm font-semibold transition-all transform hover:scale-105"
+                      >
+                        View Details
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -635,78 +671,145 @@ const Dashboard = () => {
           </div>
 
           {/* Orders Table */}
-          <div className="mx-6 mb-8">
-            <GlassCard className="overflow-hidden">
-              <div className="p-8 pb-0">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">Recent Order Activity</h3>
-                  <div className="flex items-center space-x-3">
-                    <button className="p-2 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-colors">
-                      <FiFilter className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <button className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-2xl font-semibold transition-colors">
-                      Export Data
-                    </button>
-                  </div>
+          <GlassCard className="overflow-hidden">
+            <div className="p-8 pb-0">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Recent Order Activity</h3>
+                <div className="flex items-center space-x-3">
+                  <button className="p-2 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-colors">
+                    <FiFilter className="w-5 h-5 text-gray-600" />
+                  </button>
+                  <button className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-2xl font-semibold transition-colors">
+                    Export Data
+                  </button>
                 </div>
               </div>
-              
-              {loadingRecentOrder ? (
-                <div className="p-8">
-                  <TableLoading row={5} col={4} />
-                </div>
-              ) : error ? (
-                <div className="p-8 text-center text-red-500">{error}</div>
-              ) : serviceData?.length !== 0 ? (
-                <div className="overflow-x-auto">
-                  <TableContainer>
-                    <Table>
-                      <TableHeader>
-                        <tr className="border-b border-gray-200/50">
-                          <TableCell className="px-8 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                            {t("InvoiceNo")}
+            </div>
+      {loadingRecentOrder ? (
+              <div className="p-8">
+        <TableLoading row={5} col={4} />
+              </div>
+      ) : error ? (
+              <div className="p-8 text-center text-red-500">{error}</div>
+      ) : serviceData?.length !== 0 ? (
+              <div className="overflow-x-auto max-h-96 custom-scrollbar">
+                <TableContainer>
+                  <Table className="min-w-full text-sm text-gray-900">
+            <TableHeader>
+                      <tr className="border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-purple-50">
+                        <TableCell className="px-8 py-4 text-left font-bold text-gray-700 uppercase tracking-wider">{t("InvoiceNo")}</TableCell>
+                        <TableCell className="px-6 py-4 text-left font-bold text-gray-700 uppercase tracking-wider">{t("CustomerName")}</TableCell>
+                        <TableCell className="px-6 py-4 text-left font-bold text-gray-700 uppercase tracking-wider">{t("TimeTbl")}</TableCell>
+                        <TableCell className="px-6 py-4 text-left font-bold text-gray-700 uppercase tracking-wider">{t("MethodTbl")}</TableCell>
+                        <TableCell className="px-6 py-4 text-left font-bold text-gray-700 uppercase tracking-wider">{t("AmountTbl")}</TableCell>
+                        <TableCell className="px-6 py-4 text-left font-bold text-gray-700 uppercase tracking-wider">{t("OderStatusTbl")}</TableCell>
+                        <TableCell className="px-8 py-4 text-left font-bold text-gray-700 uppercase tracking-wider">{t("ActionTbl")}</TableCell>
+              </tr>
+            </TableHeader>
+                    {/* Modernized OrderTable rows with hover and status pill */}
+                    <tbody>
+                      {(dataTable || []).map((order, idx) => (
+                        <tr key={order._id || order.id || idx} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-colors">
+                          <TableCell className="px-8 py-4">{order.invoice}</TableCell>
+                          <TableCell className="px-6 py-4">{order.user_info?.name}</TableCell>
+                          <TableCell className="px-6 py-4">{dayjs(order.createdAt).format('YYYY-MM-DD HH:mm')}</TableCell>
+                          <TableCell className="px-6 py-4">{order.paymentMethod}</TableCell>
+                          <TableCell className="px-6 py-4">{currency}{getNumberTwo(order.total)}</TableCell>
+                          <TableCell className="px-6 py-4">
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>{order.status}</span>
                           </TableCell>
-                          <TableCell className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                            {t("CustomerName")}
-                          </TableCell>
-                          <TableCell className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                            {t("TimeTbl")}
-                          </TableCell>
-                          <TableCell className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                            {t("MethodTbl")}
-                          </TableCell>
-                          <TableCell className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                            {t("AmountTbl")}
-                          </TableCell>
-                          <TableCell className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                            {t("OderStatusTbl")}
-                          </TableCell>
-                          <TableCell className="px-8 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                            {t("ActionTbl")}
+                          <TableCell className="px-8 py-4 flex space-x-2">
+                            <button
+                              onClick={() => handleViewOrder(order)}
+                              className="p-2 rounded-lg bg-gradient-to-r from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 text-blue-700 shadow-sm transition-all"
+                              title="View Order"
+                            >
+                              <FiEye className="w-5 h-5" />
+                            </button>
                           </TableCell>
                         </tr>
-                      </TableHeader>
-                      <OrderTable orders={dataTable} />
-                    </Table>
-                    <TableFooter>
-                      <Pagination
-                        totalResults={dashboardRecentOrder?.totalOrder}
-                        resultsPerPage={8}
-                        onChange={handleChangePage}
-                        label="Table navigation"
-                      />
-                    </TableFooter>
-                  </TableContainer>
-                </div>
-              ) : (
-                <div className="p-8">
-                  <NotFound title="Sorry, There are no orders right now." />
-                </div>
-              )}
-            </GlassCard>
-          </div>
+                      ))}
+                    </tbody>
+          </Table>
+          <TableFooter>
+            <Pagination
+              totalResults={dashboardRecentOrder?.totalOrder}
+              resultsPerPage={8}
+              onChange={handleChangePage}
+              label="Table navigation"
+            />
+          </TableFooter>
+        </TableContainer>
+              </div>
+      ) : (
+              <div className="p-8">
+        <NotFound title="Sorry, There are no orders right now." />
+              </div>
+            )}
+          </GlassCard>
         </div>
       </div>
+      {/* Low Stock Modal */}
+      <Modal isOpen={showLowStockModal} onClose={() => setShowLowStockModal(false)}>
+        <ModalHeader className="text-2xl font-bold text-gray-900">Low Stock Products</ModalHeader>
+        <ModalBody className="max-h-96 overflow-y-auto">
+          <div className="space-y-4">
+            {lowStockProducts.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">No low stock products found!</p>
+            ) : (
+              lowStockProducts.map((unit) => (
+                <div key={unit._id} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-200">
+                  <div className="w-20 h-20 bg-gray-200 rounded-xl overflow-hidden flex-shrink-0">
+                    {unit.images && unit.images[0] ? (
+                      <img src={unit.images[0]} alt={unit.title || "Product"} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <FiPackage className="w-8 h-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900">{unit.title || unit.sku || "Unknown Product"}</h4>
+                    <p className="text-sm text-gray-600">SKU: {unit.sku || "N/A"} | Barcode: {unit.barcode || "N/A"}</p>
+                    <div className="flex items-center space-x-4 mt-2">
+                      <span className="text-sm font-semibold text-red-600">Stock: {unit.stock}</span>
+                      <span className="text-sm text-gray-500">Pack Qty: {unit.packQty}</span>
+                      <span className="text-sm text-gray-500">Price: {currency}{unit.price}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                      {unit.stock === 0 ? "Out of Stock" : "Low Stock"}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => setShowLowStockModal(false)}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
+          >
+            Close
+          </button>
+        </ModalFooter>
+      </Modal>
+      <style jsx global>{`
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #a5b4fc 0%, #6ee7b7 100%);
+  border-radius: 8px;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #a5b4fc #f3f4f6;
+}
+`}</style>
     </>
   );
 };
