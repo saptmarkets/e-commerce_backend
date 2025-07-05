@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, Button, Badge, Input, Select, Label } from '@windmill/react-ui';
-import { FiPackage, FiTrendingUp, FiAlertTriangle, FiDollarSign, FiBarChart3, FiDownload, FiFilter } from 'react-icons/fi';
+import { FiPackage, FiTrendingUp, FiAlertTriangle, FiDollarSign, FiBarChart2, FiDownload, FiFilter } from 'react-icons/fi';
 import PageTitle from '@/components/Typography/PageTitle';
 import SectionTitle from '@/components/Typography/SectionTitle';
 import useUtilsFunction from '@/hooks/useUtilsFunction';
@@ -315,7 +315,7 @@ const InventoryReports = () => {
           <Card>
             <CardBody className="flex items-center">
               <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-500 mr-4">
-                <FiBarChart3 className="text-emerald-500 dark:text-emerald-100" size={24} />
+                <FiBarChart2 className="text-emerald-500 dark:text-emerald-100" size={24} />
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Well Stocked</p>
