@@ -40,7 +40,19 @@ class InventoryAnalyticsService {
         },
         {
           $project: {
-            title: 1,
+            title: {
+              $cond: {
+                if: "$title.en",
+                then: "$title.en",
+                else: {
+                  $cond: {
+                    if: "$title.ar",
+                    then: "$title.ar",
+                    else: "$title"
+                  }
+                }
+              }
+            },
             sku: 1,
             barcode: 1,
             stock: 1,
@@ -193,7 +205,19 @@ class InventoryAnalyticsService {
           $project: {
             orderId: "$_id",
             productId: "$cart.id",
-            productTitle: { $arrayElemAt: ["$productInfo.title", 0] },
+            productTitle: {
+              $cond: {
+                if: { $arrayElemAt: ["$productInfo.title.en", 0] },
+                then: { $arrayElemAt: ["$productInfo.title.en", 0] },
+                else: {
+                  $cond: {
+                    if: { $arrayElemAt: ["$productInfo.title.ar", 0] },
+                    then: { $arrayElemAt: ["$productInfo.title.ar", 0] },
+                    else: { $arrayElemAt: ["$productInfo.title", 0] }
+                  }
+                }
+              }
+            },
             sku: { $arrayElemAt: ["$productInfo.sku", 0] },
             quantity: "$cart.quantity",
             unitPrice: "$cart.price",
@@ -297,7 +321,19 @@ class InventoryAnalyticsService {
         {
           $project: {
             productId: "$_id",
-            productTitle: "$productTitle",
+            productTitle: {
+              $cond: {
+                if: { $arrayElemAt: ["$productInfo.title.en", 0] },
+                then: { $arrayElemAt: ["$productInfo.title.en", 0] },
+                else: {
+                  $cond: {
+                    if: { $arrayElemAt: ["$productInfo.title.ar", 0] },
+                    then: { $arrayElemAt: ["$productInfo.title.ar", 0] },
+                    else: "$productTitle"
+                  }
+                }
+              }
+            },
             currentStock: { $arrayElemAt: ["$productInfo.stock", 0] },
             sku: { $arrayElemAt: ["$productInfo.sku", 0] },
             category: { $arrayElemAt: ["$productInfo.category", 0] },
@@ -402,7 +438,19 @@ class InventoryAnalyticsService {
         },
         {
           $project: {
-            title: 1,
+            title: {
+              $cond: {
+                if: "$title.en",
+                then: "$title.en",
+                else: {
+                  $cond: {
+                    if: "$title.ar",
+                    then: "$title.ar",
+                    else: "$title"
+                  }
+                }
+              }
+            },
             sku: 1,
             category: 1,
             categoryName: { $arrayElemAt: ["$categoryInfo.name", 0] },
@@ -526,7 +574,19 @@ class InventoryAnalyticsService {
         {
           $project: {
             productId: "$_id",
-            productTitle: "$productTitle",
+            productTitle: {
+              $cond: {
+                if: { $arrayElemAt: ["$productInfo.title.en", 0] },
+                then: { $arrayElemAt: ["$productInfo.title.en", 0] },
+                else: {
+                  $cond: {
+                    if: { $arrayElemAt: ["$productInfo.title.ar", 0] },
+                    then: { $arrayElemAt: ["$productInfo.title.ar", 0] },
+                    else: "$productTitle"
+                  }
+                }
+              }
+            },
             totalRevenue: 1,
             totalQuantity: 1,
             currentStock: { $arrayElemAt: ["$productInfo.stock", 0] },

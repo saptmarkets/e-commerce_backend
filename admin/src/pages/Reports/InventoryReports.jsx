@@ -65,16 +65,16 @@ const InventoryReports = () => {
         }
       });
 
-      console.log('🎸 Full API Response:', response);
-      console.log('🎸 Response Data:', response.data);
+      console.log('🎸 API Response received with success:', response.success);
+      console.log('🎸 Dashboard data keys:', Object.keys(response.data || {}));
 
-      if (response.data.success) {
-        setDashboardData(response.data.data);
+      if (response.success) {
+        setDashboardData(response.data);
         console.log('✅ Dashboard data loaded successfully');
-        console.log('🎸 Dashboard data structure:', response.data.data);
+        console.log('🎸 Dashboard data structure:', response.data);
       } else {
         console.error('❌ Failed to load dashboard data');
-        console.error('❌ Response:', response.data);
+        console.error('❌ Response:', response);
       }
     } catch (error) {
       console.error('🎸 Dashboard Error:', error);
@@ -170,6 +170,14 @@ const InventoryReports = () => {
   // 📤 Export Functions
   const exportToCSV = async (reportType) => {
     try {
+      console.log('🎸 Starting CSV export for:', reportType);
+      console.log('🎸 Export params:', {
+        format: 'csv',
+        reportType,
+        lowStockThreshold: filters.lowStockThreshold,
+        period: filters.period
+      });
+
       const response = await httpService.get('/reports/inventory/export/advanced', {
         params: {
           format: 'csv',
@@ -179,6 +187,10 @@ const InventoryReports = () => {
         }
       });
 
+      console.log('🎸 Export response:', response);
+      console.log('🎸 Export data type:', typeof response.data);
+      console.log('🎸 Export data length:', response.data ? response.data.length : 0);
+
       if (response.data) {
         const blob = new Blob([response.data], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
@@ -187,9 +199,17 @@ const InventoryReports = () => {
         a.download = `inventory_${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
+        console.log('✅ CSV export successful');
+      } else {
+        console.error('❌ No data received for CSV export');
       }
     } catch (error) {
-      console.error('Export error:', error);
+      console.error('🎸 CSV Export error:', error);
+      console.error('🎸 Export error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
     }
   };
 
@@ -216,7 +236,6 @@ const InventoryReports = () => {
 
   // 🎯 Load data on mount and when filters change
   useEffect(() => {
-    testBasicData(); // Test first
     fetchDashboardData();
   }, []);
 
