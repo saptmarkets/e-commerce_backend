@@ -1,33 +1,19 @@
 // 🎸 Sales Analytics Dashboard - Fixed Data Handling Version
 // Focuses on working with actual API responses and avoiding crashes
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Card, CardBody, Button, Badge } from '@windmill/react-ui';
 import { HiRefresh, HiDownload, HiTrendingUp, HiTrendingDown, HiUsers, HiShoppingCart, HiCash, HiEye, HiX, HiCheck } from 'react-icons/hi';
 import requests from '@/services/httpService';
-import { useContext } from 'react';
 import { SidebarContext } from '@/context/SidebarContext';
 import useUtilsFunction from '@/hooks/useUtilsFunction';
 
 const SalesAnalytics = () => {
   const { currency, getNumberTwo } = useUtilsFunction();
   
-  // 🎸 Simple State Management
+  // 🎸 State Management
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [exportLoading, setExportLoading] = useState(false);
-  const [exportOptions, setExportOptions] = useState({
-    format: 'csv', // csv, excel, pdf
-    data: {
-      overview: true,
-      trends: true,
-      paymentMethods: true,
-      topProducts: true,
-      categories: true
-    },
-    dateRange: 'all' // all, today, week, month
-  });
   const [dashboardData, setDashboardData] = useState({
     overview: null,
     trends: null,
@@ -36,7 +22,66 @@ const SalesAnalytics = () => {
     categories: null
   });
 
-  // 🎸 Safe Data Fetching - Only working endpoints
+  // 🎸 Filter State
+  const [filters, setFilters] = useState({
+    period: 'daily', // daily, weekly, monthly
+    month: new Date().getMonth() + 1, // 1-12
+    year: new Date().getFullYear(),
+    startDate: null,
+    endDate: null
+  });
+
+  // 🎸 Export State
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportOptions, setExportOptions] = useState({
+    format: 'csv',
+    dateRange: 'all',
+    data: {
+      overview: true,
+      trends: true,
+      paymentMethods: true,
+      topProducts: true,
+      categories: true
+    }
+  });
+
+  // 🎸 Helper function to get date range based on filters
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (filters.period) {
+      case 'daily':
+        // Last 30 days
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      
+      case 'weekly':
+        // Last 12 weeks
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (12 * 7));
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      
+      case 'monthly':
+        // Specific month and year
+        startDate = new Date(filters.year, filters.month - 1, 1);
+        endDate = new Date(filters.year, filters.month, 0); // Last day of month
+        break;
+      
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+  };
+
+  // 🎸 Fetch data with filters
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -44,93 +89,105 @@ const SalesAnalytics = () => {
       
       console.log('🎸 Fetching dashboard data from working endpoints...');
       
-      // Only call endpoints that exist and work
-      const promises = [];
+      const dateRange = getDateRange();
+      const queryParams = new URLSearchParams({
+        period: filters.period,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      });
+
       const results = {};
-
-      // Overview endpoint (working)
-      promises.push(
-        requests.get('/reports/sales/overview').then(response => {
-          results.overview = response;
-          console.log('🎸 Overview data:', response);
-        }).catch(err => {
-          console.log('🎸 Overview endpoint failed:', err.message);
-          results.overview = null;
-        })
-      );
-
-      // Trends endpoint (working)  
-      promises.push(
-        requests.get('/reports/sales/trends').then(response => {
-          results.trends = response;
-          console.log('🎸 Trends data:', response);
-        }).catch(err => {
-          console.log('🎸 Trends endpoint failed:', err.message);
-          results.trends = null;
-        })
-      );
-
-      // Payment methods endpoint (working)
-      promises.push(
-        requests.get('/reports/sales/payment-methods').then(response => {
-          results.paymentMethods = response;
-          console.log('🎸 Payment methods data:', response);
-        }).catch(err => {
-          console.log('🎸 Payment methods endpoint failed:', err.message);
-          results.paymentMethods = null;
-        })
-      );
-
-      // Top products endpoint (working)
-      promises.push(
-        requests.get('/reports/sales/top-products').then(response => {
-          results.topProducts = response;
-          console.log('🎸 Top products data:', response);
-        }).catch(err => {
-          console.log('🎸 Top products endpoint failed:', err.message);
-          results.topProducts = null;
-        })
-      );
-
-      // Categories endpoint (new!)
-      promises.push(
-        requests.get('/reports/sales/categories').then(response => {
-          results.categories = response;
-          console.log('🎸 Categories data:', response);
-        }).catch(err => {
-          console.log('🎸 Categories endpoint failed:', err.message);
-          results.categories = null;
-        })
-      );
-
-      // Wait for all requests to complete
-      await Promise.all(promises);
       
-      // Update state with all results
-      setDashboardData(results);
+      // Fetch all data with filters
+      try {
+        const response = await requests.get(`/reports/sales/overview?${queryParams}`);
+        results.overview = response;
+        console.log('🎸 Overview data:', response);
+      } catch (err) {
+        console.error('🎸 Overview error:', err);
+        results.overview = null;
+      }
+
+      try {
+        const response = await requests.get(`/reports/sales/trends?${queryParams}`);
+        results.trends = response;
+        console.log('🎸 Trends data:', response);
+      } catch (err) {
+        console.error('🎸 Trends error:', err);
+        results.trends = null;
+      }
+
+      try {
+        const response = await requests.get(`/reports/sales/payment-methods?${queryParams}`);
+        results.paymentMethods = response;
+        console.log('🎸 Payment methods data:', response);
+      } catch (err) {
+        console.error('🎸 Payment methods error:', err);
+        results.paymentMethods = null;
+      }
+
+      try {
+        const response = await requests.get(`/reports/sales/top-products?${queryParams}`);
+        console.log('🎸 Top products data:', response);
+        results.topProducts = response;
+      } catch (err) {
+        console.error('🎸 Top products error:', err);
+        results.topProducts = null;
+      }
+
+      try {
+        const response = await requests.get(`/reports/sales/categories?${queryParams}`);
+        console.log('🎸 Categories data:', response);
+        results.categories = response;
+      } catch (err) {
+        console.error('🎸 Categories error:', err);
+        results.categories = null;
+      }
+
       console.log('🎸 All data fetched successfully!', results);
+      setDashboardData(results);
       
-    } catch (err) {
-      console.error('🎸 Error loading dashboard data:', err);
-      setError(err.message || 'Failed to load dashboard data');
+    } catch (error) {
+      console.error('🎸 Dashboard fetch error:', error);
+      setError(error.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
-  // 🎸 Load data on component mount
+  // Load data on component mount and filter changes
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [filters]);
 
-  // 🎸 Event Handlers
+  // 🎸 Filter Change Handlers
+  const handlePeriodChange = (newPeriod) => {
+    setFilters(prev => ({
+      ...prev,
+      period: newPeriod
+    }));
+  };
+
+  const handleMonthChange = (month) => {
+    setFilters(prev => ({
+      ...prev,
+      month: parseInt(month)
+    }));
+  };
+
+  const handleYearChange = (year) => {
+    setFilters(prev => ({
+      ...prev,
+      year: parseInt(year)
+    }));
+  };
+
+  // 🎸 Refresh and Export handlers
   const handleRefresh = () => {
-    console.log('🎸 Refreshing dashboard data...');
     fetchDashboardData();
   };
 
   const handleExport = () => {
-    console.log('🎸 Opening export modal...');
     setShowExportModal(true);
   };
 
@@ -587,11 +644,122 @@ const SalesAnalytics = () => {
     return [];
   };
 
+  // 🎸 Get data for rendering
   const kpis = getOverviewKPIs();
   const trendsData = getTrendsData();
   const paymentMethodsData = getPaymentMethodsData();
   const topProductsData = getTopProductsData();
   const categorySalesData = getCategorySalesData();
+
+  // 🎸 Render Filter Controls
+  const renderFilterControls = () => {
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+    const months = [
+      { value: 1, label: 'January' },
+      { value: 2, label: 'February' },
+      { value: 3, label: 'March' },
+      { value: 4, label: 'April' },
+      { value: 5, label: 'May' },
+      { value: 6, label: 'June' },
+      { value: 7, label: 'July' },
+      { value: 8, label: 'August' },
+      { value: 9, label: 'September' },
+      { value: 10, label: 'October' },
+      { value: 11, label: 'November' },
+      { value: 12, label: 'December' }
+    ];
+
+    return (
+      <Card>
+        <CardBody>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            📅 Report Filters
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Period Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Report Period
+              </label>
+              <select
+                value={filters.period}
+                onChange={(e) => handlePeriodChange(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="daily">Daily (Last 30 days)</option>
+                <option value="weekly">Weekly (Last 12 weeks)</option>
+                <option value="monthly">Monthly (Specific month)</option>
+              </select>
+            </div>
+
+            {/* Month Selection (only for monthly period) */}
+            {filters.period === 'monthly' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Month
+                </label>
+                <select
+                  value={filters.month}
+                  onChange={(e) => handleMonthChange(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Year Selection (only for monthly period) */}
+            {filters.period === 'monthly' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Year
+                </label>
+                <select
+                  value={filters.year}
+                  onChange={(e) => handleYearChange(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {years.map(year => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Apply Filter Button */}
+            <div className="flex items-end">
+              <Button
+                onClick={handleRefresh}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <HiRefresh className={loading ? 'animate-spin' : ''} />
+                {loading ? 'Loading...' : 'Apply Filters'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Current Filter Display */}
+          <div className="mt-4 p-3 bg-purple-50 rounded-lg">
+            <p className="text-sm text-purple-700">
+              <strong>Current Filter:</strong> {' '}
+              {filters.period === 'daily' && 'Daily reports for last 30 days'}
+              {filters.period === 'weekly' && 'Weekly reports for last 12 weeks'}
+              {filters.period === 'monthly' && `Monthly report for ${months.find(m => m.value === filters.month)?.label} ${filters.year}`}
+            </p>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -600,10 +768,10 @@ const SalesAnalytics = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              🎸 Sales Analytics Dashboard
+              📊 Sales Analytics Dashboard
             </h1>
             <p className="text-gray-600">
-              Real-time sales performance insights
+              Real-time sales performance insights with advanced filtering
             </p>
           </div>
           <div className="flex gap-3">
@@ -627,6 +795,11 @@ const SalesAnalytics = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* 🎸 Filter Controls */}
+      <div className="mb-8">
+        {renderFilterControls()}
       </div>
 
       {/* 🎸 Error Display */}
