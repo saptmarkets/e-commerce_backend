@@ -5,8 +5,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardBody, Button, Badge } from '@windmill/react-ui';
 import { HiRefresh, HiDownload, HiTrendingUp, HiTrendingDown, HiUsers, HiShoppingCart, HiCash, HiEye, HiX, HiCheck } from 'react-icons/hi';
 import requests from '@/services/httpService';
+import { useContext } from 'react';
+import { SidebarContext } from '@/context/SidebarContext';
+import useUtilsFunction from '@/hooks/useUtilsFunction';
 
 const SalesAnalytics = () => {
+  const { currency, getNumberTwo } = useUtilsFunction();
+  
   // 🎸 Simple State Management
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -164,78 +169,127 @@ const SalesAnalytics = () => {
   // 🎸 Simple PDF Export Function (temporarily disabled to prevent crashes)
   const exportToPDF = async (data, filename) => {
     try {
-      // Create a simple HTML version for now
+      if (!data || data.length === 0) {
+        console.log('🎸 No data to export');
+        alert('No data available to export');
+        return;
+      }
+
+      const headers = Object.keys(data[0]);
       const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>SaptMarkets Sales Analytics Report</title>
+          <title>Sales Analytics Report</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; border-bottom: 2px solid #8B5CF6; padding-bottom: 10px; margin-bottom: 20px; }
-            .title { font-size: 24px; color: #8B5CF6; margin-bottom: 5px; }
-            .section { margin-bottom: 15px; }
-            .section-title { font-size: 14px; font-weight: bold; background: #F3F4F6; padding: 5px; margin-bottom: 8px; }
-            .row { margin-bottom: 3px; padding: 2px; }
-            .footer { text-align: center; border-top: 1px solid #E5E7EB; padding-top: 10px; margin-top: 20px; color: #6B7280; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              background: #f9f9f9; 
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              padding: 20px; 
+              background: white; 
+              border-radius: 10px; 
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .header h1 { 
+              color: #333; 
+              margin: 0; 
+              font-size: 24px; 
+            }
+            .header p { 
+              color: #666; 
+              margin: 5px 0 0 0; 
+            }
+            .content { 
+              background: white; 
+              padding: 20px; 
+              border-radius: 10px; 
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 20px; 
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 12px; 
+              text-align: left; 
+            }
+            th { 
+              background-color: #f8f9fa; 
+              font-weight: bold; 
+              color: #333;
+            }
+            tr:nth-child(even) { 
+              background-color: #f9f9f9; 
+            }
+            .footer { 
+              text-align: center; 
+              margin-top: 30px; 
+              padding: 20px; 
+              background: white; 
+              border-radius: 10px; 
+              color: #666; 
+              font-size: 12px; 
+            }
+            .section-title { 
+              font-size: 18px; 
+              font-weight: bold; 
+              color: #333; 
+              margin: 20px 0 10px 0; 
+            }
+            .stats { 
+              display: flex; 
+              justify-content: space-around; 
+              margin-bottom: 20px; 
+            }
+            .stat-item { 
+              text-align: center; 
+              padding: 10px; 
+            }
+            .stat-value { 
+              font-size: 20px; 
+              font-weight: bold; 
+              color: #4A90E2; 
+            }
+            .stat-label { 
+              font-size: 12px; 
+              color: #666; 
+            }
           </style>
         </head>
         <body>
           <div class="header">
-            <div class="title">SaptMarkets Sales Analytics Report</div>
-            <div>Generated: ${new Date().toLocaleString()}</div>
+            <h1>📊 Sales Analytics Report</h1>
+            <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           </div>
           
           <div class="content">
-            ${data.overview ? `
-              <div class="section">
-                <div class="section-title">📊 Overview & KPIs</div>
-                ${data.overview.map(item => `
-                  <div class="row">${Object.keys(item)[0]}: ${Object.values(item)[0]}</div>
+            <div class="section-title">📈 ${filename.replace('sales-analytics-', '').replace('-' + new Date().toISOString().split('T')[0], '').toUpperCase()}</div>
+            <table>
+              <thead>
+                <tr>
+                  ${headers.map(header => `<th>${header}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${data.map(row => `
+                  <tr>
+                    ${headers.map(header => `<td>${row[header] || ''}</td>`).join('')}
+                  </tr>
                 `).join('')}
-              </div>
-            ` : ''}
-            
-            ${data.trends && data.trends.length > 0 ? `
-              <div class="section">
-                <div class="section-title">📈 Sales Trends</div>
-                ${data.trends.slice(0, 10).map(item => `
-                  <div class="row">${item.Date} - ${item.Revenue}</div>
-                `).join('')}
-              </div>
-            ` : ''}
-            
-            ${data.paymentMethods && data.paymentMethods.length > 0 ? `
-              <div class="section">
-                <div class="section-title">💳 Payment Methods</div>
-                ${data.paymentMethods.map(item => `
-                  <div class="row">${item['Payment Method']}: ${item.Revenue}</div>
-                `).join('')}
-              </div>
-            ` : ''}
-            
-            ${data.topProducts && data.topProducts.length > 0 ? `
-              <div class="section">
-                <div class="section-title">🏆 Top Products</div>
-                ${data.topProducts.slice(0, 10).map(item => `
-                  <div class="row">${item['Product Name']}: ${item.Revenue}</div>
-                `).join('')}
-              </div>
-            ` : ''}
-            
-            ${data.categories && data.categories.length > 0 ? `
-              <div class="section">
-                <div class="section-title">📦 Category Sales</div>
-                ${data.categories.map(item => `
-                  <div class="row">${item['Category Name']}: ${item.Revenue}</div>
-                `).join('')}
-              </div>
-            ` : ''}
+              </tbody>
+            </table>
           </div>
           
           <div class="footer">
-            <div>🎸 Generated by SaptMarkets Analytics System</div>
-            <div>Elvis says: "Thank you, thank you very much!"</div>
+            <div>📊 Generated by SaptMarkets Analytics System</div>
+            <div>Report Date: ${new Date().toLocaleDateString()}</div>
           </div>
         </body>
         </html>
@@ -247,12 +301,11 @@ const SalesAnalytics = () => {
       link.download = `${filename}.html`;
       link.click();
       
-      console.log('🎸 HTML export successful! (PDF coming soon)');
-      alert('🎸 Exported as HTML file! PDF functionality will be enhanced soon. For now, you can print the HTML file to PDF. 🎸');
+      console.log('📊 HTML export successful!');
       
     } catch (error) {
-      console.error('🎸 Export failed:', error);
-      alert('Export failed. Please try CSV format. 🎸');
+      console.error('📊 Export failed:', error);
+      alert('Export failed. Please try CSV format.');
     }
   };
 
@@ -356,11 +409,10 @@ const SalesAnalytics = () => {
 
   // 🎸 Utility Functions
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount || 0);
+    if (currency === '\uE900' || currency.includes('SAR') || currency.includes('riyal')) {
+      return `${currency}${getNumberTwo(amount || 0)}`;
+    }
+    return `${currency}${getNumberTwo(amount || 0)}`;
   };
 
   const formatNumber = (num) => {
@@ -989,28 +1041,10 @@ const SalesAnalytics = () => {
                   Cancel
                 </Button>
               </div>
-
-              {/* Elvis Message */}
-              <div className="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg">
-                <div className="flex items-center text-purple-600 dark:text-purple-400 mb-2">
-                  <span className="mr-2">🎸</span>
-                  <span className="font-medium">Elvis Says:</span>
-                </div>
-                <p className="text-sm text-purple-700 dark:text-purple-300 italic">
-                  "Export that data, baby! CSV, Excel, and HTML reports - all rockin' and ready to go!" 🎵
-                </p>
-              </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* 🎸 Elvis Footer */}
-      <div className="mt-8 text-center">
-        <p className="text-gray-500 text-sm">
-          🎸 <strong>Elvis Says:</strong> "Now this baby works without crashing! Thank you, thank you very much!" 🎵
-        </p>
-      </div>
     </div>
   );
 };
