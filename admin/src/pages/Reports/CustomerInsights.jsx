@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardBody, Button, Input, Label, Select } from "@windmill/react-ui";
-import { FiUsers, FiTrendingUp, FiMapPin, FiDollarSign, FiStar, FiDownload } from "react-icons/fi";
+import { Card, CardBody, Button, Input, Label, Select, Modal, ModalHeader, ModalBody, ModalFooter } from "@windmill/react-ui";
+import { FiUsers, FiTrendingUp, FiMapPin, FiDollarSign, FiStar, FiDownload, FiEye, FiShoppingBag, FiCalendar, FiX } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import PageTitle from "@/components/Typography/PageTitle";
@@ -21,6 +21,13 @@ const CustomerInsights = () => {
     city: "",
     limit: 50
   });
+
+  // 🎸 Customer Detail States
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [customerOrders, setCustomerOrders] = useState([]);
+  const [customerOrdersLoading, setCustomerOrdersLoading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   // 🎸 Load Customer Dashboard Data
   const fetchDashboardData = async () => {
@@ -56,6 +63,54 @@ const CustomerInsights = () => {
       ...prev,
       [key]: value
     }));
+  };
+
+  // 🎸 Handle Customer Selection and Load Order Details
+  const handleCustomerSelect = async (customer) => {
+    try {
+      setSelectedCustomer(customer);
+      setIsCustomerModalOpen(true);
+      setCustomerOrdersLoading(true);
+      
+      console.log("🎸 Loading orders for customer:", customer.customerId || customer._id);
+      
+      // Get customer order history
+      const response = await httpService.get(`/order/customer/${customer.customerId || customer._id}`, {
+        params: {
+          limit: 100, // Get more orders for detailed view
+          page: 1
+        }
+      });
+      
+      console.log("🎸 Customer orders response:", response);
+      
+      if (response && response.orders) {
+        setCustomerOrders(response.orders);
+      } else if (response && Array.isArray(response)) {
+        setCustomerOrders(response);
+      } else {
+        setCustomerOrders([]);
+      }
+      
+    } catch (error) {
+      console.error("🎸 Error loading customer orders:", error);
+      setCustomerOrders([]);
+    } finally {
+      setCustomerOrdersLoading(false);
+    }
+  };
+
+  // 🎸 Close Customer Modal
+  const closeCustomerModal = () => {
+    setIsCustomerModalOpen(false);
+    setSelectedCustomer(null);
+    setCustomerOrders([]);
+    setSelectedOrder(null);
+  };
+
+  // 🎸 Handle Order Selection
+  const handleOrderSelect = (order) => {
+    setSelectedOrder(selectedOrder?._id === order._id ? null : order);
   };
 
   // 🎸 Export Customer Data
@@ -112,6 +167,34 @@ const CustomerInsights = () => {
     '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1', 
     '#d084d0', '#ffb347', '#87ceeb', '#dda0dd', '#98fb98'
   ];
+
+  // 🎸 Format Date for display
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // 🎸 Format Order Status
+  const getOrderStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+      case 'cancel':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   // 🎸 Tab Navigation Component
   const TabNavigation = () => (
@@ -310,6 +393,7 @@ const CustomerInsights = () => {
                     <th className="px-4 py-2 text-right">Total Spent</th>
                     <th className="px-4 py-2 text-right">Orders</th>
                     <th className="px-4 py-2 text-center">Segment</th>
+                    <th className="px-4 py-2 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -329,6 +413,16 @@ const CustomerInsights = () => {
                         }`}>
                           {customer.customerSegment}
                         </span>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => handleCustomerSelect(customer)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          <FiEye className="w-3 h-3 mr-1" />
+                          View Details
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -397,6 +491,7 @@ const CustomerInsights = () => {
                     <th className="px-4 py-2 text-right">Orders</th>
                     <th className="px-4 py-2 text-right">AOV</th>
                     <th className="px-4 py-2 text-center">Segment</th>
+                    <th className="px-4 py-2 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -417,6 +512,16 @@ const CustomerInsights = () => {
                         }`}>
                           {customer.customerSegment}
                         </span>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => handleCustomerSelect(customer)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          <FiEye className="w-3 h-3 mr-1" />
+                          View Details
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -479,6 +584,7 @@ const CustomerInsights = () => {
                     <th className="px-4 py-2 text-right">Monetary</th>
                     <th className="px-4 py-2 text-center">RFM Score</th>
                     <th className="px-4 py-2 text-center">Segment</th>
+                    <th className="px-4 py-2 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -500,6 +606,16 @@ const CustomerInsights = () => {
                         }`}>
                           {customer.rfmSegment}
                         </span>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => handleCustomerSelect(customer)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          <FiEye className="w-3 h-3 mr-1" />
+                          View Details
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -563,6 +679,7 @@ const CustomerInsights = () => {
                     <th className="px-4 py-2 text-right">Total Spent</th>
                     <th className="px-4 py-2 text-right">Categories</th>
                     <th className="px-4 py-2 text-right">Frequency</th>
+                    <th className="px-4 py-2 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -575,6 +692,16 @@ const CustomerInsights = () => {
                       <td className="px-4 py-2 text-right">{formatCurrency(customer.totalSpent)}</td>
                       <td className="px-4 py-2 text-right">{customer.categoryCount}</td>
                       <td className="px-4 py-2 text-right">{customer.orderFrequency?.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => handleCustomerSelect(customer)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          <FiEye className="w-3 h-3 mr-1" />
+                          View Details
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -658,6 +785,161 @@ const CustomerInsights = () => {
     );
   };
 
+  // 🎸 Customer Detail Modal
+  const CustomerDetailModal = () => (
+    <Modal isOpen={isCustomerModalOpen} onClose={closeCustomerModal}>
+      <ModalHeader className="flex items-center justify-between">
+        <div className="flex items-center">
+          <FiUsers className="w-5 h-5 mr-2 text-blue-500" />
+          <span>Customer Details: {selectedCustomer?.name}</span>
+        </div>
+        <Button
+          className="ml-auto text-gray-500 hover:text-gray-700"
+          layout="link"
+          size="icon"
+          onClick={closeCustomerModal}
+        >
+          <FiX className="w-4 h-4" />
+        </Button>
+      </ModalHeader>
+      
+      <ModalBody className="max-h-96 overflow-y-auto">
+        {selectedCustomer && (
+          <div className="space-y-6">
+            {/* Customer Info Summary */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-3">👤 Customer Information</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Name:</span> {selectedCustomer.name}
+                </div>
+                <div>
+                  <span className="font-medium">Email:</span> {selectedCustomer.email || selectedCustomer.customerEmail}
+                </div>
+                <div>
+                  <span className="font-medium">City:</span> {selectedCustomer.city || selectedCustomer.customerCity}
+                </div>
+                <div>
+                  <span className="font-medium">Segment:</span> 
+                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                    selectedCustomer.customerSegment === 'VIP' ? 'bg-purple-100 text-purple-800' :
+                    selectedCustomer.customerSegment === 'Premium' ? 'bg-blue-100 text-blue-800' :
+                    selectedCustomer.customerSegment === 'Regular' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedCustomer.customerSegment || selectedCustomer.rfmSegment}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Total Spent:</span> {formatCurrency(selectedCustomer.totalSpent || selectedCustomer.currentClv || selectedCustomer.monetary)}
+                </div>
+                <div>
+                  <span className="font-medium">Total Orders:</span> {selectedCustomer.totalOrders || selectedCustomer.totalOrderCount || selectedCustomer.frequency}
+                </div>
+              </div>
+            </div>
+
+            {/* Order History */}
+            <div>
+              <h4 className="font-semibold mb-3 flex items-center">
+                <FiShoppingBag className="w-4 h-4 mr-2" />
+                📦 Order History
+              </h4>
+              
+              {customerOrdersLoading ? (
+                <div className="text-center py-4">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                  <p className="mt-2 text-sm text-gray-600">Loading orders...</p>
+                </div>
+              ) : customerOrders.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <FiShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No orders found for this customer</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {customerOrders.map((order, index) => (
+                    <div key={index} className="border rounded-lg p-3 hover:bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <span className="font-medium">#{order.invoice || order._id}</span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getOrderStatusColor(order.status)}`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            <FiCalendar className="w-3 h-3 inline mr-1" />
+                            {formatDate(order.createdAt)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">{formatCurrency(order.totalAmount || order.total)}</div>
+                          <div className="text-sm text-gray-600">{order.cart?.length || 0} items</div>
+                        </div>
+                        <Button
+                          size="xs"
+                          onClick={() => handleOrderSelect(order)}
+                          className="ml-2 bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          <FiEye className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      {/* Order Items (Expandable) */}
+                      {selectedOrder?._id === order._id && (
+                        <div className="mt-3 pt-3 border-t bg-blue-50 rounded p-3">
+                          <h5 className="font-medium mb-2">🛒 Items Purchased:</h5>
+                          <div className="space-y-2">
+                            {order.cart?.map((item, itemIndex) => (
+                              <div key={itemIndex} className="flex justify-between items-center text-sm">
+                                <div className="flex-1">
+                                  <div className="font-medium">{item.title}</div>
+                                  {item.sku && <div className="text-gray-500">SKU: {item.sku}</div>}
+                                </div>
+                                <div className="text-center px-2">
+                                  <span className="text-gray-600">Qty: {item.quantity}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-medium">{formatCurrency(item.price)}</div>
+                                  <div className="text-gray-500">Total: {formatCurrency(item.price * item.quantity)}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Order Summary */}
+                          <div className="mt-3 pt-2 border-t border-blue-200">
+                            <div className="flex justify-between items-center font-medium">
+                              <span>Order Total:</span>
+                              <span>{formatCurrency(order.totalAmount || order.total)}</span>
+                            </div>
+                            {order.paymentMethod && (
+                              <div className="flex justify-between items-center text-sm text-gray-600">
+                                <span>Payment Method:</span>
+                                <span>{order.paymentMethod}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </ModalBody>
+      
+      <ModalFooter>
+        <Button onClick={closeCustomerModal} layout="outline">
+          Close
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+
   // 🎸 Render Tab Content
   const renderTabContent = () => {
     switch (activeTab) {
@@ -703,16 +985,9 @@ const CustomerInsights = () => {
       {/* Tab Content */}
       {!isLoading && renderTabContent()}
 
-      {/* Progress Update */}
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-semibold text-blue-800 mb-2">📊 PROGRESS UPDATE</h4>
-        <p className="text-blue-700">
-          ✅ <strong>Frontend Component:</strong> Customer Insights Dashboard - 90% Complete<br />
-          🚧 <strong>Current Status:</strong> Building comprehensive customer analytics interface<br />
-          ⏳ <strong>Next:</strong> Final testing and data validation<br />
-          🎯 <strong>Features:</strong> Overview KPIs, CLV Analysis, RFM Segmentation, Purchase Behavior, Geographic Distribution
-        </p>
-      </div>
+      {/* Customer Detail Modal */}
+      <CustomerDetailModal />
+
     </div>
   );
 };
