@@ -332,6 +332,7 @@ const CustomerInsights = () => {
     const finalChartData = chartData.length > 0 && chartData.some(d => d.count > 0) ? chartData : testData;
     
     console.log("🎸 Final Chart Data:", finalChartData);
+    console.log("🎸 Final Chart Data DETAILED:", JSON.stringify(finalChartData, null, 2));
 
     return (
       <div className="space-y-6">
@@ -412,45 +413,78 @@ const CustomerInsights = () => {
                     </div>
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={finalChartData}
-                      layout="horizontal"
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
-                        width={80}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip 
-                        formatter={(value, name) => [value.toLocaleString(), 'Customers']}
-                        labelFormatter={(label) => `${label} Segment`}
-                      />
-                      <Bar 
-                        dataKey="count" 
-                        fill="#8884d8"
-                        name="Customer Count"
-                        radius={[0, 4, 4, 0]}
+                  <div>
+                    {/* Debug Data Preview */}
+                    <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-50 rounded">
+                      <strong>Chart Data:</strong> {finalChartData.map(d => `${d.name}: ${d.count}`).join(', ')}
+                    </div>
+                    
+                    {/* Simple CSS Bar Chart for Debugging */}
+                    <div className="mb-4">
+                      <p className="text-xs font-medium mb-2">CSS Debug Chart:</p>
+                      {finalChartData.map((item, index) => (
+                        <div key={index} className="flex items-center mb-1">
+                          <div className="w-16 text-xs">{item.name}</div>
+                          <div className="flex-1 bg-gray-200 rounded h-4 mr-2">
+                            <div 
+                              className="h-4 rounded"
+                              style={{ 
+                                width: `${(item.count / Math.max(...finalChartData.map(d => d.count))) * 100}%`,
+                                backgroundColor: 
+                                  item._id === 'VIP' ? '#8b5cf6' :
+                                  item._id === 'Premium' ? '#3b82f6' :
+                                  item._id === 'Regular' ? '#10b981' :
+                                  item._id === 'New' ? '#f59e0b' :
+                                  '#6b7280'
+                              }}
+                            ></div>
+                          </div>
+                          <div className="w-8 text-xs text-right">{item.count}</div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <ResponsiveContainer width="100%" height="220">
+                      <BarChart 
+                        data={finalChartData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                       >
-                        {finalChartData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={
-                              entry._id === 'VIP' ? '#8b5cf6' :
-                              entry._id === 'Premium' ? '#3b82f6' :
-                              entry._id === 'Regular' ? '#10b981' :
-                              entry._id === 'New' ? '#f59e0b' :
-                              '#6b7280'
-                            } 
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="name" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value, name) => [value.toLocaleString(), 'Customers']}
+                          labelFormatter={(label) => `${label} Segment`}
+                        />
+                        <Bar 
+                          dataKey="count" 
+                          fill="#8884d8"
+                          name="Customer Count"
+                          radius={[4, 4, 0, 0]}
+                          minPointSize={5}
+                        >
+                          {finalChartData.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={
+                                entry._id === 'VIP' ? '#8b5cf6' :
+                                entry._id === 'Premium' ? '#3b82f6' :
+                                entry._id === 'Regular' ? '#10b981' :
+                                entry._id === 'New' ? '#f59e0b' :
+                                '#6b7280'
+                              } 
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </div>
             </CardBody>
