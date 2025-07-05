@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardBody, Button, Input, Label, Select, Modal, ModalHeader, ModalBody, ModalFooter } from "@windmill/react-ui";
-import { FiUsers, FiTrendingUp, FiMapPin, FiDollarSign, FiStar, FiDownload, FiEye, FiShoppingBag, FiCalendar, FiX } from "react-icons/fi";
+import { FiUsers, FiTrendingUp, FiMapPin, FiDollarSign, FiStar, FiDownload, FiEye, FiShoppingBag, FiCalendar, FiX, FiExternalLink } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
+import { useHistory } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import PageTitle from "@/components/Typography/PageTitle";
 import httpService from "@/services/httpService";
@@ -12,6 +13,7 @@ import httpService from "@/services/httpService";
 
 const CustomerInsights = () => {
   const { t } = useTranslation();
+  const history = useHistory();
   const [isLoading, setIsLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState({});
   const [activeTab, setActiveTab] = useState("overview");
@@ -75,7 +77,7 @@ const CustomerInsights = () => {
       console.log("🎸 Loading orders for customer:", customer.customerId || customer._id);
       
       // Get customer order history
-      const response = await httpService.get(`/order/customer/${customer.customerId || customer._id}`, {
+      const response = await httpService.get(`/orders/customer/${customer.customerId || customer._id}`, {
         params: {
           limit: 100, // Get more orders for detailed view
           page: 1
@@ -83,13 +85,21 @@ const CustomerInsights = () => {
       });
       
       console.log("🎸 Customer orders response:", response);
+      console.log("🎸 Response type:", typeof response);
+      console.log("🎸 Response keys:", Object.keys(response || {}));
       
-      if (response && response.orders) {
+      if (response && response.orders && Array.isArray(response.orders)) {
         setCustomerOrders(response.orders);
+        console.log("✅ Orders loaded from response.orders:", response.orders.length);
       } else if (response && Array.isArray(response)) {
         setCustomerOrders(response);
+        console.log("✅ Orders loaded from response array:", response.length);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        setCustomerOrders(response.data);
+        console.log("✅ Orders loaded from response.data:", response.data.length);
       } else {
         setCustomerOrders([]);
+        console.log("❌ No orders found in response");
       }
       
     } catch (error) {
@@ -111,6 +121,12 @@ const CustomerInsights = () => {
   // 🎸 Handle Order Selection
   const handleOrderSelect = (order) => {
     setSelectedOrder(selectedOrder?._id === order._id ? null : order);
+  };
+
+  // 🎸 Navigate to Order Details Page
+  const handleViewOrderDetails = (order) => {
+    // Navigate to the existing order details page
+    history.push(`/order/${order._id}`);
   };
 
   // 🎸 Export Customer Data
@@ -841,9 +857,16 @@ const CustomerInsights = () => {
 
             {/* Order History */}
             <div>
-              <h4 className="font-semibold mb-3 flex items-center">
-                <FiShoppingBag className="w-4 h-4 mr-2" />
-                📦 Order History
+              <h4 className="font-semibold mb-3 flex items-center justify-between">
+                <div className="flex items-center">
+                  <FiShoppingBag className="w-4 h-4 mr-2" />
+                  📦 Order History
+                </div>
+                <div className="text-xs text-gray-500">
+                  <FiEye className="w-3 h-3 inline mr-1" />
+                  Expand | <FiExternalLink className="w-3 h-3 inline mr-1" />
+                  View Details
+                </div>
               </h4>
               
               {customerOrdersLoading ? (
@@ -877,13 +900,24 @@ const CustomerInsights = () => {
                           <div className="font-medium">{formatCurrency(order.totalAmount || order.total)}</div>
                           <div className="text-sm text-gray-600">{order.cart?.length || 0} items</div>
                         </div>
-                        <Button
-                          size="xs"
-                          onClick={() => handleOrderSelect(order)}
-                          className="ml-2 bg-blue-500 hover:bg-blue-600 text-white"
-                        >
-                          <FiEye className="w-3 h-3" />
-                        </Button>
+                        <div className="flex space-x-1">
+                          <Button
+                            size="xs"
+                            onClick={() => handleOrderSelect(order)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white"
+                            title="Toggle order items"
+                          >
+                            <FiEye className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="xs"
+                            onClick={() => handleViewOrderDetails(order)}
+                            className="bg-green-500 hover:bg-green-600 text-white"
+                            title="View full order details"
+                          >
+                            <FiExternalLink className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Order Items (Expandable) */}
