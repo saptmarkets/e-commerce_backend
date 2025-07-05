@@ -3,3 +3,30 @@
 All specialized report-tracking rules have been retired as the Reports section is complete.
 
 No active Cursor rules remain in this project. 🎉 
+
+---
+## 🧠 Smart Tree Usage Guidelines for AI Assistants
+
+To understand the SaptMarkets code-base fast:
+
+1. Run `st overview` for a 3-level directory snapshot.
+2. Need more depth?  `st admin/ -m ai` (or any sub-dir) gives an AI-compressed tree.
+3. Searching for a symbol/file:
+   • `st --find "*.jsx"`  – locate files by pattern.
+   • `st --search "OrderSchema"` – full-text search.
+4. For size analysis: `st --size --sort size`.
+5. Want markdown doc of structure? `st docs` alias will drop `PROJECT_STRUCTURE.md`.
+6. When chatting, copy/paste `st -m ai -z` output instead of entire files.
+
+Aliases defined in `.smarttree`:
+- **overview** → `st -m classic --max-depth 3`
+- **docs** → `st -m markdown > PROJECT_STRUCTURE.md`
+- **ai** → `st -m ai -z`
+- **src** → `st --type js,jsx,ts,tsx,json`
+
+⚠️  Preference order for project understanding:
+1. Smart Tree commands (fast, lightweight)
+2. Grep/semantic search on specific paths
+3. Read individual files (only if absolutely necessary)
+
+> Using these commands first keeps interactions snappy and avoids unnecessary file dumps. 🎄🧑‍💻 
