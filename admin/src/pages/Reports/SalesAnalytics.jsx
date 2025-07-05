@@ -288,7 +288,7 @@ const SalesAnalytics = () => {
     
     if (exportOptions.data.paymentMethods && paymentMethodsData.length > 0) {
       exportData.paymentMethods = paymentMethodsData.map(item => ({
-        'Payment Method': item.paymentMethod || item.method || 'Unknown',
+        'Payment Method': getSafeText(item.paymentMethod || item.method) || 'Unknown',
         'Revenue': formatCurrency(item.totalRevenue || item.revenue || 0),
         'Orders': formatNumber(item.totalOrders || item.orders || 0)
       }));
@@ -296,7 +296,7 @@ const SalesAnalytics = () => {
     
     if (exportOptions.data.topProducts && topProductsData.length > 0) {
       exportData.topProducts = topProductsData.map(product => ({
-        'Product Name': product.productName || product.name || product.title || 'Unknown Product',
+        'Product Name': getSafeText(product.productName || product.name || product.title) || 'Unknown Product',
         'Sales Quantity': formatNumber(product.quantity || product.totalQuantity || 0),
         'Revenue': formatCurrency(product.totalRevenue || product.revenue || 0),
         'Average Price': formatCurrency(
@@ -308,7 +308,7 @@ const SalesAnalytics = () => {
     
     if (exportOptions.data.categories && categorySalesData.length > 0) {
       exportData.categories = categorySalesData.map(category => ({
-        'Category Name': category.categoryName || category.name || 'Unknown Category',
+        'Category Name': getSafeText(category.categoryName || category.name) || 'Unknown Category',
         'Revenue': formatCurrency(category.totalRevenue || category.revenue || 0),
         'Orders': formatNumber(category.totalOrders || category.orders || 0),
         'Products': formatNumber(category.uniqueProducts || category.products || 0),
@@ -365,6 +365,14 @@ const SalesAnalytics = () => {
 
   const formatNumber = (num) => {
     return new Intl.NumberFormat('en-US').format(num || 0);
+  };
+
+  // 🎸 Helper function to safely get text from localization objects
+  const getSafeText = (text) => {
+    if (typeof text === 'object' && text) {
+      return text.en || text.ar || Object.values(text)[0] || '';
+    }
+    return text || '';
   };
 
   // 🎸 Safe data extraction
@@ -739,7 +747,7 @@ const SalesAnalytics = () => {
                   <tbody>
                     {paymentMethodsData.map((item, index) => (
                       <tr key={index} className="border-b">
-                        <td className="py-2 font-medium">{item.paymentMethod || item.method || 'Unknown'}</td>
+                        <td className="py-2 font-medium">{getSafeText(item.paymentMethod || item.method) || 'Unknown'}</td>
                         <td className="py-2">{formatCurrency(item.totalRevenue || item.revenue || 0)}</td>
                         <td className="py-2">{formatNumber(item.totalOrders || item.orders || 0)}</td>
                       </tr>
@@ -783,7 +791,7 @@ const SalesAnalytics = () => {
                   {topProductsData.map((product, index) => (
                     <tr key={index} className="border-b">
                       <td className="py-2 font-medium">
-                        {product.productName || product.name || product.title || 'Unknown Product'}
+                        {getSafeText(product.productName || product.name || product.title) || 'Unknown Product'}
                       </td>
                       <td className="py-2">{formatNumber(product.quantity || product.totalQuantity || 0)}</td>
                       <td className="py-2">{formatCurrency(product.totalRevenue || product.revenue || 0)}</td>
@@ -834,7 +842,7 @@ const SalesAnalytics = () => {
                   {categorySalesData.map((category, index) => (
                     <tr key={index} className="border-b">
                       <td className="py-2 font-medium">
-                        {category.categoryName || category.name || 'Unknown Category'}
+                        {getSafeText(category.categoryName || category.name) || 'Unknown Category'}
                       </td>
                       <td className="py-2">{formatCurrency(category.totalRevenue || category.revenue || 0)}</td>
                       <td className="py-2">{formatNumber(category.totalOrders || category.orders || 0)}</td>
