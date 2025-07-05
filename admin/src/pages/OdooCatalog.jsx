@@ -10,7 +10,11 @@ import {
   FiRefreshCw,
   FiCheck,
   FiX,
-  FiFilter
+  FiFilter,
+  FiChevronLeft,
+  FiChevronRight as FiChevronRightIcon,
+  FiChevronsLeft,
+  FiChevronsRight
 } from "react-icons/fi";
 import PageTitle from "@/components/Typography/PageTitle";
 import Loading from "@/components/preloader/Loading";
@@ -34,7 +38,9 @@ const OdooCatalog = () => {
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState([]);
   const [selectedCat, setSelectedCat] = useState(null);
-  const [importStatusFilter, setImportStatusFilter] = useState(null); // New filter state
+  const [importStatusFilter, setImportStatusFilter] = useState(null);
+  const [showAllPages, setShowAllPages] = useState(false); // New state for "show all" mode
+  const [customPageSize, setCustomPageSize] = useState(20); // New state for custom page size
   const { currency, getNumberTwo } = useUtilsFunction();
 
   // Import status filter options
@@ -45,21 +51,40 @@ const OdooCatalog = () => {
     { value: "failed", label: "Import Failed" },
   ];
 
-  const fetchProducts = async (page = 1) => {
+  // Page size options
+  const pageSizeOptions = [
+    { value: 20, label: "20 per page" },
+    { value: 50, label: "50 per page" },
+    { value: 100, label: "100 per page" },
+    { value: 200, label: "200 per page" },
+    { value: 500, label: "500 per page" },
+  ];
+
+  const fetchProducts = async (page = 1, pageSize = null) => {
     try {
       setLoading(true);
+      
+      // Determine the actual page size to use
+      const actualPageSize = showAllPages 
+        ? Math.min(pagination.total || 1000, 1000) // Cap at 1000 for performance
+        : (pageSize || pagination.per_page);
+      
       const res = await OdooCatalogServices.listProducts({
-        page,
-        limit: pagination.per_page,
+        page: showAllPages ? 1 : page, // Always fetch page 1 when showing all
+        limit: actualPageSize,
         include: 'details',
         search: search || undefined,
         category_id: selectedCat?.value || undefined,
-        sync_status: importStatusFilter?.value || undefined, // Add import status filter
+        sync_status: importStatusFilter?.value || undefined,
       });
       
       const data = res.data?.data || res.data;
       setProducts(data?.products || []);
-      setPagination(data?.pagination || pagination);
+      setPagination({
+        ...data?.pagination,
+        per_page: actualPageSize,
+        current_page: showAllPages ? 1 : (data?.pagination?.current_page || page)
+      });
     } catch (err) {
       console.error('Error fetching products:', err);
       notifyError(err?.response?.data?.message || err.message || 'Failed to fetch products');
@@ -70,7 +95,7 @@ const OdooCatalog = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [importStatusFilter]); // Add importStatusFilter to dependency array
+  }, [importStatusFilter, showAllPages]);
 
   useEffect(() => {
     (async () => {
@@ -124,7 +149,6 @@ const OdooCatalog = () => {
       setImportLoading(true);
       notifyInfo(`Starting import of ${selectedIds.length} products...`);
       
-      // Run the actual import
       const res = await OdooCatalogServices.runImport({ 
         productIds: selectedIds 
       });
@@ -135,7 +159,6 @@ const OdooCatalog = () => {
         `Import completed successfully! Products: ${results?.products || 0}, Categories: ${results?.categories || 0}`
       );
       
-      // Clear selection and refresh to show updated import status
       setSelectedIds([]);
       await fetchProducts(pagination.current_page);
       
@@ -148,6 +171,24 @@ const OdooCatalog = () => {
     }
   };
 
+  const handlePageSizeChange = (selectedOption) => {
+    setCustomPageSize(selectedOption.value);
+    setPagination(prev => ({ ...prev, per_page: selectedOption.value, current_page: 1 }));
+    fetchProducts(1, selectedOption.value);
+  };
+
+  const toggleShowAllPages = () => {
+    const newShowAll = !showAllPages;
+    setShowAllPages(newShowAll);
+    
+    if (newShowAll) {
+      notifyInfo(`Loading all ${pagination.total} products for bulk operations...`);
+    } else {
+      // Reset to normal pagination
+      setPagination(prev => ({ ...prev, per_page: customPageSize, current_page: 1 }));
+    }
+  };
+
   const formatPrice = (price) => {
     return price ? `${currency}${getNumberTwo(price)}` : 'N/A';
   };
@@ -156,7 +197,6 @@ const OdooCatalog = () => {
     return stock !== undefined && stock !== null ? stock : 'N/A';
   };
 
-  // Helper function to get import status display
   const getImportStatusDisplay = (syncStatus, storeProductId) => {
     if (storeProductId) {
       return (
@@ -191,6 +231,31 @@ const OdooCatalog = () => {
           </span>
         );
     }
+  };
+
+  // Generate page numbers for pagination
+  const generatePageNumbers = () => {
+    const pages = [];
+    const totalPages = pagination.total_pages;
+    const currentPage = pagination.current_page;
+    
+    if (totalPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Smart pagination with ellipsis
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    
+    return pages;
   };
 
   if (loading && products.length === 0) return <Loading />;
@@ -231,7 +296,7 @@ const OdooCatalog = () => {
             />
           </div>
 
-          {/* Import Status Filter - New! */}
+          {/* Import Status Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <FiFilter className="inline mr-1" />
@@ -260,14 +325,49 @@ const OdooCatalog = () => {
           </div>
         </div>
 
-        {/* Import Controls */}
+        {/* Advanced Pagination Controls */}
         <div className="flex items-center justify-between pt-4 border-t">
-          <div className="text-sm text-gray-600">
-            {selectedIds.length > 0 ? (
-              `${selectedIds.length} product${selectedIds.length > 1 ? 's' : ''} selected`
-            ) : (
-              `${pagination.total || 0} products found`
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-600">
+              {selectedIds.length > 0 ? (
+                `${selectedIds.length} product${selectedIds.length > 1 ? 's' : ''} selected`
+              ) : (
+                `${pagination.total || 0} products found`
+              )}
+            </div>
+            
+            {/* Page Size Selector */}
+            {!showAllPages && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Show:</span>
+                <Select
+                  options={pageSizeOptions}
+                  value={pageSizeOptions.find(opt => opt.value === customPageSize)}
+                  onChange={handlePageSizeChange}
+                  className="text-sm min-w-[120px]"
+                  isSearchable={false}
+                />
+              </div>
             )}
+
+            {/* Show All Toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleShowAllPages}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  showAllPages 
+                    ? 'bg-orange-100 text-orange-800 border border-orange-300' 
+                    : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                }`}
+              >
+                {showAllPages ? 'Show Paginated' : 'Show All Pages'}
+              </button>
+              {showAllPages && (
+                <span className="text-xs text-orange-600 font-medium">
+                  Showing all {products.length} products
+                </span>
+              )}
+            </div>
           </div>
           
           <button
@@ -301,7 +401,7 @@ const OdooCatalog = () => {
               <th className="px-3 py-3 text-left">Price</th>
               <th className="px-3 py-3 text-left">Stock</th>
               <th className="px-3 py-3 text-left">Units</th>
-              <th className="px-3 py-3 text-left">Import Status</th> {/* New column */}
+              <th className="px-3 py-3 text-left">Import Status</th>
               <th className="px-3 py-3 text-left">Actions</th>
             </tr>
           </thead>
@@ -365,8 +465,8 @@ const OdooCatalog = () => {
 
                 {/* Expanded Details Row */}
                 {expandedRows.has(product.product_id) && (
-                  <tr className="bg-blue-50"> {/* Trisha: Blue means details! */}
-                    <td colSpan={10} className="px-3 py-4"> {/* Updated colspan for new column */}
+                  <tr className="bg-blue-50">
+                    <td colSpan={10} className="px-3 py-4">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Basic Information */}
                         <div className="space-y-4">
@@ -412,7 +512,6 @@ const OdooCatalog = () => {
                                 Barcode Units ({product.barcode_unit_ids ? product.barcode_unit_ids.length : 0})
                               </h4>
                               <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {/* Trisha: Only show units actually linked to this product! */}
                                 {product.barcode_unit_ids && product.barcode_units
                                   .filter(unit => product.barcode_unit_ids.includes(unit.id))
                                   .map((unit, idx) => (
@@ -476,27 +575,101 @@ const OdooCatalog = () => {
           </tbody>
         </table>
 
-        {/* Pagination */}
-        {pagination.total_pages > 1 && (
-          <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Page {pagination.current_page} of {pagination.total_pages}
+        {/* Enhanced Pagination */}
+        {!showAllPages && pagination.total_pages > 1 && (
+          <div className="px-6 py-4 bg-gray-50 border-t">
+            <div className="flex items-center justify-between">
+              {/* Page Info */}
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-gray-600">
+                  Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to{' '}
+                  {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
+                  {pagination.total} products
+                </div>
+                <div className="text-sm font-medium text-gray-700">
+                  Page {pagination.current_page} of {pagination.total_pages}
+                </div>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center gap-1">
+                {/* First Page */}
+                <button
+                  onClick={() => fetchProducts(1)}
+                  disabled={pagination.current_page <= 1 || loading}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="First page"
+                >
+                  <FiChevronsLeft className="w-4 h-4" />
+                </button>
+
+                {/* Previous Page */}
+                <button
+                  onClick={() => fetchProducts(pagination.current_page - 1)}
+                  disabled={pagination.current_page <= 1 || loading}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Previous page"
+                >
+                  <FiChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1 mx-2">
+                  {generatePageNumbers().map((page, index) => (
+                    <React.Fragment key={index}>
+                      {page === '...' ? (
+                        <span className="px-2 py-1 text-gray-400">...</span>
+                      ) : (
+                        <button
+                          onClick={() => fetchProducts(page)}
+                          disabled={loading}
+                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                            pagination.current_page === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Next Page */}
+                <button
+                  onClick={() => fetchProducts(pagination.current_page + 1)}
+                  disabled={pagination.current_page >= pagination.total_pages || loading}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Next page"
+                >
+                  <FiChevronRightIcon className="w-4 h-4" />
+                </button>
+
+                {/* Last Page */}
+                <button
+                  onClick={() => fetchProducts(pagination.total_pages)}
+                  disabled={pagination.current_page >= pagination.total_pages || loading}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Last page"
+                >
+                  <FiChevronsRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => fetchProducts(pagination.current_page - 1)}
-                disabled={pagination.current_page <= 1 || loading}
-                className="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => fetchProducts(pagination.current_page + 1)}
-                disabled={pagination.current_page >= pagination.total_pages || loading}
-                className="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
-              >
-                Next
-              </button>
+          </div>
+        )}
+
+        {/* Show All Mode Indicator */}
+        {showAllPages && (
+          <div className="px-6 py-3 bg-orange-50 border-t border-orange-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-orange-800">
+                <strong>Bulk Mode:</strong> Showing all {products.length} products in one scrolling page for easy bulk operations.
+              </div>
+              <div className="text-xs text-orange-600">
+                Perfect for selecting large datasets for import!
+              </div>
             </div>
           </div>
         )}
