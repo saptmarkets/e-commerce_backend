@@ -263,95 +263,45 @@ const getCustomerInsights = async (req, res) => {
   }
 };
 
-// 🚚 Delivery Performance - Task 1.2.1 Implementation
+// 🚚 Delivery Performance - Task 5.1.1 Enhanced Implementation
+const DeliveryAnalyticsService = require('../services/DeliveryAnalyticsService');
+
 const getDeliveryPerformance = async (req, res) => {
   try {
-    const { startDate, endDate, timeRange = "7d" } = req.query;
+    console.log("🚚 Delivery Performance API called with filters:", req.query);
     
-    // Calculate date range
-    const now = dayjs();
-    let dateQuery = {};
+    const filters = {
+      period: parseInt(req.query.period) || 30,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      driverId: req.query.driverId,
+      zone: req.query.zone
+    };
+
+    console.log("🎯 Processing delivery analytics with filters:", filters);
+
+    // Use the comprehensive delivery analytics service
+    const deliveryData = await DeliveryAnalyticsService.getDeliveryOverview(filters);
     
-    if (startDate && endDate) {
-      dateQuery = {
-        createdAt: {
-          $gte: dayjs(startDate).startOf('day').toDate(),
-          $lte: dayjs(endDate).endOf('day').toDate()
-        }
-      };
+    if (deliveryData.success) {
+      console.log("✅ Delivery analytics data retrieved successfully");
+      res.status(200).json(deliveryData);
     } else {
-      const daysBack = timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 7;
-      dateQuery = {
-        createdAt: {
-          $gte: now.subtract(daysBack, 'day').startOf('day').toDate(),
-          $lte: now.endOf('day').toDate()
-        }
-      };
+      console.error("❌ Failed to retrieve delivery analytics");
+      res.status(500).json({
+        success: false,
+        message: "Failed to retrieve delivery analytics",
+        data: {}
+      });
     }
 
-    // Get delivery performance metrics
-    const deliveryStats = await Order.aggregate([
-      { $match: { ...dateQuery, status: { $in: ["Delivered", "Out for Delivery"] } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          totalDeliveries: { $count: {} },
-          deliveredOrders: { $sum: { $cond: [{ $eq: ["$status", "Delivered"] }, 1, 0] } },
-          outForDelivery: { $sum: { $cond: [{ $eq: ["$status", "Out for Delivery"] }, 1, 0] } }
-        }
-      },
-      { $sort: { "_id": 1 } }
-    ]);
-
-    // Get driver performance
-    const driverPerformance = await Order.aggregate([
-      { 
-        $match: { 
-          ...dateQuery, 
-          status: "Delivered",
-          "deliveryInfo.assignedDriver": { $exists: true }
-        } 
-      },
-      {
-        $lookup: {
-          from: "admins",
-          localField: "deliveryInfo.assignedDriver",
-          foreignField: "_id",
-          as: "driver"
-        }
-      },
-      { $unwind: "$driver" },
-      {
-        $group: {
-          _id: "$driver._id",
-          driverName: { $first: "$driver.name" },
-          totalDeliveries: { $count: {} },
-          averageDeliveryTime: { $avg: { $subtract: ["$deliveryInfo.deliveredAt", "$deliveryInfo.assignedAt"] } }
-        }
-      },
-      { $sort: { totalDeliveries: -1 } }
-    ]);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        summary: {
-          totalDeliveries: deliveryStats.reduce((sum, day) => sum + day.totalDeliveries, 0),
-          deliveredOrders: deliveryStats.reduce((sum, day) => sum + day.deliveredOrders, 0),
-          outForDelivery: deliveryStats.reduce((sum, day) => sum + day.outForDelivery, 0)
-        },
-        dailyDeliveries: deliveryStats,
-        driverPerformance,
-        timeRange
-      }
-    });
-
   } catch (error) {
-    console.error("Delivery Performance Error:", error);
+    console.error("🚚 Delivery Performance Controller Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch delivery performance",
-      error: error.message
+      error: error.message,
+      data: {}
     });
   }
 };
