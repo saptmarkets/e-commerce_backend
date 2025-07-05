@@ -769,17 +769,11 @@ class CustomerAnalyticsService {
         { $unwind: "$cart" },
         {
           $addFields: {
-            categoryObjectId: {
+            "cart.categoryObjectId": {
               $cond: {
-                if: { $type: "$cart.category" },
-                then: {
-                  $cond: {
-                    if: { $eq: [{ $type: "$cart.category" }, "objectId"] },
-                    then: "$cart.category",
-                    else: { $toObjectId: "$cart.category" }
-                  }
-                },
-                else: null
+                if: { $eq: [{ $type: "$cart.category" }, "string"] },
+                then: { $toObjectId: "$cart.category" },
+                else: "$cart.category"
               }
             }
           }
@@ -787,7 +781,7 @@ class CustomerAnalyticsService {
         {
           $lookup: {
             from: "categories",
-            localField: "categoryObjectId",
+            localField: "cart.categoryObjectId",
             foreignField: "_id",
             as: "categoryInfo"
           }
@@ -795,16 +789,13 @@ class CustomerAnalyticsService {
         {
           $addFields: {
             categoryName: {
-              $cond: {
-                if: { $gt: [{ $size: "$categoryInfo" }, 0] },
-                then: {
-                  $ifNull: [
-                    { $arrayElemAt: ["$categoryInfo.name.en", 0] },
-                    { $arrayElemAt: ["$categoryInfo.name.ar", 0] }
-                  ]
-                },
-                else: "Unknown Category"
-              }
+              $ifNull: [
+                { $ifNull: [
+                  { $arrayElemAt: ["$categoryInfo.name.en", 0] },
+                  { $arrayElemAt: ["$categoryInfo.name.ar", 0] }
+                ]},
+                "Unknown Category"
+              ]
             }
           }
         },
@@ -910,14 +901,14 @@ class CustomerAnalyticsService {
         minCustomers = 1
       } = options;
 
-      console.log("🎸 Geographic Distribution: Processing areas...");
+      console.log("🎸 Geographic Distribution: Processing areas for single-city delivery...");
 
-      // Use address field to extract area information instead of city
-      // This is better for single-city delivery service
+      // Use comprehensive address data to extract areas
       const geographicData = await Customer.aggregate([
         {
           $match: {
             $or: [
+              { "shippingAddress.coordinates.address": { $exists: true, $ne: null, $ne: "" } },
               { address: { $exists: true, $ne: null, $ne: "" } },
               { city: { $exists: true, $ne: null, $ne: "" } }
             ]
@@ -925,68 +916,89 @@ class CustomerAnalyticsService {
         },
         {
           $addFields: {
-            // Extract area from address with better logic
-            area: {
+            // Get the most detailed address available
+            detailedAddress: {
               $cond: {
                 if: { $and: [
-                  { $ne: ["$address", null] },
-                  { $ne: ["$address", ""] },
-                  { $gt: [{ $strLenBytes: "$address" }, 3] }
+                  { $ne: ["$shippingAddress.coordinates.address", null] },
+                  { $ne: ["$shippingAddress.coordinates.address", ""] },
+                  { $gt: [{ $strLenBytes: "$shippingAddress.coordinates.address" }, 10] }
                 ]},
-                then: {
-                  $trim: {
-                    input: {
-                      $cond: {
-                        // If address contains comma, take first part
-                        if: { $regexMatch: { input: "$address", regex: "," } },
-                        then: { $arrayElemAt: [{ $split: ["$address", ","] }, 0] },
-                        // If address contains common area keywords, extract them
-                        else: {
-                          $cond: {
-                            if: { $regexMatch: { input: "$address", regex: "(district|area|neighborhood|street|avenue|road)", options: "i" } },
-                            then: {
-                              $arrayElemAt: [
-                                { $split: [
-                                  { $trim: { input: "$address" } },
-                                  { $regexFind: { input: "$address", regex: "\\s+(district|area|neighborhood|street|avenue|road)", options: "i" } }
-                                ]}, 0]
-                            },
-                            // If no special keywords, take first 2-3 words as area
-                            else: {
-                              $let: {
-                                vars: {
-                                  words: { $split: [{ $trim: { input: "$address" } }, " "] }
-                                },
-                                in: {
-                                  $cond: {
-                                    if: { $gte: [{ $size: "$$words" }, 2] },
-                                    then: { $reduce: {
-                                      input: { $slice: ["$$words", 2] },
-                                      initialValue: "",
-                                      in: { $concat: ["$$value", { $cond: [{ $eq: ["$$value", ""] }, "", " "] }, "$$this"] }
-                                    }},
-                                    else: { $arrayElemAt: ["$$words", 0] }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                // Fallback to city if address not available
+                then: "$shippingAddress.coordinates.address",
                 else: {
                   $cond: {
                     if: { $and: [
-                      { $ne: ["$city", null] },
-                      { $ne: ["$city", ""] }
+                      { $ne: ["$address", null] },
+                      { $ne: ["$address", ""] },
+                      { $gt: [{ $strLenBytes: "$address" }, 5] }
                     ]},
-                    then: { $concat: ["$city", " - City Center"] },
-                    else: "Unknown Area"
+                    then: "$address",
+                    else: "$city"
                   }
                 }
+              }
+            },
+            // Extract coordinates for clustering
+            coordinates: {
+              lat: { $ifNull: ["$shippingAddress.coordinates.latitude", 0] },
+              lng: { $ifNull: ["$shippingAddress.coordinates.longitude", 0] }
+            }
+          }
+        },
+        {
+          $addFields: {
+            // Extract area from detailed address
+            area: {
+              $cond: {
+                if: { $regexMatch: { input: "$detailedAddress", regex: "," } },
+                then: {
+                  // If address has commas, take the first meaningful part
+                  $trim: {
+                    input: { $arrayElemAt: [{ $split: ["$detailedAddress", ","] }, 0] }
+                  }
+                },
+                else: {
+                  // For single-word addresses, use coordinate-based clustering
+                  $cond: {
+                    if: { $and: [
+                      { $gt: ["$coordinates.lat", 0] },
+                      { $gt: ["$coordinates.lng", 0] }
+                    ]},
+                    then: {
+                      $concat: [
+                        "Area-",
+                        { $toString: { $floor: { $multiply: ["$coordinates.lat", 100] } } },
+                        "-",
+                        { $toString: { $floor: { $multiply: ["$coordinates.lng", 100] } } }
+                      ]
+                    },
+                    else: { $trim: { input: "$detailedAddress" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: "orders",
+            localField: "_id",
+            foreignField: "user",
+            as: "orders"
+          }
+        },
+        {
+          $addFields: {
+            // Calculate customer metrics
+            totalOrders: { $size: "$orders" },
+            totalSpent: { $sum: "$orders.totalAmount" },
+            avgOrderValue: { $avg: "$orders.totalAmount" },
+            lastOrderDate: { $max: "$orders.createdAt" },
+            isActive: {
+              $cond: {
+                if: { $gt: ["$lastOrderDate", { $subtract: [new Date(), 90 * 24 * 60 * 60 * 1000] }] },
+                then: true,
+                else: false
               }
             }
           }
@@ -995,44 +1007,36 @@ class CustomerAnalyticsService {
           $group: {
             _id: "$area",
             customerCount: { $sum: 1 },
-            totalSpent: { $sum: "$purchaseStats.totalSpent" },
-            totalOrders: { $sum: "$purchaseStats.totalOrders" },
-            averageSpent: { $avg: "$purchaseStats.totalSpent" },
-            activeCustomers: {
-              $sum: {
-                $cond: [
-                  { $gte: ["$purchaseStats.lastOrderDate", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)] },
-                  1,
-                  0
-                ]
-              }
-            },
-            loyaltyPoints: { $sum: "$loyaltyPoints.current" },
-            sampleAddresses: { $push: { $substr: ["$address", 0, 50] } }
+            totalOrders: { $sum: "$totalOrders" },
+            totalSpent: { $sum: "$totalSpent" },
+            avgOrderValue: { $avg: "$avgOrderValue" },
+            activeCustomers: { $sum: { $cond: ["$isActive", 1, 0] } },
+            avgLat: { $avg: "$coordinates.lat" },
+            avgLng: { $avg: "$coordinates.lng" },
+            sampleAddresses: { $push: "$detailedAddress" }
           }
         },
         {
           $match: {
             customerCount: { $gte: minCustomers },
-            _id: { $ne: null, $ne: "", $ne: "Unknown Area" }
+            _id: { $ne: null, $ne: "" }
           }
         },
         {
           $project: {
             location: "$_id",
             customerCount: 1,
-            totalSpent: { $round: ["$totalSpent", 2] },
             totalOrders: 1,
-            averageSpent: { $round: ["$averageSpent", 2] },
+            totalSpent: { $round: ["$totalSpent", 2] },
+            averageSpent: { $round: [{ $divide: ["$totalSpent", "$customerCount"] }, 2] },
+            avgOrderValue: { $round: ["$avgOrderValue", 2] },
             activeCustomers: 1,
-            loyaltyPoints: 1,
-            sampleAddresses: { $slice: ["$sampleAddresses", 3] },
-            penetrationRate: {
-              $multiply: [
-                { $divide: ["$activeCustomers", "$customerCount"] },
-                100
-              ]
-            }
+            penetrationRate: { $round: [{ $multiply: [{ $divide: ["$activeCustomers", "$customerCount"] }, 100] }, 1] },
+            avgCoordinates: {
+              lat: "$avgLat",
+              lng: "$avgLng"
+            },
+            sampleAddresses: { $slice: ["$sampleAddresses", 3] }
           }
         },
         { $sort: { customerCount: -1 } },
@@ -1041,47 +1045,27 @@ class CustomerAnalyticsService {
 
       console.log("🎸 Geographic Analysis Results:", {
         count: geographicData.length,
-        sampleAreas: geographicData.slice(0, 3).map(area => ({ 
-          name: area.location, 
+        sampleAreas: geographicData.slice(0, 3).map(area => ({
+          location: area.location,
           customers: area.customerCount,
-          sampleAddresses: area.sampleAddresses
+          coordinates: area.avgCoordinates,
+          sampleAddresses: area.sampleAddresses?.slice(0, 2)
         }))
-      });
-
-      // Get total customers for percentage calculations
-      const totalCustomers = await Customer.countDocuments({
-        address: { $exists: true, $ne: null, $ne: "" }
-      });
-
-      // Calculate area coverage statistics
-      const coverageStats = {
-        totalAreas: geographicData.length,
-        totalCustomers,
-        averageCustomersPerArea: geographicData.length > 0 ? 
-          geographicData.reduce((sum, area) => sum + area.customerCount, 0) / geographicData.length : 0,
-        topPerformingArea: geographicData.length > 0 ? geographicData[0] : null,
-        areaDistribution: geographicData.map(area => ({
-          ...area,
-          percentageOfTotal: ((area.customerCount / totalCustomers) * 100).toFixed(1)
-        }))
-      };
-
-      console.log("🎸 Geographic Distribution by Areas:", {
-        totalAreas: coverageStats.totalAreas,
-        totalCustomers: coverageStats.totalCustomers,
-        sampleAreas: geographicData.slice(0, 3)
       });
 
       return {
         success: true,
         data: {
           geographicData,
-          coverageStats,
-          filters: {
-            groupBy,
-            limit,
-            minCustomers
-          }
+          summary: {
+            totalAreas: geographicData.length,
+            totalCustomers: geographicData.reduce((sum, area) => sum + area.customerCount, 0),
+            totalOrders: geographicData.reduce((sum, area) => sum + area.totalOrders, 0),
+            totalRevenue: geographicData.reduce((sum, area) => sum + area.totalSpent, 0),
+            avgCustomersPerArea: geographicData.length > 0 ? 
+              (geographicData.reduce((sum, area) => sum + area.customerCount, 0) / geographicData.length).toFixed(1) : 0
+          },
+          filters: { groupBy, limit, minCustomers }
         }
       };
 

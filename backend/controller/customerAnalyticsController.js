@@ -435,6 +435,55 @@ class CustomerAnalyticsController {
     }
   }
 
+  // 🎸 GET /api/reports/customer/debug
+  // Simple debug endpoint to check service methods
+  async debugAPI(req, res) {
+    try {
+      console.log("🎸 DEBUG: Testing service methods...");
+      
+      // Test 1: Check if service instance exists
+      console.log("🎸 Service instance:", typeof this.customerAnalytics);
+      
+      // Test 2: Check if methods exist
+      console.log("🎸 getPurchaseBehavior method:", typeof this.customerAnalytics.getPurchaseBehavior);
+      console.log("🎸 getGeographicDistribution method:", typeof this.customerAnalytics.getGeographicDistribution);
+      
+      // Test 3: Simple method call
+      const behaviorResult = await this.customerAnalytics.getPurchaseBehavior({ period: 30, limit: 5 });
+      console.log("🎸 Behavior result success:", behaviorResult.success);
+      
+      const geoResult = await this.customerAnalytics.getGeographicDistribution({ limit: 5 });
+      console.log("🎸 Geographic result success:", geoResult.success);
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          serviceInstance: typeof this.customerAnalytics,
+          methods: {
+            getPurchaseBehavior: typeof this.customerAnalytics.getPurchaseBehavior,
+            getGeographicDistribution: typeof this.customerAnalytics.getGeographicDistribution
+          },
+          testResults: {
+            behaviorSuccess: behaviorResult.success,
+            geoSuccess: geoResult.success,
+            behaviorData: behaviorResult.data?.categoryAnalysis?.length || 0,
+            geoData: geoResult.data?.geographicData?.length || 0
+          }
+        },
+        message: "Debug API test completed"
+      });
+      
+    } catch (error) {
+      console.error("🎸 Debug API Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Debug API failed",
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  }
+
   // 🎸 GET /api/reports/customer/test-data
   // Test endpoint to check database data
   async testDatabaseData(req, res) {

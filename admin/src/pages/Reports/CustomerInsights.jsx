@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardBody, Button, Input, Label, Select, Modal, ModalHeader, ModalBody, ModalFooter } from "@windmill/react-ui";
-import { FiUsers, FiTrendingUp, FiMapPin, FiDollarSign, FiStar, FiDownload, FiEye, FiShoppingBag, FiCalendar, FiX, FiExternalLink } from "react-icons/fi";
+import { FiUsers, FiTrendingUp, FiMapPin, FiDollarSign, FiStar, FiDownload, FiEye, FiShoppingBag, FiCalendar, FiX, FiExternalLink, FiDatabase, FiZap, FiTool } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import { useHistory } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
@@ -35,26 +35,14 @@ const CustomerInsights = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      console.log("🎸 Fetching customer dashboard data...");
+      const response = await httpService.get('/reports/customer/dashboard');
       
-      const response = await httpService.get('/reports/customer/dashboard', {
-        params: {
-          period: filters.period,
-          city: filters.city || undefined
-        }
-      });
-
-      console.log("🎸 Customer dashboard response:", response);
-      
-      if (response.success) {
-        setDashboardData(response.data);
-        console.log("✅ Customer dashboard loaded successfully");
-      } else {
-        console.error("❌ Failed to load customer dashboard");
+      if (response.data.success) {
+        setDashboardData(response.data.data);
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error("🎸 Dashboard fetch error:", error);
-    } finally {
+      console.error("❌ Dashboard fetch error:", error);
       setIsLoading(false);
     }
   };
@@ -62,57 +50,68 @@ const CustomerInsights = () => {
   // 🎸 Fetch Purchase Behavior Data
   const fetchPurchaseBehaviorData = async () => {
     try {
-      console.log("🎸 Fetching purchase behavior data...");
+      const response = await httpService.get('/reports/customer/purchase-behavior');
       
-      const response = await httpService.get('/reports/customer/purchase-behavior', {
-        params: {
-          period: filters.period,
-          limit: 50
-        }
-      });
-
-      console.log("🎸 Purchase behavior response:", response);
-      
-      if (response.success) {
+      if (response.data.success) {
+        const categoryData = response.data.data.categoryAnalysis?.map(item => ({
+          name: item.category || item.name || item._id,
+          value: item.totalRevenue || item.value || 0,
+          quantity: item.totalQuantity || item.quantity || 0,
+          customers: item.customerCount || item.customers || 0,
+          avgPrice: item.averagePrice || item.avgPrice || 0
+        })) || [];
+        
         setDashboardData(prev => ({
           ...prev,
-          purchaseBehavior: response.data
+          purchaseBehavior: {
+            categoryAnalysis: categoryData,
+            purchasePatterns: response.data.data.purchasePatterns || [],
+            timeAnalysis: response.data.data.timeAnalysis || { hourlyDistribution: [], weeklyDistribution: [] }
+          }
         }));
-        console.log("✅ Purchase behavior loaded successfully");
-      } else {
-        console.error("❌ Failed to load purchase behavior");
       }
     } catch (error) {
-      console.error("🎸 Purchase behavior fetch error:", error);
+      console.error("❌ Purchase behavior fetch error:", error);
+      setDashboardData(prev => ({
+        ...prev,
+        purchaseBehavior: {
+          categoryAnalysis: [],
+          purchasePatterns: [],
+          timeAnalysis: { hourlyDistribution: [], weeklyDistribution: [] }
+        }
+      }));
     }
   };
 
   // 🎸 Fetch Geographic Distribution Data
   const fetchGeographicData = async () => {
     try {
-      console.log("🎸 Fetching geographic distribution data...");
+      const response = await httpService.get('/reports/customer/geographic-distribution');
       
-      const response = await httpService.get('/reports/customer/geographic-distribution', {
-        params: {
-          groupBy: 'area',
-          limit: 50,
-          minCustomers: 1
-        }
-      });
-
-      console.log("🎸 Geographic distribution response:", response);
-      
-      if (response.success) {
-        setDashboardData(prev => ({
-          ...prev,
-          geographicDistribution: response.data
-        }));
-        console.log("✅ Geographic distribution loaded successfully");
-      } else {
-        console.error("❌ Failed to load geographic distribution");
+      if (response.data.success) {
+        const geoData = response.data.data.geographicData?.map(area => ({
+          name: area.location || area.name || area._id,
+          customers: area.customerCount || area.customers || 0,
+          orders: area.totalOrders || area.orders || 0,
+          revenue: area.totalSpent || area.revenue || 0,
+          avgOrderValue: area.avgOrderValue || area.averageSpent || 0,
+          activeCustomers: area.activeCustomers || 0,
+          penetrationRate: area.penetrationRate || 0,
+          coordinates: area.avgCoordinates || area.coordinates || { lat: 0, lng: 0 },
+          sampleAddresses: area.sampleAddresses || []
+        })) || [];
+        
+        setGeographicData({
+          geographicData: geoData,
+          summary: response.data.data.summary || {}
+        });
       }
     } catch (error) {
-      console.error("🎸 Geographic distribution fetch error:", error);
+      console.error("❌ Geographic Data Error:", error);
+      setGeographicData({
+        geographicData: [],
+        summary: {}
+      });
     }
   };
 
@@ -131,8 +130,6 @@ const CustomerInsights = () => {
       setIsCustomerModalOpen(true);
       setCustomerOrdersLoading(true);
       
-      console.log("🎸 Loading orders for customer:", customer.customerId || customer._id);
-      
       // Get customer order history
       const response = await httpService.get(`/orders/customer/${customer.customerId || customer._id}`, {
         params: {
@@ -141,26 +138,18 @@ const CustomerInsights = () => {
         }
       });
       
-      console.log("🎸 Customer orders response:", response);
-      console.log("🎸 Response type:", typeof response);
-      console.log("🎸 Response keys:", Object.keys(response || {}));
-      
       if (response && response.orders && Array.isArray(response.orders)) {
         setCustomerOrders(response.orders);
-        console.log("✅ Orders loaded from response.orders:", response.orders.length);
       } else if (response && Array.isArray(response)) {
         setCustomerOrders(response);
-        console.log("✅ Orders loaded from response array:", response.length);
       } else if (response && response.data && Array.isArray(response.data)) {
         setCustomerOrders(response.data);
-        console.log("✅ Orders loaded from response.data:", response.data.length);
       } else {
         setCustomerOrders([]);
-        console.log("❌ No orders found in response");
       }
       
     } catch (error) {
-      console.error("🎸 Error loading customer orders:", error);
+      console.error("❌ Error loading customer orders:", error);
       setCustomerOrders([]);
     } finally {
       setCustomerOrdersLoading(false);
@@ -189,8 +178,6 @@ const CustomerInsights = () => {
   // 🎸 Export Customer Data
   const exportToCSV = async (reportType) => {
     try {
-      console.log("🎸 Starting customer export for:", reportType);
-      
       const response = await httpService.get('/reports/customer/export', {
         params: {
           format: 'csv',
@@ -200,8 +187,6 @@ const CustomerInsights = () => {
           city: filters.city
         }
       });
-
-      console.log("🎸 Export response:", response);
       
       if (response && typeof response === 'string') {
         const blob = new Blob([response], { type: 'text/csv' });
@@ -211,40 +196,15 @@ const CustomerInsights = () => {
         a.download = `customer_${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
-        console.log("✅ CSV export successful");
       } else {
         console.error("❌ Invalid export response");
       }
     } catch (error) {
-      console.error("🎸 Export error:", error);
+      console.error("❌ Export error:", error);
     }
   };
 
-  // 🎸 Test Database Data
-  const testDatabaseData = async () => {
-    try {
-      console.log("🎸 Testing database data...");
-      
-      const response = await httpService.get('/reports/customer/test-data');
-      
-      console.log("🎸 Database Test Response:", response);
-      
-      if (response.success) {
-        alert(`Database Test Results:
-Customers: ${response.data.customerCount}
-Orders: ${response.data.orderCount}
-Categories Found: ${response.data.categoryTest.length}
-Sample Categories: ${response.data.categoryTest.map(c => c._id).join(', ')}
 
-Check console for full details!`);
-      } else {
-        alert('Test failed: ' + response.message);
-      }
-    } catch (error) {
-      console.error("🎸 Database test error:", error);
-      alert('Test error: ' + error.message);
-    }
-  };
 
   // 🎸 Load data on component mount and filter changes
   useEffect(() => {
@@ -379,17 +339,10 @@ Check console for full details!`);
           <div className="flex items-end">
             <Button
               onClick={fetchDashboardData}
-              className="bg-blue-500 hover:bg-blue-600 text-white mr-3"
+              className="bg-blue-500 hover:bg-blue-600 text-white"
               disabled={isLoading}
             >
               {isLoading ? "Loading..." : "🔄 Refresh"}
-            </Button>
-            
-            <Button
-              onClick={testDatabaseData}
-              className="bg-purple-500 hover:bg-purple-600 text-white"
-            >
-              🧪 Test Database
             </Button>
           </div>
         </div>
@@ -978,25 +931,19 @@ Check console for full details!`);
 
   // 🎸 Purchase Behavior Analysis Tab
   const BehaviorTab = () => {
+    // Use the correct dashboardData.purchaseBehavior
     const behaviorData = dashboardData.purchaseBehavior || {};
     
-    // Process category data with proper debugging
-    console.log("🎸 Raw Behavior Data:", behaviorData);
-    console.log("🎸 Category Analysis:", behaviorData.categoryAnalysis);
-    
     const categoryData = (behaviorData.categoryAnalysis || []).map(item => {
-      console.log("🎸 Processing category item:", item);
       return {
-        // The backend returns category as _id, so we need to map it properly
-        category: item.category || item._id || 'Unknown',
-        totalRevenue: item.totalRevenue || 0,
-        totalQuantity: item.totalQuantity || 0,
-        customerCount: item.customerCount || 0,
-        averagePrice: item.averagePrice || 0
+        // Use the new data structure from the fixed backend
+        category: item.name || item.category || 'Unknown',
+        totalRevenue: item.value || item.totalRevenue || 0,
+        totalQuantity: item.quantity || item.totalQuantity || 0,
+        customerCount: item.customers || item.customerCount || 0,
+        averagePrice: item.avgPrice || item.averagePrice || 0
       };
     });
-
-    console.log("🎸 Processed Category Data:", categoryData);
 
     return (
       <div className="space-y-6">
@@ -1040,13 +987,6 @@ Check console for full details!`);
                 </div>
               ) : (
                 <div>
-                  {/* Debug Info */}
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
-                    <p><strong>🎸 Debug Info:</strong></p>
-                    <p>Total categories: {behaviorData.categoryAnalysis?.length || 0}</p>
-                    <p>Sample data: {JSON.stringify(behaviorData.categoryAnalysis?.slice(0, 2) || [])}</p>
-                  </div>
-                  
                   <ResponsiveContainer width="100%" height="300">
                     <BarChart 
                       data={categoryData}
@@ -1202,25 +1142,25 @@ Check console for full details!`);
 
   // 🎸 Geographic Distribution Tab
   const GeographicTab = () => {
-    const geoData = dashboardData.geographicDistribution || {};
+    // Use the geographic data from state
+    const geoData = geographicData || { geographicData: [] };
     
-    // Process geographic data with proper debugging
-    console.log("🎸 Raw Geographic Data:", geoData);
-    console.log("🎸 Geographic Data Array:", geoData.geographicData);
+    // Ensure we have a valid array to work with
+    const rawGeographicData = geoData?.geographicData || [];
     
-    const geographicData = (geoData.geographicData || []).map(item => {
-      console.log("🎸 Processing geographic item:", item);
+    const geographicDataForChart = rawGeographicData.map(item => {
       return {
-        location: item.location || item._id || 'Unknown Area',
-        customerCount: item.customerCount || 0,
-        totalSpent: item.totalSpent || 0,
-        averageSpent: item.averageSpent || 0,
-        activeCustomers: item.activeCustomers || 0,
-        penetrationRate: item.penetrationRate || 0
+        location: item?.name || item?.location || 'Unknown Area',
+        customerCount: item?.customers || item?.customerCount || 0,
+        totalSpent: item?.revenue || item?.totalSpent || 0,
+        averageSpent: item?.avgOrderValue || item?.averageSpent || 0,
+        activeCustomers: item?.activeCustomers || 0,
+        penetrationRate: item?.penetrationRate || 0,
+        totalOrders: item?.orders || item?.totalOrders || 0,
+        coordinates: item?.coordinates || { lat: 0, lng: 0 },
+        sampleAddresses: item?.sampleAddresses || []
       };
     });
-
-    console.log("🎸 Processed Geographic Data:", geographicData);
 
     return (
       <div className="space-y-6">
@@ -1248,7 +1188,7 @@ Check console for full details!`);
             </div>
             
             <div className="h-80">
-              {!geoData.geographicData || geoData.geographicData.length === 0 ? (
+              {!geoData?.geographicData || geoData?.geographicData?.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <FiMapPin className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -1264,16 +1204,9 @@ Check console for full details!`);
                 </div>
               ) : (
                 <div>
-                  {/* Debug Info */}
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
-                    <p><strong>🎸 Debug Info:</strong></p>
-                    <p>Total areas: {geoData.geographicData?.length || 0}</p>
-                    <p>Sample data: {JSON.stringify(geoData.geographicData?.slice(0, 2) || [])}</p>
-                  </div>
-                  
                   <ResponsiveContainer width="100%" height="300">
                     <BarChart 
-                      data={geographicData}
+                      data={geographicDataForChart}
                       margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -1359,7 +1292,7 @@ Check console for full details!`);
                   </tr>
                 </thead>
                 <tbody>
-                  {geographicData.map((location, index) => (
+                  {geographicDataForChart.map((location, index) => (
                     <tr key={index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-4 py-4">
                         <div className="flex items-center">
@@ -1403,7 +1336,7 @@ Check console for full details!`);
                 </tbody>
               </table>
               
-              {geographicData.length === 0 && (
+              {geographicDataForChart.length === 0 && (
                 <div className="text-center py-12">
                   <FiMapPin className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p className="text-lg font-medium text-gray-600">No Geographic Data Found</p>
@@ -1620,6 +1553,8 @@ Check console for full details!`);
 
       {/* Filters */}
       <FiltersSection />
+
+
 
       {/* Tab Navigation */}
       <TabNavigation />
