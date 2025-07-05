@@ -13,9 +13,39 @@ const {
   exportReport
 } = require("../controller/reportController");
 
-// 📊 Sales Analytics Routes - Task 1.2.2 Implementation
+// Import advanced sales analytics controller - Task 2.1.2
+const {
+  getSalesOverview,
+  getProductPerformance,
+  getCustomerAnalytics,
+  getSalesTrends,
+  getGeographicAnalysis,
+  getPaymentMethodAnalysis,
+  getTopProducts,
+  exportSalesReport,
+  getSalesDashboard
+} = require("../controller/salesAnalyticsController");
+
+// 📊 Sales Analytics Routes - Task 2.1.2 Advanced Implementation
+// Legacy route for backward compatibility
 router.get("/sales", isAuth, isAdmin, getSalesAnalytics);
-router.get("/sales/export", isAuth, isAdmin, (req, res) => {
+
+// 🔥 New Advanced Sales Analytics Routes - Task 2.1.2
+router.get("/sales/overview", isAuth, isAdmin, getSalesOverview);
+router.get("/sales/products", isAuth, isAdmin, getProductPerformance);
+router.get("/sales/customers", isAuth, isAdmin, getCustomerAnalytics);
+router.get("/sales/trends", isAuth, isAdmin, getSalesTrends);
+router.get("/sales/geographic", isAuth, isAdmin, getGeographicAnalysis);
+router.get("/sales/payment-methods", isAuth, isAdmin, getPaymentMethodAnalysis);
+router.get("/sales/top-products", isAuth, isAdmin, getTopProducts);
+router.get("/sales/dashboard", isAuth, isAdmin, getSalesDashboard);
+
+// 📄 Sales Export Routes - Task 2.1.2
+router.get("/sales/export", isAuth, isAdmin, exportSalesReport);
+router.post("/sales/export", isAuth, isAdmin, exportSalesReport);
+
+// Legacy export route
+router.get("/sales/export/legacy", isAuth, isAdmin, (req, res) => {
   req.query.reportType = "sales";
   exportReport(req, res);
 });
