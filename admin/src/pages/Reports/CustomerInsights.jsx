@@ -303,23 +303,12 @@ const CustomerInsights = () => {
     const overviewData = dashboardData.customerOverview || {};
     const overview = overviewData.overview || {};
 
-    // Debug: Check customer segments data structure
-    console.log("🎸 Overview Data:", overviewData);
-    console.log("🎸 Customer Segments:", overviewData.customerSegments);
-    console.log("🎸 Segments detailed:", overviewData.customerSegments?.map(s => ({ 
-      id: s._id, 
-      count: s.count, 
-      type: typeof s.count 
-    })));
-
     // Process customer segments data for chart
     const chartData = (overviewData.customerSegments || []).map(segment => ({
       name: segment._id,
       count: Number(segment.count) || 0,
       _id: segment._id
     }));
-
-    console.log("🎸 Chart Data:", chartData);
 
     // Add test data if chart data is empty or small
     const testData = [
@@ -331,9 +320,6 @@ const CustomerInsights = () => {
     // Use test data if chart data is problematic
     const finalChartData = chartData.length > 0 && chartData.some(d => d.count > 0) ? chartData : testData;
     
-    console.log("🎸 Final Chart Data:", finalChartData);
-    console.log("🎸 Final Chart Data DETAILED:", JSON.stringify(finalChartData, null, 2));
-
     return (
       <div className="space-y-6">
         {/* KPI Cards */}
@@ -389,138 +375,190 @@ const CustomerInsights = () => {
 
         {/* Customer Segments Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Customer Segments Bar Chart */}
-          <Card>
+          {/* Beautiful Customer Segments Chart */}
+          <Card className="shadow-lg">
             <CardBody>
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-semibold">👥 Customer Segments</h4>
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center">
+                  <div className="p-2 mr-3 text-purple-600 bg-purple-100 rounded-lg">
+                    <FiUsers className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-800">Customer Segments</h4>
+                    <p className="text-sm text-gray-500">Distribution by customer value</p>
+                  </div>
+                </div>
                 <Button
                   size="sm"
                   onClick={() => exportToCSV('overview')}
-                  className="bg-green-500 hover:bg-green-600 text-white"
+                  className="bg-green-500 hover:bg-green-600 text-white shadow-md transition-all duration-200"
                 >
                   <FiDownload className="w-4 h-4 mr-2" />
                   Export
                 </Button>
               </div>
-              <div className="h-64">
+              
+              <div className="h-80">
                 {finalChartData.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                      <FiUsers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p className="text-sm text-gray-500">No customer segment data available</p>
-                      <p className="text-xs text-gray-400 mt-1">Data: {JSON.stringify(overviewData.customerSegments)}</p>
+                      <FiUsers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium text-gray-600">No Data Available</p>
+                      <p className="text-sm text-gray-500">Customer segments will appear here</p>
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    {/* Debug Data Preview */}
-                    <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-50 rounded">
-                      <strong>Chart Data:</strong> {finalChartData.map(d => `${d.name}: ${d.count}`).join(', ')}
-                    </div>
-                    
-                    {/* Simple CSS Bar Chart for Debugging */}
-                    <div className="mb-4">
-                      <p className="text-xs font-medium mb-2">CSS Debug Chart:</p>
-                      {finalChartData.map((item, index) => (
-                        <div key={index} className="flex items-center mb-1">
-                          <div className="w-16 text-xs">{item.name}</div>
-                          <div className="flex-1 bg-gray-200 rounded h-4 mr-2">
-                            <div 
-                              className="h-4 rounded"
-                              style={{ 
-                                width: `${(item.count / Math.max(...finalChartData.map(d => d.count))) * 100}%`,
-                                backgroundColor: 
-                                  item._id === 'VIP' ? '#8b5cf6' :
-                                  item._id === 'Premium' ? '#3b82f6' :
-                                  item._id === 'Regular' ? '#10b981' :
-                                  item._id === 'New' ? '#f59e0b' :
-                                  '#6b7280'
-                              }}
-                            ></div>
-                          </div>
-                          <div className="w-8 text-xs text-right">{item.count}</div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <ResponsiveContainer width="100%" height="220">
-                      <BarChart 
-                        data={finalChartData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={finalChartData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <Tooltip 
+                        formatter={(value, name) => [value.toLocaleString(), 'Customers']}
+                        labelFormatter={(label) => `${label} Segment`}
+                        contentStyle={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        name="Customer Count"
+                        radius={[6, 6, 0, 0]}
+                        minPointSize={5}
                       >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="name" 
-                          angle={-45}
-                          textAnchor="end"
-                          height={60}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value, name) => [value.toLocaleString(), 'Customers']}
-                          labelFormatter={(label) => `${label} Segment`}
-                        />
-                        <Bar 
-                          dataKey="count" 
-                          fill="#8884d8"
-                          name="Customer Count"
-                          radius={[4, 4, 0, 0]}
-                          minPointSize={5}
-                        >
-                          {finalChartData.map((entry, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={
-                                entry._id === 'VIP' ? '#8b5cf6' :
-                                entry._id === 'Premium' ? '#3b82f6' :
-                                entry._id === 'Regular' ? '#10b981' :
-                                entry._id === 'New' ? '#f59e0b' :
-                                '#6b7280'
-                              } 
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                        {finalChartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={
+                              entry._id === 'VIP' ? '#8b5cf6' :
+                              entry._id === 'Premium' ? '#3b82f6' :
+                              entry._id === 'Regular' ? '#10b981' :
+                              entry._id === 'New' ? '#f59e0b' :
+                              '#6b7280'
+                            } 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </CardBody>
           </Card>
 
           {/* Customer Segments Summary Cards */}
-          <Card>
+          <Card className="shadow-lg">
             <CardBody>
-              <h4 className="text-lg font-semibold mb-4">📊 Segment Details</h4>
+              <div className="flex items-center mb-6">
+                <div className="p-2 mr-3 text-indigo-600 bg-indigo-100 rounded-lg">
+                  <FiStar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Segment Details</h4>
+                  <p className="text-sm text-gray-500">Customer distribution breakdown</p>
+                </div>
+              </div>
+              
               <div className="space-y-4">
                 {(overviewData.customerSegments || []).map((segment, index) => {
                   const totalCustomers = overviewData.customerSegments.reduce((sum, s) => sum + s.count, 0);
                   const percentage = totalCustomers > 0 ? ((segment.count / totalCustomers) * 100).toFixed(1) : 0;
                   
+                  const segmentConfig = {
+                    VIP: { 
+                      color: '#8b5cf6', 
+                      bgColor: 'bg-purple-50', 
+                      textColor: 'text-purple-800',
+                      icon: '👑',
+                      description: 'High-value customers'
+                    },
+                    Premium: { 
+                      color: '#3b82f6', 
+                      bgColor: 'bg-blue-50', 
+                      textColor: 'text-blue-800',
+                      icon: '💎',
+                      description: 'Premium tier customers'
+                    },
+                    Regular: { 
+                      color: '#10b981', 
+                      bgColor: 'bg-green-50', 
+                      textColor: 'text-green-800',
+                      icon: '⭐',
+                      description: 'Regular customers'
+                    },
+                    New: { 
+                      color: '#f59e0b', 
+                      bgColor: 'bg-yellow-50', 
+                      textColor: 'text-yellow-800',
+                      icon: '🆕',
+                      description: 'New customers'
+                    }
+                  };
+
+                  const config = segmentConfig[segment._id] || {
+                    color: '#6b7280',
+                    bgColor: 'bg-gray-50',
+                    textColor: 'text-gray-800',
+                    icon: '👤',
+                    description: 'Other customers'
+                  };
+                  
                   return (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div 
-                          className="w-4 h-4 rounded mr-3"
-                          style={{ 
-                            backgroundColor: 
-                              segment._id === 'VIP' ? '#8b5cf6' :
-                              segment._id === 'Premium' ? '#3b82f6' :
-                              segment._id === 'Regular' ? '#10b981' :
-                              segment._id === 'New' ? '#f59e0b' :
-                              '#6b7280'
-                          }}
-                        ></div>
-                        <div>
-                          <p className="font-medium text-sm">{segment._id} Customers</p>
-                          <p className="text-xs text-gray-600">{percentage}% of total</p>
+                    <div key={index} className={`${config.bgColor} rounded-xl p-4 border border-gray-100 hover:shadow-md transition-all duration-200`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div 
+                            className="w-6 h-6 rounded-full mr-4 flex items-center justify-center text-white text-xs font-bold shadow-sm"
+                            style={{ backgroundColor: config.color }}
+                          >
+                            {config.icon}
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <p className={`font-bold text-lg ${config.textColor}`}>{segment._id}</p>
+                              <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
+                                {percentage}%
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">{config.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center">
+                            <FiUsers className="w-4 h-4 text-gray-400 mr-1" />
+                            <p className="font-bold text-2xl text-gray-800">{segment.count.toLocaleString()}</p>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">customers</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg">{segment.count.toLocaleString()}</p>
-                        <p className="text-xs text-gray-600">customers</p>
+                      
+                      {/* Progress Bar */}
+                      <div className="mt-4">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full transition-all duration-500 ease-out"
+                            style={{ 
+                              width: `${percentage}%`,
+                              backgroundColor: config.color
+                            }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -531,54 +569,114 @@ const CustomerInsights = () => {
         </div>
 
         {/* Top Customers Table */}
-        <Card>
+        <Card className="shadow-lg">
           <CardBody>
-            <h4 className="text-lg font-semibold mb-4">🏆 Top Customers</h4>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="p-2 mr-3 text-yellow-600 bg-yellow-100 rounded-lg">
+                  <FiStar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Top Customers</h4>
+                  <p className="text-sm text-gray-500">Your most valuable customers</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => exportToCSV('overview')}
+                className="bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-200"
+              >
+                <FiDownload className="w-4 h-4 mr-2" />
+                Export List
+              </Button>
+            </div>
+            
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Customer</th>
-                    <th className="px-4 py-2 text-left">Email</th>
-                    <th className="px-4 py-2 text-left">City</th>
-                    <th className="px-4 py-2 text-right">Total Spent</th>
-                    <th className="px-4 py-2 text-right">Orders</th>
-                    <th className="px-4 py-2 text-center">Segment</th>
-                    <th className="px-4 py-2 text-center">Actions</th>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-gray-100">
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Customer</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Contact</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Location</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Total Spent</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Orders</th>
+                    <th className="px-4 py-4 text-center font-semibold text-gray-700">Segment</th>
+                    <th className="px-4 py-4 text-center font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(overviewData.topCustomers || []).map((customer, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="px-4 py-2 font-medium">{customer.name}</td>
-                      <td className="px-4 py-2 text-gray-600">{customer.email}</td>
-                      <td className="px-4 py-2 text-gray-600">{customer.city}</td>
-                      <td className="px-4 py-2 text-right font-medium">{formatCurrency(customer.totalSpent)}</td>
-                      <td className="px-4 py-2 text-right">{customer.totalOrders}</td>
-                      <td className="px-4 py-2 text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    <tr key={index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm mr-3">
+                            {customer.name?.charAt(0)?.toUpperCase() || 'N'}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800">{customer.name}</p>
+                            <p className="text-xs text-gray-500">Customer ID: {customer._id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div>
+                          <p className="text-sm text-gray-800">{customer.email}</p>
+                          <p className="text-xs text-gray-500">{customer.phone}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <FiMapPin className="w-4 h-4 text-gray-400 mr-1" />
+                          <span className="text-sm text-gray-600">{customer.city || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div>
+                          <p className="font-bold text-lg text-gray-800">{formatCurrency(customer.totalSpent)}</p>
+                          <p className="text-xs text-gray-500">Lifetime Value</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div>
+                          <p className="font-semibold text-gray-800">{customer.totalOrders}</p>
+                          <p className="text-xs text-gray-500">orders</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           customer.customerSegment === 'VIP' ? 'bg-purple-100 text-purple-800' :
                           customer.customerSegment === 'Premium' ? 'bg-blue-100 text-blue-800' :
                           customer.customerSegment === 'Regular' ? 'bg-green-100 text-green-800' :
-                          'bg-gray-100 text-gray-800'
+                          'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {customer.customerSegment}
+                          {customer.customerSegment === 'VIP' ? '👑 VIP' :
+                           customer.customerSegment === 'Premium' ? '💎 Premium' :
+                           customer.customerSegment === 'Regular' ? '⭐ Regular' :
+                           '🆕 New'}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-center">
+                      <td className="px-4 py-4 text-center">
                         <Button
                           size="sm"
                           onClick={() => handleCustomerSelect(customer)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                          className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm transition-all duration-200"
                         >
                           <FiEye className="w-3 h-3 mr-1" />
-                          View Details
+                          View
                         </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              
+              {(!overviewData.topCustomers || overviewData.topCustomers.length === 0) && (
+                <div className="text-center py-12">
+                  <FiUsers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-600">No Customers Found</p>
+                  <p className="text-sm text-gray-500">Customer data will appear here</p>
+                </div>
+              )}
             </div>
           </CardBody>
         </Card>
