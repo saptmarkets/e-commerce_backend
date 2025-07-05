@@ -357,43 +357,104 @@ const CustomerInsights = () => {
         </div>
 
         {/* Customer Segments Chart */}
-        <Card>
-          <CardBody>
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold">👥 Customer Segments</h4>
-              <Button
-                size="sm"
-                onClick={() => exportToCSV('overview')}
-                className="bg-green-500 hover:bg-green-600 text-white"
-              >
-                <FiDownload className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Customer Segments Bar Chart */}
+          <Card>
+            <CardBody>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-lg font-semibold">👥 Customer Segments</h4>
+                <Button
+                  size="sm"
+                  onClick={() => exportToCSV('overview')}
+                  className="bg-green-500 hover:bg-green-600 text-white"
+                >
+                  <FiDownload className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
                     data={overviewData.customerSegments || []}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name}: ${value}`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="count"
+                    layout="horizontal"
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
-                    {(overviewData.customerSegments || []).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => value.toLocaleString()} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardBody>
-        </Card>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis 
+                      type="category" 
+                      dataKey="_id" 
+                      width={80}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip 
+                      formatter={(value, name) => [value.toLocaleString(), 'Customers']}
+                      labelFormatter={(label) => `${label} Segment`}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      fill="#8884d8"
+                      name="Customer Count"
+                      radius={[0, 4, 4, 0]}
+                    >
+                      {(overviewData.customerSegments || []).map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={
+                            entry._id === 'VIP' ? '#8b5cf6' :
+                            entry._id === 'Premium' ? '#3b82f6' :
+                            entry._id === 'Regular' ? '#10b981' :
+                            entry._id === 'New' ? '#f59e0b' :
+                            '#6b7280'
+                          } 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Customer Segments Summary Cards */}
+          <Card>
+            <CardBody>
+              <h4 className="text-lg font-semibold mb-4">📊 Segment Details</h4>
+              <div className="space-y-4">
+                {(overviewData.customerSegments || []).map((segment, index) => {
+                  const totalCustomers = overviewData.customerSegments.reduce((sum, s) => sum + s.count, 0);
+                  const percentage = totalCustomers > 0 ? ((segment.count / totalCustomers) * 100).toFixed(1) : 0;
+                  
+                  return (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div 
+                          className="w-4 h-4 rounded mr-3"
+                          style={{ 
+                            backgroundColor: 
+                              segment._id === 'VIP' ? '#8b5cf6' :
+                              segment._id === 'Premium' ? '#3b82f6' :
+                              segment._id === 'Regular' ? '#10b981' :
+                              segment._id === 'New' ? '#f59e0b' :
+                              '#6b7280'
+                          }}
+                        ></div>
+                        <div>
+                          <p className="font-medium text-sm">{segment._id} Customers</p>
+                          <p className="text-xs text-gray-600">{percentage}% of total</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg">{segment.count.toLocaleString()}</p>
+                        <p className="text-xs text-gray-600">customers</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+        </div>
 
         {/* Top Customers Table */}
         <Card>
