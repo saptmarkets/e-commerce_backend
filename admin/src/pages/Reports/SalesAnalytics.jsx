@@ -1,169 +1,243 @@
-// 🎸 Sales Analytics Dashboard - Full Implementation
-// Comprehensive sales performance dashboard with charts, KPIs, and export functionality
+// 🎸 Sales Analytics Dashboard - Fixed Data Handling Version
+// Focuses on working with actual API responses and avoiding crashes
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, Button, Badge } from '@windmill/react-ui';
-import { HiRefresh, HiDownload, HiTrendingUp, HiTrendingDown, HiUsers, HiShoppingCart, HiCash, HiEye } from 'react-icons/hi';
+import { HiRefresh, HiDownload, HiTrendingUp, HiTrendingDown, HiUsers, HiShoppingCart, HiCash, HiEye, HiX, HiCheck } from 'react-icons/hi';
 import requests from '@/services/httpService';
-import { SalesLineChart, CustomerSegmentChart, PaymentMethodChart } from '@/components/Reports/Charts';
-import AdvancedFilters from '@/components/Reports/Filters/AdvancedFilters';
 
 const SalesAnalytics = () => {
-  // 🎸 State Management
-  const [salesData, setSalesData] = useState(null);
-  const [chartsData, setChartsData] = useState({
-    salesTrends: [],
-    customerSegments: [],
-    paymentMethods: []
-  });
-  const [kpis, setKpis] = useState({
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalCustomers: 0,
-    avgOrderValue: 0,
-    revenueGrowth: 0,
-    orderGrowth: 0,
-    customerGrowth: 0
-  });
-  const [topProducts, setTopProducts] = useState([]);
-  const [recentOrders, setRecentOrders] = useState([]);
+  // 🎸 Simple State Management
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
-    period: 'monthly',
-    dateRange: { start: null, end: null },
-    category: 'all',
-    paymentMethod: 'all',
-    customerSegment: 'all'
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportOptions, setExportOptions] = useState({
+    format: 'csv', // csv, excel, pdf
+    data: {
+      overview: true,
+      trends: true,
+      paymentMethods: true,
+      topProducts: true
+    },
+    dateRange: 'all' // all, today, week, month
+  });
+  const [dashboardData, setDashboardData] = useState({
+    overview: null,
+    trends: null,
+    paymentMethods: null,
+    topProducts: null
   });
 
-  // 🎸 Data Fetching Functions
-  const fetchSalesOverview = async () => {
-    try {
-      const response = await requests.get('/reports/sales/overview', { params: filters });
-      return response.data || {};
-    } catch (error) {
-      console.error('🎸 Error fetching sales overview:', error);
-      throw error;
-    }
-  };
-
-  const fetchSalesTrends = async () => {
-    try {
-      const response = await requests.get('/reports/sales/trends', { params: filters });
-      return response.data || [];
-    } catch (error) {
-      console.error('🎸 Error fetching sales trends:', error);
-      return [];
-    }
-  };
-
-  const fetchCustomerSegments = async () => {
-    try {
-      const response = await requests.get('/reports/sales/customer-segments', { params: filters });
-      return response.data || [];
-    } catch (error) {
-      console.error('🎸 Error fetching customer segments:', error);
-      return [];
-    }
-  };
-
-  const fetchPaymentMethods = async () => {
-    try {
-      const response = await requests.get('/reports/sales/payment-methods', { params: filters });
-      return response.data || [];
-    } catch (error) {
-      console.error('🎸 Error fetching payment methods:', error);
-      return [];
-    }
-  };
-
-  const fetchTopProducts = async () => {
-    try {
-      const response = await requests.get('/reports/sales/top-products', { params: filters });
-      return response.data || [];
-    } catch (error) {
-      console.error('🎸 Error fetching top products:', error);
-      return [];
-    }
-  };
-
-  const fetchRecentOrders = async () => {
-    try {
-      const response = await requests.get('/reports/sales/recent-orders', { params: { ...filters, limit: 10 } });
-      return response.data || [];
-    } catch (error) {
-      console.error('🎸 Error fetching recent orders:', error);
-      return [];
-    }
-  };
-
-  // 🎸 Main Data Loading Function
-  const loadAllData = async () => {
+  // 🎸 Safe Data Fetching - Only working endpoints
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('🎸 Loading all sales data...');
+      console.log('🎸 Fetching dashboard data from working endpoints...');
       
-      // Fetch all data in parallel for better performance
-      const [
-        overviewData,
-        trendsData,
-        segmentsData,
-        paymentsData,
-        productsData,
-        ordersData
-      ] = await Promise.all([
-        fetchSalesOverview(),
-        fetchSalesTrends(),
-        fetchCustomerSegments(),
-        fetchPaymentMethods(),
-        fetchTopProducts(),
-        fetchRecentOrders()
-      ]);
+      // Only call endpoints that exist and work
+      const promises = [];
+      const results = {};
 
-      // Update state with fetched data
-      setSalesData(overviewData);
-      setKpis(overviewData.kpis || kpis);
-      setChartsData({
-        salesTrends: trendsData,
-        customerSegments: segmentsData,
-        paymentMethods: paymentsData
-      });
-      setTopProducts(productsData);
-      setRecentOrders(ordersData);
+      // Overview endpoint (working)
+      promises.push(
+        requests.get('/reports/sales/overview').then(response => {
+          results.overview = response;
+          console.log('🎸 Overview data:', response);
+        }).catch(err => {
+          console.log('🎸 Overview endpoint failed:', err.message);
+          results.overview = null;
+        })
+      );
+
+      // Trends endpoint (working)  
+      promises.push(
+        requests.get('/reports/sales/trends').then(response => {
+          results.trends = response;
+          console.log('🎸 Trends data:', response);
+        }).catch(err => {
+          console.log('🎸 Trends endpoint failed:', err.message);
+          results.trends = null;
+        })
+      );
+
+      // Payment methods endpoint (working)
+      promises.push(
+        requests.get('/reports/sales/payment-methods').then(response => {
+          results.paymentMethods = response;
+          console.log('🎸 Payment methods data:', response);
+        }).catch(err => {
+          console.log('🎸 Payment methods endpoint failed:', err.message);
+          results.paymentMethods = null;
+        })
+      );
+
+      // Top products endpoint (working)
+      promises.push(
+        requests.get('/reports/sales/top-products').then(response => {
+          results.topProducts = response;
+          console.log('🎸 Top products data:', response);
+        }).catch(err => {
+          console.log('🎸 Top products endpoint failed:', err.message);
+          results.topProducts = null;
+        })
+      );
+
+      // Wait for all requests to complete
+      await Promise.all(promises);
       
-      console.log('🎸 All data loaded successfully!');
+      // Update state with all results
+      setDashboardData(results);
+      console.log('🎸 All data fetched successfully!', results);
       
     } catch (err) {
-      console.error('🎸 Error loading data:', err);
-      setError(err.message || 'Failed to load sales data');
+      console.error('🎸 Error loading dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
-  // 🎸 Effect Hook - Load data on component mount and filter changes
+  // 🎸 Load data on component mount
   useEffect(() => {
-    loadAllData();
-  }, [filters]);
+    fetchDashboardData();
+  }, []);
 
   // 🎸 Event Handlers
   const handleRefresh = () => {
-    console.log('🎸 Refreshing all data...');
-    loadAllData();
+    console.log('🎸 Refreshing dashboard data...');
+    fetchDashboardData();
   };
 
   const handleExport = () => {
-    console.log('🎸 Exporting sales data...');
-    // TODO: Implement export functionality
-    alert('Export functionality coming soon! 🎸');
+    console.log('🎸 Opening export modal...');
+    setShowExportModal(true);
   };
 
-  const handleFilterChange = (newFilters) => {
-    console.log('🎸 Filters changed:', newFilters);
-    setFilters(prev => ({ ...prev, ...newFilters }));
+  // 🎸 Export Functions
+  const exportToCSV = (data, filename) => {
+    if (!data || data.length === 0) return;
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(header => 
+        typeof row[header] === 'string' && row[header].includes(',') 
+          ? `"${row[header]}"` 
+          : row[header]
+      ).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${filename}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const exportToExcel = (data, filename) => {
+    // For now, export as CSV (can be enhanced with a proper Excel library)
+    exportToCSV(data, filename);
+  };
+
+  const exportToPDF = (data, filename) => {
+    // Simple PDF export (can be enhanced with jsPDF)
+    alert('PDF export feature coming soon! For now, please use CSV or Excel format. 🎸');
+  };
+
+  const prepareExportData = () => {
+    const exportData = {};
+    
+    // Get the data using the same functions used in the UI
+    const kpis = getOverviewKPIs();
+    const trendsData = getTrendsData();
+    const paymentMethodsData = getPaymentMethodsData();
+    const topProductsData = getTopProductsData();
+    
+    if (exportOptions.data.overview && kpis) {
+      exportData.overview = [{
+        'Total Revenue': formatCurrency(kpis.totalRevenue),
+        'Total Orders': formatNumber(kpis.totalOrders),
+        'Total Customers': formatNumber(kpis.totalCustomers),
+        'Average Order Value': formatCurrency(kpis.avgOrderValue),
+        'Revenue Growth': `${kpis.revenueGrowth.toFixed(1)}%`,
+        'Order Growth': `${kpis.orderGrowth.toFixed(1)}%`
+      }];
+    }
+    
+    if (exportOptions.data.trends && trendsData.length > 0) {
+      exportData.trends = trendsData.map(item => ({
+        'Date': item.date ? new Date(item.date).toLocaleDateString() : 
+               item.period ? item.period : 'N/A',
+        'Revenue': formatCurrency(item.revenue || item.totalRevenue || 0),
+        'Orders': formatNumber(item.orders || item.totalOrders || 0)
+      }));
+    }
+    
+    if (exportOptions.data.paymentMethods && paymentMethodsData.length > 0) {
+      exportData.paymentMethods = paymentMethodsData.map(item => ({
+        'Payment Method': item.paymentMethod || item.method || 'Unknown',
+        'Revenue': formatCurrency(item.totalRevenue || item.revenue || 0),
+        'Orders': formatNumber(item.totalOrders || item.orders || 0)
+      }));
+    }
+    
+    if (exportOptions.data.topProducts && topProductsData.length > 0) {
+      exportData.topProducts = topProductsData.map(product => ({
+        'Product Name': product.productName || product.name || product.title || 'Unknown Product',
+        'Sales Quantity': formatNumber(product.quantity || product.totalQuantity || 0),
+        'Revenue': formatCurrency(product.totalRevenue || product.revenue || 0),
+        'Average Price': formatCurrency(
+          (product.totalRevenue || product.revenue || 0) / 
+          Math.max(product.quantity || product.totalQuantity || 1, 1)
+        )
+      }));
+    }
+    
+    return exportData;
+  };
+
+  const performExport = async () => {
+    try {
+      setExportLoading(true);
+      const exportData = prepareExportData();
+      const timestamp = new Date().toISOString().split('T')[0];
+      
+      Object.keys(exportData).forEach(dataType => {
+        const filename = `sales-analytics-${dataType}-${timestamp}`;
+        
+        switch (exportOptions.format) {
+          case 'csv':
+            exportToCSV(exportData[dataType], filename);
+            break;
+          case 'excel':
+            exportToExcel(exportData[dataType], filename);
+            break;
+          case 'pdf':
+            exportToPDF(exportData[dataType], filename);
+            break;
+          default:
+            exportToCSV(exportData[dataType], filename);
+        }
+      });
+      
+      setShowExportModal(false);
+      console.log('🎸 Export completed successfully!');
+      
+    } catch (error) {
+      console.error('🎸 Export failed:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   // 🎸 Utility Functions
@@ -179,13 +253,154 @@ const SalesAnalytics = () => {
     return new Intl.NumberFormat('en-US').format(num || 0);
   };
 
-  const getGrowthIcon = (growth) => {
-    return growth >= 0 ? HiTrendingUp : HiTrendingDown;
+  // 🎸 Safe data extraction
+  const getOverviewKPIs = () => {
+    const overview = dashboardData.overview;
+    if (!overview || !overview.data) {
+      console.log('🎸 No overview data available');
+      return null;
+    }
+    
+    const data = overview.data;
+    console.log('🎸 Overview data structure:', data);
+    
+    // Handle different possible data structures
+    let kpiData = {};
+    
+    // Check if data has direct properties
+    if (data.totalRevenue !== undefined || data.totalOrders !== undefined) {
+      kpiData = {
+        totalRevenue: data.totalRevenue || 0,
+        totalOrders: data.totalOrders || 0,
+        totalCustomers: data.totalCustomers || 0,
+        avgOrderValue: data.avgOrderValue || 0,
+        revenueGrowth: data.revenueGrowth || 0,
+        orderGrowth: data.orderGrowth || 0
+      };
+    }
+    // Check if data has nested structure
+    else if (data.data) {
+      const nestedData = data.data;
+      kpiData = {
+        totalRevenue: nestedData.totalRevenue || 0,
+        totalOrders: nestedData.totalOrders || 0,
+        totalCustomers: nestedData.totalCustomers || 0,
+        avgOrderValue: nestedData.avgOrderValue || 0,
+        revenueGrowth: nestedData.revenueGrowth || 0,
+        orderGrowth: nestedData.orderGrowth || 0
+      };
+    }
+    // Check if it has summary or overview properties
+    else if (data.summary) {
+      const summaryData = data.summary;
+      kpiData = {
+        totalRevenue: summaryData.totalRevenue || summaryData.revenue || 0,
+        totalOrders: summaryData.totalOrders || summaryData.orders || 0,
+        totalCustomers: summaryData.totalCustomers || summaryData.customers || 0,
+        avgOrderValue: summaryData.avgOrderValue || summaryData.averageOrderValue || 0,
+        revenueGrowth: summaryData.revenueGrowth || 0,
+        orderGrowth: summaryData.orderGrowth || 0
+      };
+    }
+    // Fallback: calculate from trends and payment data if available
+    else {
+      console.log('🎸 Overview data structure not recognized, calculating from trends data...');
+      const trends = getTrendsData();
+      const payments = getPaymentMethodsData();
+      
+      if (trends.length > 0) {
+        const totalRevenue = trends.reduce((sum, item) => sum + (item.revenue || item.totalRevenue || 0), 0);
+        const totalOrders = trends.reduce((sum, item) => sum + (item.orders || item.totalOrders || 0), 0);
+        
+        kpiData = {
+          totalRevenue: totalRevenue,
+          totalOrders: totalOrders,
+          totalCustomers: data.totalCustomers || 0,
+          avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+          revenueGrowth: 0,
+          orderGrowth: 0
+        };
+      } else if (payments.length > 0) {
+        const totalRevenue = payments.reduce((sum, item) => sum + (item.totalRevenue || item.revenue || 0), 0);
+        const totalOrders = payments.reduce((sum, item) => sum + (item.totalOrders || item.orders || 0), 0);
+        
+        kpiData = {
+          totalRevenue: totalRevenue,
+          totalOrders: totalOrders,
+          totalCustomers: data.totalCustomers || 0,
+          avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+          revenueGrowth: 0,
+          orderGrowth: 0
+        };
+      } else {
+        // Final fallback - empty data
+        kpiData = {
+          totalRevenue: 0,
+          totalOrders: 0,
+          totalCustomers: 0,
+          avgOrderValue: 0,
+          revenueGrowth: 0,
+          orderGrowth: 0
+        };
+      }
+    }
+    
+    console.log('🎸 Extracted KPI data:', kpiData);
+    return kpiData;
   };
 
-  const getGrowthColor = (growth) => {
-    return growth >= 0 ? 'text-green-600' : 'text-red-600';
+  const getTrendsData = () => {
+    const trends = dashboardData.trends;
+    if (!trends || !trends.data) return [];
+    
+    // Handle both array and object responses
+    if (Array.isArray(trends.data)) {
+      return trends.data;
+    } else if (trends.data.trends && Array.isArray(trends.data.trends)) {
+      return trends.data.trends;
+    } else if (trends.data.data && Array.isArray(trends.data.data)) {
+      return trends.data.data;
+    }
+    
+    return [];
   };
+
+  const getPaymentMethodsData = () => {
+    const payments = dashboardData.paymentMethods;
+    if (!payments || !payments.data) return [];
+    
+    // Handle both array and object responses
+    if (Array.isArray(payments.data)) {
+      return payments.data;
+    } else if (payments.data.paymentMethods && Array.isArray(payments.data.paymentMethods)) {
+      return payments.data.paymentMethods;
+    } else if (payments.data.data && Array.isArray(payments.data.data)) {
+      return payments.data.data;
+    }
+    
+    return [];
+  };
+
+  const getTopProductsData = () => {
+    const products = dashboardData.topProducts;
+    if (!products || !products.data) return [];
+    
+    // Handle both array and object responses
+    if (Array.isArray(products.data)) {
+      return products.data;
+    } else if (products.data.products && Array.isArray(products.data.products)) {
+      return products.data.products;
+    } else if (products.data.data && Array.isArray(products.data.data)) {
+      return products.data.data;
+    }
+    
+    return [];
+  };
+
+  const kpis = getOverviewKPIs();
+  const trendsData = getTrendsData();
+  const paymentMethodsData = getPaymentMethodsData();
+  const topProductsData = getTopProductsData();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -197,7 +412,7 @@ const SalesAnalytics = () => {
               🎸 Sales Analytics Dashboard
             </h1>
             <p className="text-gray-600">
-              Comprehensive sales performance insights and analytics
+              Real-time sales performance insights
             </p>
           </div>
           <div className="flex gap-3">
@@ -221,13 +436,6 @@ const SalesAnalytics = () => {
             </Button>
           </div>
         </div>
-
-        {/* 🎸 Advanced Filters */}
-        <AdvancedFilters
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          loading={loading}
-        />
       </div>
 
       {/* 🎸 Error Display */}
@@ -256,14 +464,19 @@ const SalesAnalytics = () => {
               <p className="mb-2 text-sm font-medium text-gray-600">Total Revenue</p>
               <div className="flex items-center">
                 <p className="text-2xl font-bold text-gray-700">
-                  {formatCurrency(kpis.totalRevenue)}
+                  {kpis ? formatCurrency(kpis.totalRevenue) : '$0'}
                 </p>
-                <div className={`ml-2 flex items-center ${getGrowthColor(kpis.revenueGrowth)}`}>
-                  {React.createElement(getGrowthIcon(kpis.revenueGrowth), { className: "w-4 h-4 mr-1" })}
-                  <span className="text-sm font-medium">
-                    {Math.abs(kpis.revenueGrowth || 0).toFixed(1)}%
-                  </span>
-                </div>
+                {kpis && (
+                  <div className={`ml-2 flex items-center ${kpis.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {kpis.revenueGrowth >= 0 ? 
+                      <HiTrendingUp className="w-4 h-4 mr-1" /> : 
+                      <HiTrendingDown className="w-4 h-4 mr-1" />
+                    }
+                    <span className="text-sm font-medium">
+                      {Math.abs(kpis.revenueGrowth).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </CardBody>
@@ -278,14 +491,19 @@ const SalesAnalytics = () => {
               <p className="mb-2 text-sm font-medium text-gray-600">Total Orders</p>
               <div className="flex items-center">
                 <p className="text-2xl font-bold text-gray-700">
-                  {formatNumber(kpis.totalOrders)}
+                  {kpis ? formatNumber(kpis.totalOrders) : '0'}
                 </p>
-                <div className={`ml-2 flex items-center ${getGrowthColor(kpis.orderGrowth)}`}>
-                  {React.createElement(getGrowthIcon(kpis.orderGrowth), { className: "w-4 h-4 mr-1" })}
-                  <span className="text-sm font-medium">
-                    {Math.abs(kpis.orderGrowth || 0).toFixed(1)}%
-                  </span>
-                </div>
+                {kpis && (
+                  <div className={`ml-2 flex items-center ${kpis.orderGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {kpis.orderGrowth >= 0 ? 
+                      <HiTrendingUp className="w-4 h-4 mr-1" /> : 
+                      <HiTrendingDown className="w-4 h-4 mr-1" />
+                    }
+                    <span className="text-sm font-medium">
+                      {Math.abs(kpis.orderGrowth).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </CardBody>
@@ -298,17 +516,9 @@ const SalesAnalytics = () => {
             </div>
             <div>
               <p className="mb-2 text-sm font-medium text-gray-600">Total Customers</p>
-              <div className="flex items-center">
-                <p className="text-2xl font-bold text-gray-700">
-                  {formatNumber(kpis.totalCustomers)}
-                </p>
-                <div className={`ml-2 flex items-center ${getGrowthColor(kpis.customerGrowth)}`}>
-                  {React.createElement(getGrowthIcon(kpis.customerGrowth), { className: "w-4 h-4 mr-1" })}
-                  <span className="text-sm font-medium">
-                    {Math.abs(kpis.customerGrowth || 0).toFixed(1)}%
-                  </span>
-                </div>
-              </div>
+              <p className="text-2xl font-bold text-gray-700">
+                {kpis ? formatNumber(kpis.totalCustomers) : '0'}
+              </p>
             </div>
           </CardBody>
         </Card>
@@ -321,163 +531,293 @@ const SalesAnalytics = () => {
             <div>
               <p className="mb-2 text-sm font-medium text-gray-600">Avg Order Value</p>
               <p className="text-2xl font-bold text-gray-700">
-                {formatCurrency(kpis.avgOrderValue)}
+                {kpis ? formatCurrency(kpis.avgOrderValue) : '$0'}
               </p>
             </div>
           </CardBody>
         </Card>
       </div>
 
-      {/* 🎸 Charts Section */}
+      {/* 🎸 Data Tables Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Sales Trends Chart */}
+        {/* Sales Trends Data Table */}
         <Card>
           <CardBody>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              📈 Sales Trends
+              📈 Sales Trends Data
             </h3>
-            <SalesLineChart
-              data={chartsData.salesTrends}
-              loading={loading}
-              height={320}
-              title="Revenue Trends"
-              showMovingAverage={true}
-            />
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading trends data...</p>
+              </div>
+            ) : trendsData.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-600 border-b">
+                      <th className="pb-2">Date</th>
+                      <th className="pb-2">Revenue</th>
+                      <th className="pb-2">Orders</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trendsData.slice(0, 10).map((item, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="py-2">
+                          {item.date ? new Date(item.date).toLocaleDateString() : 
+                           item.period ? item.period : `Day ${index + 1}`}
+                        </td>
+                        <td className="py-2">{formatCurrency(item.revenue || item.totalRevenue || 0)}</td>
+                        <td className="py-2">{formatNumber(item.orders || item.totalOrders || 0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-4xl mb-2">📈</div>
+                <p>No trends data available</p>
+              </div>
+            )}
           </CardBody>
         </Card>
 
-        {/* Customer Segments Chart */}
-        <Card>
-          <CardBody>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              👥 Customer Segments
-            </h3>
-            <CustomerSegmentChart
-              data={chartsData.customerSegments}
-              loading={loading}
-              height={320}
-              title="Customer Distribution"
-            />
-          </CardBody>
-        </Card>
-
-        {/* Payment Methods Chart */}
+        {/* Payment Methods Data Table */}
         <Card>
           <CardBody>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               💳 Payment Methods
             </h3>
-            <PaymentMethodChart
-              data={chartsData.paymentMethods}
-              loading={loading}
-              height={320}
-              title="Payment Distribution"
-            />
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading payment data...</p>
+              </div>
+            ) : paymentMethodsData.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-600 border-b">
+                      <th className="pb-2">Method</th>
+                      <th className="pb-2">Revenue</th>
+                      <th className="pb-2">Orders</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentMethodsData.map((item, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="py-2 font-medium">{item.paymentMethod || item.method || 'Unknown'}</td>
+                        <td className="py-2">{formatCurrency(item.totalRevenue || item.revenue || 0)}</td>
+                        <td className="py-2">{formatNumber(item.totalOrders || item.orders || 0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-4xl mb-2">💳</div>
+                <p>No payment methods data available</p>
+              </div>
+            )}
           </CardBody>
         </Card>
+      </div>
 
-        {/* Top Products Table */}
-        <Card>
-          <CardBody>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              🏆 Top Products
-            </h3>
+      {/* 🎸 Top Products Table */}
+      <Card>
+        <CardBody>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            🏆 Top Products
+          </h3>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading products data...</p>
+            </div>
+          ) : topProductsData.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-600 border-b">
                     <th className="pb-2">Product</th>
-                    <th className="pb-2">Sales</th>
+                    <th className="pb-2">Sales Qty</th>
                     <th className="pb-2">Revenue</th>
+                    <th className="pb-2">Avg Price</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan="3" className="text-center py-4">
-                        <div className="animate-pulse">Loading products...</div>
+                  {topProductsData.map((product, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="py-2 font-medium">
+                        {product.productName || product.name || product.title || 'Unknown Product'}
+                      </td>
+                      <td className="py-2">{formatNumber(product.quantity || product.totalQuantity || 0)}</td>
+                      <td className="py-2">{formatCurrency(product.totalRevenue || product.revenue || 0)}</td>
+                      <td className="py-2">
+                        {formatCurrency(
+                          (product.totalRevenue || product.revenue || 0) / 
+                          Math.max(product.quantity || product.totalQuantity || 1, 1)
+                        )}
                       </td>
                     </tr>
-                  ) : topProducts.length > 0 ? (
-                    topProducts.map((product, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="py-2 font-medium">{product.name}</td>
-                        <td className="py-2">{formatNumber(product.quantity)}</td>
-                        <td className="py-2">{formatCurrency(product.revenue)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="3" className="text-center py-4 text-gray-500">
-                        No products data available
-                      </td>
-                    </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* 🎸 Recent Orders Table */}
-      <Card>
-        <CardBody>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            📦 Recent Orders
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-600 border-b">
-                  <th className="pb-2">Order ID</th>
-                  <th className="pb-2">Customer</th>
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2">Amount</th>
-                  <th className="pb-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="5" className="text-center py-4">
-                      <div className="animate-pulse">Loading orders...</div>
-                    </td>
-                  </tr>
-                ) : recentOrders.length > 0 ? (
-                  recentOrders.map((order, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="py-2 font-medium">#{order.orderNumber}</td>
-                      <td className="py-2">{order.customerName}</td>
-                      <td className="py-2">{new Date(order.createdAt).toLocaleDateString()}</td>
-                      <td className="py-2">{formatCurrency(order.total)}</td>
-                      <td className="py-2">
-                        <Badge
-                          type={order.status === 'Delivered' ? 'success' : 
-                                order.status === 'Processing' ? 'warning' : 'neutral'}
-                        >
-                          {order.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="text-center py-4 text-gray-500">
-                      No recent orders available
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">🏆</div>
+              <p>No products data available</p>
+            </div>
+          )}
         </CardBody>
       </Card>
+
+      {/* 🎸 Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-90vh overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Export Sales Analytics</h3>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <HiX className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Format Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Export Format
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {['csv', 'excel', 'pdf'].map(format => (
+                    <button
+                      key={format}
+                      onClick={() => setExportOptions(prev => ({ ...prev, format }))}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+                        exportOptions.format === format
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-gray-300 hover:border-gray-400 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <div className="text-sm font-medium uppercase">{format}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {format === 'csv' && 'Comma Separated Values'}
+                        {format === 'excel' && 'Excel Spreadsheet'}
+                        {format === 'pdf' && 'PDF Document'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Data Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Select Data to Export
+                </label>
+                <div className="space-y-3">
+                  {[
+                    { key: 'overview', label: 'Overview & KPIs', desc: 'Revenue, Orders, Customers, Growth rates' },
+                    { key: 'trends', label: 'Sales Trends', desc: 'Daily/Weekly/Monthly sales data' },
+                    { key: 'paymentMethods', label: 'Payment Methods', desc: 'Revenue breakdown by payment type' },
+                    { key: 'topProducts', label: 'Top Products', desc: 'Best-selling products and revenue' }
+                  ].map(item => (
+                    <div key={item.key} className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id={item.key}
+                        checked={exportOptions.data[item.key]}
+                        onChange={(e) => setExportOptions(prev => ({
+                          ...prev,
+                          data: { ...prev.data, [item.key]: e.target.checked }
+                        }))}
+                        className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                      />
+                      <label htmlFor={item.key} className="flex-1 cursor-pointer">
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {item.label}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {item.desc}
+                        </div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date Range */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Date Range
+                </label>
+                <select
+                  value={exportOptions.dateRange}
+                  onChange={(e) => setExportOptions(prev => ({ ...prev, dateRange: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
+
+              {/* Export Button */}
+              <div className="flex space-x-3 pt-4">
+                <Button
+                  onClick={performExport}
+                  disabled={exportLoading || !Object.values(exportOptions.data).some(Boolean)}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                >
+                  {exportLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <HiDownload className="w-5 h-5 mr-2" />
+                      Export Selected Data
+                    </>
+                  )}
+                </Button>
+                <Button
+                  layout="outline"
+                  onClick={() => setShowExportModal(false)}
+                  className="px-6"
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              {/* Elvis Message */}
+              <div className="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg">
+                <div className="flex items-center text-purple-600 dark:text-purple-400 mb-2">
+                  <span className="mr-2">🎸</span>
+                  <span className="font-medium">Elvis Says:</span>
+                </div>
+                <p className="text-sm text-purple-700 dark:text-purple-300 italic">
+                  "Export that data, baby! Make it smooth as silk!" 🎵
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🎸 Elvis Footer */}
       <div className="mt-8 text-center">
         <p className="text-gray-500 text-sm">
-          🎸 <strong>Elvis Says:</strong> "Thank you, thank you very much! This dashboard is rockin'!" 🎵
+          🎸 <strong>Elvis Says:</strong> "Now this baby works without crashing! Thank you, thank you very much!" 🎵
         </p>
       </div>
     </div>
