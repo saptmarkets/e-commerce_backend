@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Card,
@@ -96,7 +96,7 @@ const SalesAnalytics = () => {
   ]);
 
   // Fetch sales analytics data
-  const fetchSalesData = async (customFilters = {}) => {
+  const fetchSalesData = useCallback(async (customFilters = {}) => {
     setIsLoading(true);
     setError(null);
     
@@ -144,12 +144,12 @@ const SalesAnalytics = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters.period, filters.compare, filters.startDate, filters.endDate]);
 
   // Load data on component mount and filter changes
   useEffect(() => {
     fetchSalesData();
-  }, [filters.period, filters.startDate, filters.endDate, filters.compare]);
+  }, [fetchSalesData]);
 
   // Handle filter changes
   const handleFilterChange = (key, value) => {
@@ -160,9 +160,9 @@ const SalesAnalytics = () => {
   };
 
   // Handle manual refresh
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchSalesData();
-  };
+  }, [fetchSalesData]);
 
   // Handle export
   const handleExport = async () => {
