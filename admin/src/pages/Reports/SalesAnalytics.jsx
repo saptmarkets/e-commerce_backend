@@ -23,14 +23,14 @@ import {
   Alert
 } from '@windmill/react-ui';
 import { 
-  SearchIcon, 
-  FilterIcon, 
-  DownloadIcon, 
-  EyeIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
-  RefreshIcon
-} from '@heroicons/react/outline';
+  HiSearch as SearchIcon, 
+  HiFilter as FilterIcon, 
+  HiDownload as DownloadIcon, 
+  HiEye as EyeIcon,
+  HiTrendingUp as TrendingUpIcon,
+  HiTrendingDown as TrendingDownIcon,
+  HiRefresh as RefreshIcon
+} from 'react-icons/hi';
 import PageTitle from '@/components/Typography/PageTitle';
 import SectionTitle from '@/components/Typography/SectionTitle';
 

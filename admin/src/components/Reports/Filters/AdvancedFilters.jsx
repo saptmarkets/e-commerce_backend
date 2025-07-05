@@ -9,12 +9,12 @@ import {
   Badge 
 } from '@windmill/react-ui';
 import { 
-  CalendarIcon, 
-  FilterIcon, 
-  XIcon, 
-  ChevronDownIcon,
-  RefreshIcon 
-} from '@heroicons/react/outline';
+  HiCalendar as CalendarIcon, 
+  HiFilter as FilterIcon, 
+  HiX as XIcon, 
+  HiChevronDown as ChevronDownIcon,
+  HiRefresh as RefreshIcon 
+} from 'react-icons/hi';
 
 /**
  * 🔍 AdvancedFilters Component - Task 2.2.3 Implementation
