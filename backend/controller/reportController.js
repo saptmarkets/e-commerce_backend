@@ -266,6 +266,66 @@ const getCustomerInsights = async (req, res) => {
 // 🚚 Delivery Performance - Task 5.1.1 Enhanced Implementation
 const DeliveryAnalyticsService = require('../services/DeliveryAnalyticsService');
 
+// 🧪 DEBUG: Test Delivery Data Endpoint
+const testDeliveryData = async (req, res) => {
+  try {
+    console.log("🧪 Testing delivery data structure...");
+    
+    // Check if Admin model is working
+    const totalAdmins = await Admin.countDocuments();
+    const driversCount = await Admin.countDocuments({ role: "Driver" });
+    const activeDrivers = await Admin.countDocuments({ 
+      role: "Driver", 
+      'deliveryInfo.isOnDuty': true 
+    });
+    
+    // Check if Order model has delivery info
+    const totalOrders = await Order.countDocuments();
+    const ordersWithDeliveryInfo = await Order.countDocuments({
+      'deliveryInfo': { $exists: true }
+    });
+    const ordersWithAssignedDriver = await Order.countDocuments({
+      'deliveryInfo.assignedDriver': { $exists: true }
+    });
+    
+    // Get sample data
+    const sampleDrivers = await Admin.find({ role: "Driver" }).limit(3).select('name email role deliveryInfo');
+    const sampleOrders = await Order.find({ 'deliveryInfo': { $exists: true } }).limit(3).select('_id status deliveryInfo totalAmount');
+    
+    res.status(200).json({
+      success: true,
+      debug: {
+        database: {
+          totalAdmins,
+          driversCount,
+          activeDrivers,
+          totalOrders,
+          ordersWithDeliveryInfo,
+          ordersWithAssignedDriver
+        },
+        samples: {
+          drivers: sampleDrivers,
+          orders: sampleOrders
+        },
+        suggestions: {
+          noDrivers: driversCount === 0 ? "❌ No drivers found in admin collection. Create drivers first." : "✅ Drivers exist",
+          noOrders: totalOrders === 0 ? "❌ No orders found. Create test orders." : "✅ Orders exist",
+          noDeliveryInfo: ordersWithDeliveryInfo === 0 ? "❌ No orders have delivery info. Add deliveryInfo to orders." : "✅ Orders have delivery info",
+          noAssignedDrivers: ordersWithAssignedDriver === 0 ? "❌ No orders have assigned drivers. Assign drivers to orders." : "✅ Orders have assigned drivers"
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error("🧪 Test delivery data error:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      debug: "Check server logs for details"
+    });
+  }
+};
+
 const getDeliveryPerformance = async (req, res) => {
   try {
     console.log("🚚 Delivery Performance API called with filters:", req.query);
@@ -502,5 +562,6 @@ module.exports = {
   getDeliveryPerformance,
   getFinancialReports,
   getExecutiveDashboard,
-  exportReport
+  exportReport,
+  testDeliveryData
 }; 

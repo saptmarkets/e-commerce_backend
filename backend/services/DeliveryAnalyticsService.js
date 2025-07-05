@@ -180,6 +180,18 @@ class DeliveryAnalyticsService {
   // 👥 DRIVER PERFORMANCE STATISTICS
   async getDriverPerformanceStats(baseMatch) {
     try {
+      console.log("🚗 Getting driver performance stats with baseMatch:", baseMatch);
+      
+      // First, let's check if we have any orders with delivery info
+      const ordersWithDeliveryInfo = await Order.countDocuments({
+        'deliveryInfo.assignedDriver': { $exists: true }
+      });
+      console.log("📊 Orders with deliveryInfo.assignedDriver:", ordersWithDeliveryInfo);
+      
+      // Check if we have any drivers in the admin collection
+      const driversCount = await Admin.countDocuments({ role: "Driver" });
+      console.log("👥 Total drivers in admin collection:", driversCount);
+      
       const driverStats = await Order.aggregate([
         { 
           $match: { 
@@ -282,6 +294,10 @@ class DeliveryAnalyticsService {
         role: "Driver",
         'deliveryInfo.isOnDuty': true
       });
+      
+      console.log("📊 Driver aggregation results:", driverStats);
+      console.log("🎯 Active drivers count:", activeDrivers);
+      console.log("🏆 Top performer:", driverStats[0] || null);
       
       return {
         activeDrivers,

@@ -79,11 +79,59 @@ const DeliveryPerformance = () => {
       if (response.success) {
         setDashboardData(response.data);
         console.log("✅ Delivery data loaded successfully");
+        console.log("🚚 FULL RESPONSE DATA:", response.data);
+        console.log("👥 DRIVER STATS:", response.data.driverStats);
+        console.log("🎯 DRIVER PERFORMANCE ARRAY:", response.data.driverStats?.driverPerformance);
       }
     } catch (error) {
       console.error("🚚 Delivery data fetch error:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 🧪 Test Database Data
+  const testDatabaseData = async () => {
+    try {
+      console.log("🧪 Testing database data structure...");
+      
+      const response = await httpService.get('/reports/delivery/test-data');
+      
+      if (response.success) {
+        const debug = response.debug;
+        console.log("🧪 DEBUG RESPONSE:", debug);
+        
+        // Show detailed info in alert
+        const message = `
+🧪 DATABASE DEBUG INFO:
+
+📊 Database Counts:
+• Total Admins: ${debug.database.totalAdmins}
+• Drivers: ${debug.database.driversCount}
+• Active Drivers: ${debug.database.activeDrivers}
+• Total Orders: ${debug.database.totalOrders}
+• Orders with Delivery Info: ${debug.database.ordersWithDeliveryInfo}
+• Orders with Assigned Driver: ${debug.database.ordersWithAssignedDriver}
+
+✅ Status:
+${Object.values(debug.suggestions).join('\n')}
+
+📋 Sample Data:
+• Drivers Found: ${debug.samples.drivers.length}
+• Orders Found: ${debug.samples.orders.length}
+
+Check console for detailed data structure!
+        `;
+        
+        alert(message);
+        
+        // Log detailed sample data
+        console.log("👥 Sample Drivers:", debug.samples.drivers);
+        console.log("📦 Sample Orders:", debug.samples.orders);
+      }
+    } catch (error) {
+      console.error("🧪 Database test error:", error);
+      alert(`❌ Error testing database: ${error.message}\nCheck console for details.`);
     }
   };
 
@@ -161,6 +209,15 @@ const DeliveryPerformance = () => {
             >
               {isLoading ? <FiRefreshCw className="w-4 h-4 animate-spin" /> : <FiRefreshCw className="w-4 h-4" />}
               {isLoading ? " Loading..." : " Refresh"}
+            </Button>
+            
+            <Button
+              onClick={testDatabaseData}
+              className="bg-purple-500 hover:bg-purple-600 text-white ml-2"
+              disabled={isLoading}
+            >
+              <FiAlertCircle className="w-4 h-4 mr-1" />
+              Debug DB
             </Button>
           </div>
         </div>
@@ -258,6 +315,12 @@ const DeliveryPerformance = () => {
     const driverStats = dashboardData.driverStats || {};
     const drivers = driverStats.driverPerformance || [];
     
+    // 🔍 Debug logging
+    console.log("🎯 DriversTab - dashboardData:", dashboardData);
+    console.log("👥 DriversTab - driverStats:", driverStats);
+    console.log("🚗 DriversTab - drivers array:", drivers);
+    console.log("📊 DriversTab - drivers length:", drivers.length);
+    
     return (
       <div className="space-y-6">
         <Card>
@@ -285,41 +348,67 @@ const DeliveryPerformance = () => {
                     <th className="px-4 py-4 text-right font-semibold text-gray-700">Revenue</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {drivers.map((driver, index) => (
-                    <tr key={driver._id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs mr-3 ${
-                            index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-400' : 'bg-blue-500'
-                          }`}>
-                            {index < 3 ? <FiAward className="w-4 h-4" /> : index + 1}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-800">{driver.driverName}</p>
-                            <p className="text-xs text-gray-500">{driver.driverEmail}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-right font-semibold">{driver.successfulDeliveries}</td>
-                      <td className="px-4 py-4 text-right">
-                        <span className={`font-semibold ${driver.successRate >= 90 ? 'text-green-600' : driver.successRate >= 75 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {driver.successRate}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-right text-blue-600 font-medium">{driver.averageDeliveryTime?.toFixed(0) || 0} min</td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end">
-                          <FiStar className="w-4 h-4 text-yellow-500 mr-1" />
-                          <span className="font-semibold">{driver.averageRating?.toFixed(1) || 'N/A'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-right font-bold text-green-600">
-                        SAR {driver.totalRevenue?.toLocaleString() || 0}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                                 <tbody>
+                   {drivers.length === 0 ? (
+                     <tr>
+                       <td colSpan="6" className="px-4 py-12 text-center">
+                         <div className="text-center">
+                           <FiUsers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                           <h4 className="text-lg font-medium text-gray-600 mb-2">No Driver Data Found</h4>
+                           <p className="text-sm text-gray-500 mb-4">
+                             This could be because:
+                           </p>
+                           <ul className="text-sm text-gray-500 mb-4 space-y-1">
+                             <li>• No orders have been assigned to drivers yet</li>
+                             <li>• No drivers exist in the system</li>
+                             <li>• Orders don't have delivery information</li>
+                             <li>• Check the browser console for debugging info</li>
+                           </ul>
+                           <button 
+                             onClick={fetchDeliveryData}
+                             className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+                           >
+                             🔄 Refresh Data
+                           </button>
+                         </div>
+                       </td>
+                     </tr>
+                   ) : (
+                     drivers.map((driver, index) => (
+                       <tr key={driver._id} className="border-b border-gray-50 hover:bg-gray-50">
+                         <td className="px-4 py-4">
+                           <div className="flex items-center">
+                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs mr-3 ${
+                               index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-400' : 'bg-blue-500'
+                             }`}>
+                               {index < 3 ? <FiAward className="w-4 h-4" /> : index + 1}
+                             </div>
+                             <div>
+                               <p className="font-medium text-gray-800">{driver.driverName}</p>
+                               <p className="text-xs text-gray-500">{driver.driverEmail}</p>
+                             </div>
+                           </div>
+                         </td>
+                         <td className="px-4 py-4 text-right font-semibold">{driver.successfulDeliveries}</td>
+                         <td className="px-4 py-4 text-right">
+                           <span className={`font-semibold ${driver.successRate >= 90 ? 'text-green-600' : driver.successRate >= 75 ? 'text-yellow-600' : 'text-red-600'}`}>
+                             {driver.successRate}%
+                           </span>
+                         </td>
+                         <td className="px-4 py-4 text-right text-blue-600 font-medium">{driver.averageDeliveryTime?.toFixed(0) || 0} min</td>
+                         <td className="px-4 py-4 text-right">
+                           <div className="flex items-center justify-end">
+                             <FiStar className="w-4 h-4 text-yellow-500 mr-1" />
+                             <span className="font-semibold">{driver.averageRating?.toFixed(1) || 'N/A'}</span>
+                           </div>
+                         </td>
+                         <td className="px-4 py-4 text-right font-bold text-green-600">
+                           SAR {driver.totalRevenue?.toLocaleString() || 0}
+                         </td>
+                       </tr>
+                     ))
+                   )}
+                 </tbody>
               </table>
             </div>
           </CardBody>

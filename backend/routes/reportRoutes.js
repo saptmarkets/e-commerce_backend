@@ -10,7 +10,8 @@ const {
   getDeliveryPerformance,
   getFinancialReports,
   getExecutiveDashboard,
-  exportReport
+  exportReport,
+  testDeliveryData
 } = require("../controller/reportController");
 
 // Import advanced sales analytics controller - Task 2.1.2
@@ -130,6 +131,7 @@ router.get("/customer/export", isAuth, isAdmin, (req, res) => {
 
 // 🚚 Delivery Performance Routes - Task 1.2.2 Implementation
 router.get("/delivery", isAuth, isAdmin, getDeliveryPerformance);
+router.get("/delivery/test-data", isAuth, isAdmin, testDeliveryData);
 router.get("/delivery/export", isAuth, isAdmin, (req, res) => {
   req.query.reportType = "delivery";
   exportReport(req, res);
