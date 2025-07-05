@@ -19,6 +19,7 @@ import useUtilsFunction from "@hooks/useUtilsFunction";
 import { notifyError, notifySuccess } from "@utils/toast";
 import ProductUnitServices from "@services/ProductUnitServices";
 import PromotionServices from "@services/PromotionServices";
+import { getUnitDisplayName, getShortUnitName, getBilingualUnitDisplay } from "@utils/unitUtils";
 
 const ProductCardModern = ({ 
   product, 
@@ -45,7 +46,16 @@ const ProductCardModern = ({
   const [showQuantityControls, setShowQuantityControls] = useState(false); // Track if quantity controls should be shown
 
   const { items, addItem, updateItemQuantity, removeItem } = useCart();
-  const { showingTranslateValue, getNumberTwo, currency } = useUtilsFunction();
+  const { showingTranslateValue, getNumberTwo, currency, lang } = useUtilsFunction();
+
+  // Helper function for localized unit display
+  const getLocalizedUnitDisplayName = (unit) => {
+    return getUnitDisplayName(unit, lang);
+  };
+
+  const getLocalizedShortUnitName = (unit) => {
+    return getShortUnitName(unit, lang);
+  };
 
   // Check if product is in cart
   const currentCartItem = useMemo(() => {
@@ -242,7 +252,7 @@ const ProductCardModern = ({
       console.log('ProductCardModern: Promotional units found:', {
         promotionalUnitIds: Array.from(promotionalUnitIds),
         allPromotions: allPromotionData,
-        availableUnits: availableUnits.map(u => ({ id: u._id, name: `${u.unitValue} ${u.unit?.shortCode}` }))
+        availableUnits: availableUnits.map(u => ({ id: u._id, name: `${u.unitValue} ${getLocalizedShortUnitName(u)}` }))
       });
       
     } catch (error) {
@@ -271,7 +281,7 @@ const ProductCardModern = ({
       availableUnits: availableUnits.length,
       availableUnitsDetails: availableUnits.map(unit => ({
         id: unit._id,
-        name: unit.unit?.name,
+        name: getLocalizedUnitDisplayName(unit),
         shortCode: unit.unit?.shortCode,
         unitValue: unit.unitValue,
         price: unit.price
@@ -298,7 +308,7 @@ const ProductCardModern = ({
         // Try to find matches
         potentialMatches: availableUnits.map(unit => ({
           unitId: unit._id,
-          unitName: unit.unit?.shortCode || unit.unit?.name,
+          unitName: getLocalizedShortUnitName(unit),
           matchesActivePromotionProductUnit: activePromotion?.productUnit?._id === unit._id,
           matchesActivePromotionUnit: activePromotion?.unit?._id === unit._id,
           matchesPromotionPropProductUnit: promotion?.productUnit?._id === unit._id,
@@ -462,7 +472,7 @@ const ProductCardModern = ({
       stock: availableStock,
       category: product.category,
       sku: selectedUnit.sku || product.sku || '',
-      unitName: selectedUnit.unit?.name || 'Unit',
+      unitName: getLocalizedUnitDisplayName(selectedUnit),
       unitValue: selectedUnit.unitValue || 1,
       packQty: selectedUnit.packQty || 1,
       promotion: activePromotion,
@@ -488,7 +498,7 @@ const ProductCardModern = ({
       addItem(cartItem, quantity);
     }
 
-    notifySuccess(`${quantity} ${selectedUnit.unit?.name || 'item(s)'} added to cart!`);
+          notifySuccess(`${quantity} ${getLocalizedUnitDisplayName(selectedUnit)} added to cart!`);
     
     // Show quantity controls after adding to cart
     setShowQuantityControls(true);
@@ -523,7 +533,7 @@ const ProductCardModern = ({
     
     return {
       packQty: selectedUnit.packQty,
-      unitName: selectedUnit.unit?.name || selectedUnit.unit?.shortCode || 'Unit',
+      unitName: getLocalizedUnitDisplayName(selectedUnit),
       totalBaseUnits: quantity * selectedUnit.packQty,
       pricePerPiece: pricingInfo.finalPrice / selectedUnit.packQty
     };
@@ -734,7 +744,7 @@ const ProductCardModern = ({
                     >
                       <div className="flex flex-col items-center space-y-0.5">
                         <div className="flex items-center space-x-1">
-                          <span>{unit.unit?.shortCode || unit.unit?.name}{unit.unitValue > 1 ? ` ${unit.unitValue}` : ''}</span>
+                          <span>{getLocalizedShortUnitName(unit)}{unit.unitValue > 1 ? ` ${unit.unitValue}` : ''}</span>
                           {hasPromotion && (
                             <span className="text-xs">🔥</span>
                           )}
@@ -786,7 +796,7 @@ const ProductCardModern = ({
                 <div className="relative flex-1 p-2 bg-red-50 rounded-lg border border-red-200">
                   <div className="space-y-1">
                     <div className="text-xs font-medium text-red-700">
-                      {t('pleaseSelect')} {activePromotion.minQty || 1} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'}{(activePromotion.productUnit?.unitValue || selectedUnit?.unitValue) > 1 ? ` ${activePromotion.productUnit?.unitValue || selectedUnit?.unitValue}` : ''} {t('getFor','',{fallback:'for'})}
+                      {t('pleaseSelect')} {activePromotion.minQty || 1} {getLocalizedShortUnitName(activePromotion.productUnit || selectedUnit)}{(activePromotion.productUnit?.unitValue || selectedUnit?.unitValue) > 1 ? ` ${activePromotion.productUnit?.unitValue || selectedUnit?.unitValue}` : ''} {t('getFor','',{fallback:'for'})}
                     </div>
                     <div className="text-xl font-extrabold text-red-600">
                       {currency}{pricingInfo.finalPrice.toFixed(2)}
@@ -840,7 +850,7 @@ const ProductCardModern = ({
                       </span>
                       {selectedUnit && (
                         <span className="text-sm text-gray-600 font-medium">
-                          / {selectedUnit.unit?.shortCode || selectedUnit.unit?.name}{selectedUnit.unitValue > 1 ? ` ${selectedUnit.unitValue}` : ''}
+                          / {getLocalizedShortUnitName(selectedUnit)}{selectedUnit.unitValue > 1 ? ` ${selectedUnit.unitValue}` : ''}
                         </span>
                       )}
                     </div>
@@ -860,7 +870,7 @@ const ProductCardModern = ({
                               <>
                                 <div className="text-sm font-medium text-red-700 mb-1 flex items-center">
                                   <span className="mr-1">🔥</span>
-                                  {t('pleaseSelect')} {promotionalUnit.unit?.shortCode || promotionalUnit.unit?.name}{(promotionalUnit.unitValue > 1) ? ` ${promotionalUnit.unitValue}` : ''}
+                                  {t('pleaseSelect')} {getLocalizedShortUnitName(promotionalUnit)}{(promotionalUnit.unitValue > 1) ? ` ${promotionalUnit.unitValue}` : ''}
                                 </div>
                                 <div className="text-xs text-red-600">
                                   {t('toGetOfferPriceFor')} {currency}{promotionalPrice.toFixed(2)}
@@ -883,7 +893,7 @@ const ProductCardModern = ({
                             <>
                               <div className="text-sm font-medium text-red-700 mb-1 flex items-center">
                                 <span className="mr-1">🔥</span>
-                                {t('pleaseSelect')} {promotionalUnit.unit?.shortCode || promotionalUnit.unit?.name}{promotionalUnit.unitValue > 1 ? ` ${promotionalUnit.unitValue}` : ''}
+                                {t('pleaseSelect')} {getLocalizedShortUnitName(promotionalUnit)}{promotionalUnit.unitValue > 1 ? ` ${promotionalUnit.unitValue}` : ''}
                               </div>
                               <div className="text-xs text-red-600">
                                 {t('toGetOfferPriceFor')} {currency}{promotionalPrice.toFixed(2)}
