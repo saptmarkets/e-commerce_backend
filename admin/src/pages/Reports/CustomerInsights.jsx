@@ -31,7 +31,7 @@ const CustomerInsights = () => {
   const [customerOrdersLoading, setCustomerOrdersLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // 🎸 Load Customer Dashboard Data
+  // 🎸 Load Dashboard Data
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
@@ -56,6 +56,63 @@ const CustomerInsights = () => {
       console.error("🎸 Dashboard fetch error:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 🎸 Fetch Purchase Behavior Data
+  const fetchPurchaseBehaviorData = async () => {
+    try {
+      console.log("🎸 Fetching purchase behavior data...");
+      
+      const response = await httpService.get('/reports/customer/purchase-behavior', {
+        params: {
+          period: filters.period,
+          limit: 50
+        }
+      });
+
+      console.log("🎸 Purchase behavior response:", response);
+      
+      if (response.success) {
+        setDashboardData(prev => ({
+          ...prev,
+          purchaseBehavior: response.data
+        }));
+        console.log("✅ Purchase behavior loaded successfully");
+      } else {
+        console.error("❌ Failed to load purchase behavior");
+      }
+    } catch (error) {
+      console.error("🎸 Purchase behavior fetch error:", error);
+    }
+  };
+
+  // 🎸 Fetch Geographic Distribution Data
+  const fetchGeographicData = async () => {
+    try {
+      console.log("🎸 Fetching geographic distribution data...");
+      
+      const response = await httpService.get('/reports/customer/geographic-distribution', {
+        params: {
+          groupBy: 'area',
+          limit: 50,
+          minCustomers: 1
+        }
+      });
+
+      console.log("🎸 Geographic distribution response:", response);
+      
+      if (response.success) {
+        setDashboardData(prev => ({
+          ...prev,
+          geographicDistribution: response.data
+        }));
+        console.log("✅ Geographic distribution loaded successfully");
+      } else {
+        console.error("❌ Failed to load geographic distribution");
+      }
+    } catch (error) {
+      console.error("🎸 Geographic distribution fetch error:", error);
     }
   };
 
@@ -167,6 +224,15 @@ const CustomerInsights = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [filters.period, filters.city]);
+
+  // 🎸 Load specific tab data when tab changes
+  useEffect(() => {
+    if (activeTab === 'behavior') {
+      fetchPurchaseBehaviorData();
+    } else if (activeTab === 'geographic') {
+      fetchGeographicData();
+    }
+  }, [activeTab, filters.period]);
 
   // 🎸 Format currency for display
   const formatCurrency = (value) => {
@@ -881,16 +947,23 @@ const CustomerInsights = () => {
   const BehaviorTab = () => {
     const behaviorData = dashboardData.purchaseBehavior || {};
     
-    // Process category data - fix the field mapping issue
-    const categoryData = (behaviorData.categoryAnalysis || []).map(item => ({
-      category: item._id || item.category || 'Unknown',
-      totalRevenue: item.totalRevenue || 0,
-      totalQuantity: item.totalQuantity || 0,
-      customerCount: item.customerCount || 0,
-      averagePrice: item.averagePrice || 0
-    }));
+    // Process category data with proper debugging
+    console.log("🎸 Raw Behavior Data:", behaviorData);
+    console.log("🎸 Category Analysis:", behaviorData.categoryAnalysis);
+    
+    const categoryData = (behaviorData.categoryAnalysis || []).map(item => {
+      console.log("🎸 Processing category item:", item);
+      return {
+        // The backend returns category as _id, so we need to map it properly
+        category: item.category || item._id || 'Unknown',
+        totalRevenue: item.totalRevenue || 0,
+        totalQuantity: item.totalQuantity || 0,
+        customerCount: item.customerCount || 0,
+        averagePrice: item.averagePrice || 0
+      };
+    });
 
-    console.log("🎸 Category Data:", categoryData);
+    console.log("🎸 Processed Category Data:", categoryData);
 
     return (
       <div className="space-y-6">
@@ -918,61 +991,76 @@ const CustomerInsights = () => {
             </div>
             
             <div className="h-80">
-              {categoryData.length === 0 ? (
+              {!behaviorData.categoryAnalysis || behaviorData.categoryAnalysis.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <FiShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg font-medium text-gray-600">No Category Data</p>
                     <p className="text-sm text-gray-500">Category analytics will appear here</p>
+                    <button 
+                      onClick={fetchPurchaseBehaviorData}
+                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      🔄 Refresh Data
+                    </button>
                   </div>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={categoryData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="category" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                      tick={{ fontSize: 12, fill: '#6b7280' }}
-                      axisLine={{ stroke: '#e5e7eb' }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12, fill: '#6b7280' }}
-                      axisLine={{ stroke: '#e5e7eb' }}
-                    />
-                    <Tooltip 
-                      formatter={(value, name) => [
-                        name === 'totalRevenue' ? formatCurrency(value) : value.toLocaleString(),
-                        name === 'totalRevenue' ? 'Revenue' : 'Quantity'
-                      ]}
-                      labelFormatter={(label) => `${label} Category`}
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                    <Legend />
-                    <Bar 
-                      dataKey="totalRevenue" 
-                      fill="#10b981" 
-                      name="Revenue"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar 
-                      dataKey="totalQuantity" 
-                      fill="#3b82f6" 
-                      name="Quantity"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div>
+                  {/* Debug Info */}
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
+                    <p><strong>🎸 Debug Info:</strong></p>
+                    <p>Total categories: {behaviorData.categoryAnalysis?.length || 0}</p>
+                    <p>Sample data: {JSON.stringify(behaviorData.categoryAnalysis?.slice(0, 2) || [])}</p>
+                  </div>
+                  
+                  <ResponsiveContainer width="100%" height="300">
+                    <BarChart 
+                      data={categoryData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="category" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <Tooltip 
+                        formatter={(value, name) => [
+                          name === 'totalRevenue' ? formatCurrency(value) : value.toLocaleString(),
+                          name === 'totalRevenue' ? 'Revenue' : 'Quantity'
+                        ]}
+                        labelFormatter={(label) => `${label} Category`}
+                        contentStyle={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                      <Legend />
+                      <Bar 
+                        dataKey="totalRevenue" 
+                        fill="#10b981" 
+                        name="Revenue"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar 
+                        dataKey="totalQuantity" 
+                        fill="#3b82f6" 
+                        name="Quantity"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               )}
             </div>
           </CardBody>
@@ -1083,17 +1171,23 @@ const CustomerInsights = () => {
   const GeographicTab = () => {
     const geoData = dashboardData.geographicDistribution || {};
     
-    // Process geographic data - use areas instead of cities
-    const geographicData = (geoData.geographicData || []).map(item => ({
-      location: item.location || item._id || 'Unknown Area',
-      customerCount: item.customerCount || 0,
-      totalSpent: item.totalSpent || 0,
-      averageSpent: item.averageSpent || 0,
-      activeCustomers: item.activeCustomers || 0,
-      penetrationRate: item.penetrationRate || 0
-    }));
+    // Process geographic data with proper debugging
+    console.log("🎸 Raw Geographic Data:", geoData);
+    console.log("🎸 Geographic Data Array:", geoData.geographicData);
+    
+    const geographicData = (geoData.geographicData || []).map(item => {
+      console.log("🎸 Processing geographic item:", item);
+      return {
+        location: item.location || item._id || 'Unknown Area',
+        customerCount: item.customerCount || 0,
+        totalSpent: item.totalSpent || 0,
+        averageSpent: item.averageSpent || 0,
+        activeCustomers: item.activeCustomers || 0,
+        penetrationRate: item.penetrationRate || 0
+      };
+    });
 
-    console.log("🎸 Geographic Data:", geographicData);
+    console.log("🎸 Processed Geographic Data:", geographicData);
 
     return (
       <div className="space-y-6">
@@ -1121,61 +1215,76 @@ const CustomerInsights = () => {
             </div>
             
             <div className="h-80">
-              {geographicData.length === 0 ? (
+              {!geoData.geographicData || geoData.geographicData.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <FiMapPin className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg font-medium text-gray-600">No Geographic Data</p>
                     <p className="text-sm text-gray-500">Area distribution will appear here</p>
+                    <button 
+                      onClick={fetchGeographicData}
+                      className="mt-4 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+                    >
+                      🔄 Refresh Data
+                    </button>
                   </div>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={geographicData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="location" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                      tick={{ fontSize: 12, fill: '#6b7280' }}
-                      axisLine={{ stroke: '#e5e7eb' }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12, fill: '#6b7280' }}
-                      axisLine={{ stroke: '#e5e7eb' }}
-                    />
-                    <Tooltip 
-                      formatter={(value, name) => [
-                        name === 'totalSpent' ? formatCurrency(value) : value.toLocaleString(),
-                        name === 'totalSpent' ? 'Total Spent' : 'Customer Count'
-                      ]}
-                      labelFormatter={(label) => `${label} Area`}
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                    <Legend />
-                    <Bar 
-                      dataKey="customerCount" 
-                      fill="#14b8a6" 
-                      name="Customer Count"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar 
-                      dataKey="totalSpent" 
-                      fill="#06b6d4" 
-                      name="Total Spent"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div>
+                  {/* Debug Info */}
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
+                    <p><strong>🎸 Debug Info:</strong></p>
+                    <p>Total areas: {geoData.geographicData?.length || 0}</p>
+                    <p>Sample data: {JSON.stringify(geoData.geographicData?.slice(0, 2) || [])}</p>
+                  </div>
+                  
+                  <ResponsiveContainer width="100%" height="300">
+                    <BarChart 
+                      data={geographicData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="location" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <Tooltip 
+                        formatter={(value, name) => [
+                          name === 'totalSpent' ? formatCurrency(value) : value.toLocaleString(),
+                          name === 'totalSpent' ? 'Total Spent' : 'Customer Count'
+                        ]}
+                        labelFormatter={(label) => `${label} Area`}
+                        contentStyle={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                      <Legend />
+                      <Bar 
+                        dataKey="customerCount" 
+                        fill="#14b8a6" 
+                        name="Customer Count"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar 
+                        dataKey="totalSpent" 
+                        fill="#06b6d4" 
+                        name="Total Spent"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               )}
             </div>
           </CardBody>
