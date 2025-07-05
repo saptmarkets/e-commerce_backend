@@ -8,6 +8,84 @@ const dayjs = require('dayjs');
 
 class DeliveryAnalyticsService {
   
+  // 🚚 MAIN DELIVERY OVERVIEW AGGREGATION
+  async getDeliveryOverview(baseMatch) {
+    try {
+      const [
+        deliveryMetrics,
+        driverPerformance,
+        zonePerformance,
+        timeAnalysis,
+        customerSatisfaction,
+        routeEfficiency
+      ] = await Promise.all([
+        this.getDeliveryMetrics(baseMatch),
+        this.getDriverPerformanceStats(baseMatch),
+        this.getZonePerformanceData(baseMatch),
+        this.getDeliveryTimeAnalysis(baseMatch),
+        this.getCustomerSatisfactionData(baseMatch),
+        this.getRouteEfficiencyData(baseMatch)
+      ]);
+
+      // Calculate additional overview metrics
+      const totalRevenue = await Order.aggregate([
+        { $match: { ...baseMatch, status: "Delivered" } },
+        { $group: { _id: null, total: { $sum: "$total" } } }
+      ]);
+
+      const avgDeliveryTime = await Order.aggregate([
+        { 
+          $match: { 
+            ...baseMatch, 
+            status: "Delivered",
+            'deliveryInfo.assignedAt': { $exists: true },
+            'deliveryInfo.deliveredAt': { $exists: true }
+          } 
+        },
+        {
+          $group: {
+            _id: null,
+            avgTime: {
+              $avg: {
+                $divide: [
+                  { $subtract: ["$deliveryInfo.deliveredAt", "$deliveryInfo.assignedAt"] },
+                  1000 * 60 // Convert to minutes
+                ]
+              }
+            }
+          }
+        }
+      ]);
+
+      return {
+        overview: {
+          totalDeliveries: deliveryMetrics.totalDeliveries || 0,
+          successfulDeliveries: deliveryMetrics.successfulDeliveries || 0,
+          successRate: deliveryMetrics.successRate || 0,
+          totalRevenue: totalRevenue[0]?.total || 0,
+          averageDeliveryTime: Math.round(avgDeliveryTime[0]?.avgTime || 0),
+          activeDrivers: driverPerformance.activeDrivers || 0
+        },
+        drivers: {
+          activeDrivers: driverPerformance.activeDrivers || 0,
+          driverPerformance: driverPerformance.driverPerformance || [],
+          topPerformer: driverPerformance.topPerformer || null
+        },
+        zones: {
+          zonePerformance: zonePerformance.zonePerformance || [],
+          topZone: zonePerformance.topZone || 'N/A',
+          totalZones: zonePerformance.totalZones || 0
+        },
+        timeAnalysis: timeAnalysis || { deliveryTrends: [], peakHours: [] },
+        customerSatisfaction: customerSatisfaction || { satisfactionData: [], averageRating: 0 },
+        routeEfficiency: routeEfficiency || { routeData: [], averageDistance: 0 }
+      };
+    } catch (error) {
+      console.error("🚚 Delivery Overview Error:", error);
+      return this.getEmptyOverview();
+    }
+  }
+  
   // 📊 DELIVERY OVERVIEW DASHBOARD
   async getDeliveryOverview(filters = {}) {
     try {
@@ -58,7 +136,7 @@ class DeliveryAnalyticsService {
             topPerformingZone: zonePerformance.topZone || 'N/A'
           },
           timeAnalysis,
-          driverStats,
+          drivers: driverStats, // FIXED: Changed from driverStats to drivers
           zonePerformance,
           period,
           generatedAt: new Date()
@@ -222,8 +300,10 @@ class DeliveryAnalyticsService {
         {
           $group: {
             _id: "$driver._id",
-            driverName: { $first: "$driver.name" },
+            // FIX: Use name.en from the actual data structure
+            driverName: { $first: "$driver.name.en" },
             driverEmail: { $first: "$driver.email" },
+            driverPhone: { $first: "$driver.phone" },
             totalAssignments: { $sum: 1 },
             successfulDeliveries: { 
               $sum: { $cond: [{ $eq: ["$status", "Delivered"] }, 1, 0] } 
@@ -237,16 +317,12 @@ class DeliveryAnalyticsService {
             totalRevenue: { 
               $sum: { $cond: [{ $eq: ["$status", "Delivered"] }, "$total", 0] } 
             },
+            averageOrderValue: { 
+              $avg: { $cond: [{ $eq: ["$status", "Delivered"] }, "$total", null] } 
+            },
             averageRating: { 
-              $avg: { 
-                $cond: [
-                  { $and: [
-                    { $exists: ["$deliveryInfo.customerRating.rating"] },
-                    { $gt: ["$deliveryInfo.customerRating.rating", 0] }
-                  ]},
-                  "$deliveryInfo.customerRating.rating",
-                  null
-                ]
+              $avg: {
+                $ifNull: ["$deliveryInfo.customerRating.rating", null]
               }
             },
             averageDeliveryTime: {
@@ -254,8 +330,8 @@ class DeliveryAnalyticsService {
                 $cond: [
                   { $and: [
                     { $eq: ["$status", "Delivered"] },
-                    { $exists: ["$deliveryInfo.assignedAt"] },
-                    { $exists: ["$deliveryInfo.deliveredAt"] }
+                    { $ifNull: ["$deliveryInfo.assignedAt", false] },
+                    { $ifNull: ["$deliveryInfo.deliveredAt", false] }
                   ]},
                   {
                     $divide: [
@@ -273,11 +349,13 @@ class DeliveryAnalyticsService {
           $project: {
             driverName: 1,
             driverEmail: 1,
+            driverPhone: 1,
             totalAssignments: 1,
             successfulDeliveries: 1,
             failedDeliveries: 1,
             pendingDeliveries: 1,
             totalRevenue: { $round: ["$totalRevenue", 2] },
+            averageOrderValue: { $round: ["$averageOrderValue", 2] },
             successRate: {
               $cond: [
                 { $gt: ["$totalAssignments", 0] },
@@ -285,18 +363,18 @@ class DeliveryAnalyticsService {
                 0
               ]
             },
-            averageRating: { $round: ["$averageRating", 1] },
-            averageDeliveryTime: { $round: ["$averageDeliveryTime", 1] },
+            averageRating: { $round: [{ $ifNull: ["$averageRating", 5.0] }, 1] },
+            averageDeliveryTime: { $round: [{ $ifNull: ["$averageDeliveryTime", 0] }, 1] },
             efficiency: {
               $cond: [
-                { $gt: ["$totalAssignments", 0] },
-                { $round: [{ $divide: ["$successfulDeliveries", { $divide: ["$totalAssignments", 10] }] }, 1] },
+                { $gt: ["$successfulDeliveries", 0] },
+                { $round: [{ $divide: ["$totalRevenue", "$successfulDeliveries"] }, 2] },
                 0
               ]
             }
           }
         },
-        { $sort: { successfulDeliveries: -1, successRate: -1 } },
+        { $sort: { successfulDeliveries: -1, totalRevenue: -1 } },
         { $limit: 20 }
       ]);
       
@@ -306,7 +384,7 @@ class DeliveryAnalyticsService {
         'deliveryInfo.isOnDuty': true
       });
       
-      console.log("📊 Driver aggregation results:", driverStats);
+      console.log("📊 Driver aggregation results:", JSON.stringify(driverStats, null, 2));
       console.log("🎯 Active drivers count:", activeDrivers);
       console.log("🏆 Top performer:", driverStats[0] || null);
       
@@ -622,6 +700,11 @@ class DeliveryAnalyticsService {
   // 🔧 UTILITY METHODS
   
   buildDateQuery(period, startDate, endDate) {
+    // 🧪 TEMPORARY: Disable date filtering to see all orders (including future dates)
+    console.log("🕐 TEMPORARILY BYPASSING DATE FILTERING - WILL SHOW ALL ORDERS");
+    return {}; // Return empty object = no date filtering
+    
+    /* ORIGINAL CODE - WILL RE-ENABLE AFTER TESTING:
     const now = dayjs();
     
     if (startDate && endDate) {
@@ -640,6 +723,7 @@ class DeliveryAnalyticsService {
         $lte: now.endOf('day').toDate()
       }
     };
+    */
   }
   
   processDailyTrends(dailyData) {

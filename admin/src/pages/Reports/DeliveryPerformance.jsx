@@ -43,12 +43,12 @@ import httpService from "@/services/httpService";
 const DeliveryPerformance = () => {
   // 🎯 State Management
   const [activeTab, setActiveTab] = useState("overview");
-  const [dashboardData, setDashboardData] = useState({
+  const [data, setData] = useState({
     overview: {},
-    driverStats: {},
+    timeAnalysis: {},
+    drivers: {}, // FIXED: Changed from driverStats to drivers
     zonePerformance: {},
-    customerSatisfaction: {},
-    routeEfficiency: {}
+    period: 30
   });
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -61,6 +61,13 @@ const DeliveryPerformance = () => {
 
   // 🎨 Chart Colors
   const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1'];
+
+  // 💰 Currency Formatter
+  const formatCurrency = (amount) => {
+    const num = parseFloat(amount || 0);
+    if (isNaN(num)) return '0 SAR';
+    return `${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR`;
+  };
 
   // 🔄 Data Fetching
   useEffect(() => {
@@ -77,11 +84,11 @@ const DeliveryPerformance = () => {
       });
 
       if (response.success) {
-        setDashboardData(response.data);
+        setData(response.data);
         console.log("✅ Delivery data loaded successfully");
         console.log("🚚 FULL RESPONSE DATA:", response.data);
-        console.log("👥 DRIVER STATS:", response.data.driverStats);
-        console.log("🎯 DRIVER PERFORMANCE ARRAY:", response.data.driverStats?.driverPerformance);
+        console.log("👥 DRIVER STATS:", response.data.drivers); // FIXED: Changed from driverStats to drivers
+        console.log("🎯 DRIVER PERFORMANCE ARRAY:", response.data.drivers?.driverPerformance); // FIXED: Changed from driverStats to drivers
       }
     } catch (error) {
       console.error("🚚 Delivery data fetch error:", error);
@@ -90,48 +97,82 @@ const DeliveryPerformance = () => {
     }
   };
 
-  // 🧪 Test Database Data
-  const testDatabaseData = async () => {
+  // 🧪 DEBUG: Test database connectivity and data structure
+  const handleDebugDB = async () => {
     try {
-      console.log("🧪 Testing database data structure...");
+      console.log("🧪 Starting database debug...");
       
+      // Use httpService to match the pattern used in fetchDeliveryData
       const response = await httpService.get('/reports/delivery/test-data');
       
+      console.log("🧪 Debug response:", response);
+      
       if (response.success) {
-        const debug = response.debug;
-        console.log("🧪 DEBUG RESPONSE:", debug);
+        const { database, samples, testQuery, suggestions } = response.debug;
         
-        // Show detailed info in alert
-        const message = `
-🧪 DATABASE DEBUG INFO:
+        // Show detailed alert with debug info
+        const debugMessage = `
+🧪 DATABASE DEBUG RESULTS:
 
 📊 Database Counts:
-• Total Admins: ${debug.database.totalAdmins}
-• Drivers: ${debug.database.driversCount}
-• Active Drivers: ${debug.database.activeDrivers}
-• Total Orders: ${debug.database.totalOrders}
-• Orders with Delivery Info: ${debug.database.ordersWithDeliveryInfo}
-• Orders with Assigned Driver: ${debug.database.ordersWithAssignedDriver}
+- Total Admins: ${database.totalAdmins}
+- Total Drivers: ${database.driversCount}
+- Active Drivers: ${database.activeDrivers}
+- Total Orders: ${database.totalOrders}
+- Orders with Delivery Info: ${database.ordersWithDeliveryInfo}
+- Orders with Assigned Driver: ${database.ordersWithAssignedDriver}
+- Delivered Orders: ${database.deliveredOrders}
+- Delivered with Driver: ${database.deliveredWithDriver}
 
-✅ Status:
-${Object.values(debug.suggestions).join('\n')}
+🔍 Sample Data:
+- Driver Records: ${samples.drivers.length}
+- Order Records: ${samples.orders.length}
 
-📋 Sample Data:
-• Drivers Found: ${debug.samples.drivers.length}
-• Orders Found: ${debug.samples.orders.length}
+🧪 Test Query Results:
+- Driver Aggregation: ${testQuery.driverAggregationResults.length} results
+- Query Status: ${testQuery.message}
 
-Check console for detailed data structure!
+✅ Suggestions:
+${Object.entries(suggestions).map(([key, value]) => `- ${value}`).join('\n')}
+
+📋 Sample Driver Data:
+${samples.drivers.map(driver => `
+  • Name: ${driver.name?.en || 'N/A'}
+  • Email: ${driver.email}
+  • Role: ${driver.role}
+  • On Duty: ${driver.deliveryInfo?.isOnDuty || false}
+  • Total Deliveries: ${driver.deliveryStats?.totalDeliveries || 0}
+`).join('')}
+
+📋 Test Query Results:
+${testQuery.driverAggregationResults.map(result => `
+  • Driver: ${result.driverName}
+  • Email: ${result.driverEmail}
+  • Phone: ${result.driverPhone}
+  • Deliveries: ${result.totalDeliveries}
+  • Revenue: $${result.totalRevenue}
+`).join('')}
         `;
         
-        alert(message);
+        alert(debugMessage);
         
-        // Log detailed sample data
-        console.log("👥 Sample Drivers:", debug.samples.drivers);
-        console.log("📦 Sample Orders:", debug.samples.orders);
+        // Also log to console for detailed inspection
+        console.log("🧪 Detailed Debug Data:", {
+          database,
+          samples,
+          testQuery,
+          suggestions
+        });
+        
+        // Force refresh the dashboard data
+        await fetchDeliveryData();
+        
+      } else {
+        alert(`❌ Debug failed: ${response.error}`);
       }
     } catch (error) {
-      console.error("🧪 Database test error:", error);
-      alert(`❌ Error testing database: ${error.message}\nCheck console for details.`);
+      console.error("🧪 Debug error:", error);
+      alert(`❌ Debug error: ${error.message}`);
     }
   };
 
@@ -212,7 +253,7 @@ Check console for detailed data structure!
             </Button>
             
             <Button
-              onClick={testDatabaseData}
+              onClick={handleDebugDB}
               className="bg-purple-500 hover:bg-purple-600 text-white ml-2"
               disabled={isLoading}
             >
@@ -225,9 +266,9 @@ Check console for detailed data structure!
     </Card>
   );
 
-  // 📊 Overview Tab
+  // 📊 OVERVIEW TAB COMPONENT
   const OverviewTab = () => {
-    const overview = dashboardData.overview || {};
+    const overview = data?.overview || {}; // FIXED: Should access overview data, not driver data
     
     return (
       <div className="space-y-6">
@@ -310,116 +351,195 @@ Check console for detailed data structure!
     );
   };
 
-  // 👥 Driver Performance Tab
+  // 🚗 DRIVERS TAB COMPONENT
   const DriversTab = () => {
-    const driverStats = dashboardData.driverStats || {};
-    const drivers = driverStats.driverPerformance || [];
+    const drivers = data?.drivers?.driverPerformance || [];
+    const activeDrivers = data?.drivers?.activeDrivers || 0;
+    const topPerformer = data?.drivers?.topPerformer || null;
     
-    // 🔍 Debug logging
-    console.log("🎯 DriversTab - dashboardData:", dashboardData);
-    console.log("👥 DriversTab - driverStats:", driverStats);
-    console.log("🚗 DriversTab - drivers array:", drivers);
-    console.log("📊 DriversTab - drivers length:", drivers.length);
+    console.log("🚗 DriversTab Debug:", {
+      driversCount: drivers.length,
+      activeDrivers,
+      topPerformer,
+      rawDrivers: drivers,
+      fullData: data
+    });
+    
+    if (drivers.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-6xl mb-4">🚗</div>
+          <h3 className="text-lg font-semibold mb-2">No Driver Performance Data</h3>
+          <p className="text-gray-600 mb-4">
+            We couldn't find any driver performance data. This could mean:
+          </p>
+          <ul className="text-sm text-gray-500 mb-4 space-y-1">
+            <li>• No orders have been assigned to drivers</li>
+            <li>• No completed deliveries with driver assignments</li>
+            <li>• Database connection issues</li>
+            <li>• Field name mismatch in aggregation query</li>
+          </ul>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-sm text-blue-700">
+              <strong>Debug Info:</strong> Found {activeDrivers} active drivers, {drivers.length} in performance data
+            </p>
+          </div>
+        </div>
+      );
+    }
     
     return (
       <div className="space-y-6">
-        <Card>
-          <CardBody>
-            <div className="flex items-center justify-between mb-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-lg text-white">
+            <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-xl font-bold text-gray-800">👥 Driver Performance Leaderboard</h4>
-                <p className="text-sm text-gray-500">Top performing delivery drivers</p>
+                <p className="text-green-100">Active Drivers</p>
+                <p className="text-2xl font-bold">{activeDrivers}</p>
               </div>
-              <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                <FiDownload className="w-4 h-4 mr-2" />
-                Export
-              </Button>
+              <div className="text-3xl opacity-80">🚗</div>
             </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-gray-100">
-                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Driver</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Deliveries</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Success Rate</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Avg Time</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Rating</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Revenue</th>
+          </div>
+          
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100">Total Performers</p>
+                <p className="text-2xl font-bold">{drivers.length}</p>
+              </div>
+              <div className="text-3xl opacity-80">👥</div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4 rounded-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100">Top Performer</p>
+                <p className="text-lg font-bold">{topPerformer?.driverName || 'N/A'}</p>
+              </div>
+              <div className="text-3xl opacity-80">🏆</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Driver Performance Table */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Driver Performance Leaderboard</h3>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Driver
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Deliveries
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Success Rate
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Revenue
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Avg. Rating
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Avg. Time
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {drivers.map((driver, index) => (
+                  <tr key={driver._id} className={index === 0 ? 'bg-yellow-50' : ''}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 w-10 h-10">
+                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {index === 0 ? '🏆' : index + 1}
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {driver.driverName || 'Unknown Driver'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            #{driver._id?.slice(-6) || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {driver.driverEmail || 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {driver.driverPhone || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        <span className="font-semibold">{driver.successfulDeliveries || 0}</span>
+                        <span className="text-gray-500">/{driver.totalAssignments || 0}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {driver.pendingDeliveries || 0} pending
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {driver.successRate || 0}%
+                        </div>
+                        <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-500 h-2 rounded-full" 
+                            style={{ width: `${Math.min(driver.successRate || 0, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatCurrency(driver.totalRevenue || 0)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Avg: {formatCurrency(driver.averageOrderValue || 0)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {driver.averageRating || 5.0}
+                        </div>
+                        <div className="ml-1 text-yellow-400">
+                          {'★'.repeat(Math.floor(driver.averageRating || 5))}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {driver.averageDeliveryTime || 0} min
+                    </td>
                   </tr>
-                </thead>
-                                 <tbody>
-                   {drivers.length === 0 ? (
-                     <tr>
-                       <td colSpan="6" className="px-4 py-12 text-center">
-                         <div className="text-center">
-                           <FiUsers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                           <h4 className="text-lg font-medium text-gray-600 mb-2">No Driver Data Found</h4>
-                           <p className="text-sm text-gray-500 mb-4">
-                             This could be because:
-                           </p>
-                           <ul className="text-sm text-gray-500 mb-4 space-y-1">
-                             <li>• No orders have been assigned to drivers yet</li>
-                             <li>• No drivers exist in the system</li>
-                             <li>• Orders don't have delivery information</li>
-                             <li>• Check the browser console for debugging info</li>
-                           </ul>
-                           <button 
-                             onClick={fetchDeliveryData}
-                             className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                           >
-                             🔄 Refresh Data
-                           </button>
-                         </div>
-                       </td>
-                     </tr>
-                   ) : (
-                     drivers.map((driver, index) => (
-                       <tr key={driver._id} className="border-b border-gray-50 hover:bg-gray-50">
-                         <td className="px-4 py-4">
-                           <div className="flex items-center">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs mr-3 ${
-                               index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-400' : 'bg-blue-500'
-                             }`}>
-                               {index < 3 ? <FiAward className="w-4 h-4" /> : index + 1}
-                             </div>
-                             <div>
-                               <p className="font-medium text-gray-800">{driver.driverName}</p>
-                               <p className="text-xs text-gray-500">{driver.driverEmail}</p>
-                             </div>
-                           </div>
-                         </td>
-                         <td className="px-4 py-4 text-right font-semibold">{driver.successfulDeliveries}</td>
-                         <td className="px-4 py-4 text-right">
-                           <span className={`font-semibold ${driver.successRate >= 90 ? 'text-green-600' : driver.successRate >= 75 ? 'text-yellow-600' : 'text-red-600'}`}>
-                             {driver.successRate}%
-                           </span>
-                         </td>
-                         <td className="px-4 py-4 text-right text-blue-600 font-medium">{driver.averageDeliveryTime?.toFixed(0) || 0} min</td>
-                         <td className="px-4 py-4 text-right">
-                           <div className="flex items-center justify-end">
-                             <FiStar className="w-4 h-4 text-yellow-500 mr-1" />
-                             <span className="font-semibold">{driver.averageRating?.toFixed(1) || 'N/A'}</span>
-                           </div>
-                         </td>
-                         <td className="px-4 py-4 text-right font-bold text-green-600">
-                           SAR {driver.totalRevenue?.toLocaleString() || 0}
-                         </td>
-                       </tr>
-                     ))
-                   )}
-                 </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   };
 
   // 🗺️ Zone Analysis Tab
   const ZonesTab = () => {
-    const zoneData = dashboardData.zonePerformance || {};
+    const zoneData = data.zonePerformance || {};
     const zones = zoneData.zonePerformance || [];
     
     return (
