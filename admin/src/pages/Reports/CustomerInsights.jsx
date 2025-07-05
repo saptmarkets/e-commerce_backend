@@ -35,14 +35,26 @@ const CustomerInsights = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      const response = await httpService.get('/reports/customer/dashboard');
+      console.log("🎸 Fetching customer dashboard data...");
       
-      if (response.data.success) {
-        setDashboardData(response.data.data);
-        setIsLoading(false);
+      const response = await httpService.get('/reports/customer/dashboard', {
+        params: {
+          period: filters.period,
+          city: filters.city || undefined
+        }
+      });
+
+      console.log("🎸 Customer dashboard response:", response);
+      
+      if (response.success) {
+        setDashboardData(response.data);
+        console.log("✅ Customer dashboard loaded successfully");
+      } else {
+        console.error("❌ Failed to load customer dashboard");
       }
     } catch (error) {
-      console.error("❌ Dashboard fetch error:", error);
+      console.error("🎸 Dashboard fetch error:", error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -50,28 +62,42 @@ const CustomerInsights = () => {
   // 🎸 Fetch Purchase Behavior Data
   const fetchPurchaseBehaviorData = async () => {
     try {
-      const response = await httpService.get('/reports/customer/purchase-behavior');
+      console.log("🎸 Fetching purchase behavior data...");
       
-      if (response.data.success) {
-        const categoryData = response.data.data.categoryAnalysis?.map(item => ({
-          name: item.category || item.name || item._id,
-          value: item.totalRevenue || item.value || 0,
-          quantity: item.totalQuantity || item.quantity || 0,
-          customers: item.customerCount || item.customers || 0,
-          avgPrice: item.averagePrice || item.avgPrice || 0
+      const response = await httpService.get('/reports/customer/purchase-behavior', {
+        params: {
+          period: 30,
+          limit: 10
+        }
+      });
+      
+      console.log("🎸 Purchase Behavior Response:", response);
+      
+      if (response.success && response.data) {
+        const { categoryAnalysis, purchasePatterns, timeAnalysis } = response.data;
+        
+        // Transform category data for charts
+        const categoryData = categoryAnalysis?.map(cat => ({
+          name: cat.category || 'Unknown',
+          value: cat.totalRevenue || 0,
+          quantity: cat.totalQuantity || 0,
+          customers: cat.customerCount || 0,
+          avgPrice: cat.averagePrice || 0
         })) || [];
         
         setDashboardData(prev => ({
           ...prev,
           purchaseBehavior: {
             categoryAnalysis: categoryData,
-            purchasePatterns: response.data.data.purchasePatterns || [],
-            timeAnalysis: response.data.data.timeAnalysis || { hourlyDistribution: [], weeklyDistribution: [] }
+            purchasePatterns: purchasePatterns || [],
+            timeAnalysis: timeAnalysis || { hourlyDistribution: [], weeklyDistribution: [] }
           }
         }));
+        
+        console.log("🎸 Transformed category data:", categoryData);
       }
     } catch (error) {
-      console.error("❌ Purchase behavior fetch error:", error);
+      console.error("🎸 Purchase Behavior Error:", error);
       setDashboardData(prev => ({
         ...prev,
         purchaseBehavior: {
@@ -86,32 +112,52 @@ const CustomerInsights = () => {
   // 🎸 Fetch Geographic Distribution Data
   const fetchGeographicData = async () => {
     try {
-      const response = await httpService.get('/reports/customer/geographic-distribution');
+      console.log("🎸 Fetching geographic data...");
       
-      if (response.data.success) {
-        const geoData = response.data.data.geographicData?.map(area => ({
-          name: area.location || area.name || area._id,
-          customers: area.customerCount || area.customers || 0,
-          orders: area.totalOrders || area.orders || 0,
-          revenue: area.totalSpent || area.revenue || 0,
-          avgOrderValue: area.avgOrderValue || area.averageSpent || 0,
+      const response = await httpService.get('/reports/customer/geographic-distribution', {
+        params: {
+          groupBy: 'area',
+          limit: 10
+        }
+      });
+      
+      console.log("🎸 Geographic Response:", response);
+      
+      if (response.success && response.data) {
+        const { geographicData, summary } = response.data;
+        
+        // Transform geographic data for charts
+        const geoData = geographicData?.map(area => ({
+          name: area.location || 'Unknown Area',
+          customers: area.customerCount || 0,
+          orders: area.totalOrders || 0,
+          revenue: area.totalSpent || 0,
+          avgOrderValue: area.avgOrderValue || 0,
           activeCustomers: area.activeCustomers || 0,
           penetrationRate: area.penetrationRate || 0,
-          coordinates: area.avgCoordinates || area.coordinates || { lat: 0, lng: 0 },
+          coordinates: area.avgCoordinates || { lat: 0, lng: 0 },
           sampleAddresses: area.sampleAddresses || []
         })) || [];
         
-        setGeographicData({
-          geographicData: geoData,
-          summary: response.data.data.summary || {}
-        });
+        setDashboardData(prev => ({
+          ...prev,
+          geographicDistribution: {
+            geographicData: geoData,
+            summary: summary || {}
+          }
+        }));
+        
+        console.log("🎸 Transformed geographic data:", geoData);
       }
     } catch (error) {
-      console.error("❌ Geographic Data Error:", error);
-      setGeographicData({
-        geographicData: [],
-        summary: {}
-      });
+      console.error("🎸 Geographic Data Error:", error);
+      setDashboardData(prev => ({
+        ...prev,
+        geographicDistribution: {
+          geographicData: [],
+          summary: {}
+        }
+      }));
     }
   };
 
@@ -130,6 +176,8 @@ const CustomerInsights = () => {
       setIsCustomerModalOpen(true);
       setCustomerOrdersLoading(true);
       
+      console.log("🎸 Loading orders for customer:", customer.customerId || customer._id);
+      
       // Get customer order history
       const response = await httpService.get(`/orders/customer/${customer.customerId || customer._id}`, {
         params: {
@@ -138,18 +186,26 @@ const CustomerInsights = () => {
         }
       });
       
+      console.log("🎸 Customer orders response:", response);
+      console.log("🎸 Response type:", typeof response);
+      console.log("🎸 Response keys:", Object.keys(response || {}));
+      
       if (response && response.orders && Array.isArray(response.orders)) {
         setCustomerOrders(response.orders);
+        console.log("✅ Orders loaded from response.orders:", response.orders.length);
       } else if (response && Array.isArray(response)) {
         setCustomerOrders(response);
+        console.log("✅ Orders loaded from response array:", response.length);
       } else if (response && response.data && Array.isArray(response.data)) {
         setCustomerOrders(response.data);
+        console.log("✅ Orders loaded from response.data:", response.data.length);
       } else {
         setCustomerOrders([]);
+        console.log("❌ No orders found in response");
       }
       
     } catch (error) {
-      console.error("❌ Error loading customer orders:", error);
+      console.error("🎸 Error loading customer orders:", error);
       setCustomerOrders([]);
     } finally {
       setCustomerOrdersLoading(false);
@@ -178,6 +234,8 @@ const CustomerInsights = () => {
   // 🎸 Export Customer Data
   const exportToCSV = async (reportType) => {
     try {
+      console.log("🎸 Starting customer export for:", reportType);
+      
       const response = await httpService.get('/reports/customer/export', {
         params: {
           format: 'csv',
@@ -187,6 +245,8 @@ const CustomerInsights = () => {
           city: filters.city
         }
       });
+
+      console.log("🎸 Export response:", response);
       
       if (response && typeof response === 'string') {
         const blob = new Blob([response], { type: 'text/csv' });
@@ -196,11 +256,12 @@ const CustomerInsights = () => {
         a.download = `customer_${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
+        console.log("✅ CSV export successful");
       } else {
         console.error("❌ Invalid export response");
       }
     } catch (error) {
-      console.error("❌ Export error:", error);
+      console.error("🎸 Export error:", error);
     }
   };
 
@@ -934,7 +995,12 @@ const CustomerInsights = () => {
     // Use the correct dashboardData.purchaseBehavior
     const behaviorData = dashboardData.purchaseBehavior || {};
     
+    // Process category data with proper debugging
+    console.log("🎸 Raw Behavior Data:", behaviorData);
+    console.log("🎸 Category Analysis:", behaviorData.categoryAnalysis);
+    
     const categoryData = (behaviorData.categoryAnalysis || []).map(item => {
+      console.log("🎸 Processing category item:", item);
       return {
         // Use the new data structure from the fixed backend
         category: item.name || item.category || 'Unknown',
@@ -945,100 +1011,10 @@ const CustomerInsights = () => {
       };
     });
 
+    console.log("🎸 Processed Category Data:", categoryData);
+
     return (
       <div className="space-y-6">
-        {/* Category Analysis Chart */}
-        <Card className="shadow-lg">
-          <CardBody>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center">
-                <div className="p-2 mr-3 text-green-600 bg-green-100 rounded-lg">
-                  <FiShoppingBag className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-gray-800">Popular Categories</h4>
-                  <p className="text-sm text-gray-500">Best-selling product categories</p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => exportToCSV('behavior')}
-                className="bg-green-500 hover:bg-green-600 text-white shadow-md transition-all duration-200"
-              >
-                <FiDownload className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </div>
-            
-            <div className="h-80">
-              {!behaviorData.categoryAnalysis || behaviorData.categoryAnalysis.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <FiShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium text-gray-600">No Category Data</p>
-                    <p className="text-sm text-gray-500">Category analytics will appear here</p>
-                    <button 
-                      onClick={fetchPurchaseBehaviorData}
-                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      🔄 Refresh Data
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <ResponsiveContainer width="100%" height="300">
-                    <BarChart 
-                      data={categoryData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis 
-                        dataKey="category" 
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                        tick={{ fontSize: 12, fill: '#6b7280' }}
-                        axisLine={{ stroke: '#e5e7eb' }}
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12, fill: '#6b7280' }}
-                        axisLine={{ stroke: '#e5e7eb' }}
-                      />
-                      <Tooltip 
-                        formatter={(value, name) => [
-                          name === 'totalRevenue' ? formatCurrency(value) : value.toLocaleString(),
-                          name === 'totalRevenue' ? 'Revenue' : 'Quantity'
-                        ]}
-                        labelFormatter={(label) => `${label} Category`}
-                        contentStyle={{
-                          backgroundColor: '#ffffff',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                        }}
-                      />
-                      <Legend />
-                      <Bar 
-                        dataKey="totalRevenue" 
-                        fill="#10b981" 
-                        name="Revenue"
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar 
-                        dataKey="totalQuantity" 
-                        fill="#3b82f6" 
-                        name="Quantity"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-
         {/* Purchase Patterns Table */}
         <Card className="shadow-lg">
           <CardBody>
@@ -1136,19 +1112,60 @@ const CustomerInsights = () => {
             </div>
           </CardBody>
         </Card>
+
+        {/* Category Analysis Chart */}
+        <Card className="shadow-lg">
+          <CardBody>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="p-2 mr-3 text-green-600 bg-green-100 rounded-lg">
+                  <FiShoppingBag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Popular Categories</h4>
+                  <p className="text-sm text-gray-500">Best-selling product categories</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => exportToCSV('behavior')}
+                className="bg-green-500 hover:bg-green-600 text-white shadow-md transition-all duration-200"
+              >
+                <FiDownload className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+            
+            <div className="h-80">
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <FiShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-600">Category Chart Temporarily Disabled</p>
+                  <p className="text-sm text-gray-500">Chart functionality under maintenance</p>
+                  <p className="text-xs text-gray-400 mt-2">Data displayed in table above</p>
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
       </div>
     );
   };
 
   // 🎸 Geographic Distribution Tab
   const GeographicTab = () => {
-    // Use the geographic data from state
-    const geoData = geographicData || { geographicData: [] };
+    // Use the correct dashboardData.geographicDistribution with safe fallbacks
+    const geoData = dashboardData?.geographicDistribution || {};
+    
+    // Process geographic data with proper debugging
+    console.log("🎸 Raw Geographic Data:", geoData);
+    console.log("🎸 Geographic Data Array:", geoData?.geographicData);
     
     // Ensure we have a valid array to work with
     const rawGeographicData = geoData?.geographicData || [];
     
     const geographicDataForChart = rawGeographicData.map(item => {
+      console.log("🎸 Processing geographic item:", item);
       return {
         location: item?.name || item?.location || 'Unknown Area',
         customerCount: item?.customers || item?.customerCount || 0,
@@ -1162,100 +1179,10 @@ const CustomerInsights = () => {
       };
     });
 
+    console.log("🎸 Processed Geographic Data:", geographicDataForChart);
+
     return (
       <div className="space-y-6">
-        {/* Geographic Chart */}
-        <Card className="shadow-lg">
-          <CardBody>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center">
-                <div className="p-2 mr-3 text-teal-600 bg-teal-100 rounded-lg">
-                  <FiMapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-gray-800">Customer Distribution by Area</h4>
-                  <p className="text-sm text-gray-500">Coverage within delivery zones</p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => exportToCSV('geographic')}
-                className="bg-teal-500 hover:bg-teal-600 text-white shadow-md transition-all duration-200"
-              >
-                <FiDownload className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </div>
-            
-            <div className="h-80">
-              {!geoData?.geographicData || geoData?.geographicData?.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <FiMapPin className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium text-gray-600">No Geographic Data</p>
-                    <p className="text-sm text-gray-500">Area distribution will appear here</p>
-                    <button 
-                      onClick={fetchGeographicData}
-                      className="mt-4 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
-                    >
-                      🔄 Refresh Data
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <ResponsiveContainer width="100%" height="300">
-                    <BarChart 
-                      data={geographicDataForChart}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis 
-                        dataKey="location" 
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                        tick={{ fontSize: 12, fill: '#6b7280' }}
-                        axisLine={{ stroke: '#e5e7eb' }}
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12, fill: '#6b7280' }}
-                        axisLine={{ stroke: '#e5e7eb' }}
-                      />
-                      <Tooltip 
-                        formatter={(value, name) => [
-                          name === 'totalSpent' ? formatCurrency(value) : value.toLocaleString(),
-                          name === 'totalSpent' ? 'Total Spent' : 'Customer Count'
-                        ]}
-                        labelFormatter={(label) => `${label} Area`}
-                        contentStyle={{
-                          backgroundColor: '#ffffff',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                        }}
-                      />
-                      <Legend />
-                      <Bar 
-                        dataKey="customerCount" 
-                        fill="#14b8a6" 
-                        name="Customer Count"
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar 
-                        dataKey="totalSpent" 
-                        fill="#06b6d4" 
-                        name="Total Spent"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-
         {/* Geographic Table */}
         <Card className="shadow-lg">
           <CardBody>
@@ -1343,6 +1270,42 @@ const CustomerInsights = () => {
                   <p className="text-sm text-gray-500">Area performance data will appear here</p>
                 </div>
               )}
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Geographic Chart */}
+        <Card className="shadow-lg">
+          <CardBody>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="p-2 mr-3 text-teal-600 bg-teal-100 rounded-lg">
+                  <FiMapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Customer Distribution by Area</h4>
+                  <p className="text-sm text-gray-500">Coverage within delivery zones</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => exportToCSV('geographic')}
+                className="bg-teal-500 hover:bg-teal-600 text-white shadow-md transition-all duration-200"
+              >
+                <FiDownload className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+            
+            <div className="h-80">
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <FiMapPin className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-600">Geographic Chart Temporarily Disabled</p>
+                  <p className="text-sm text-gray-500">Chart functionality under maintenance</p>
+                  <p className="text-xs text-gray-400 mt-2">Data displayed in table above</p>
+                </div>
+              </div>
             </div>
           </CardBody>
         </Card>
@@ -1553,8 +1516,6 @@ const CustomerInsights = () => {
 
       {/* Filters */}
       <FiltersSection />
-
-
 
       {/* Tab Navigation */}
       <TabNavigation />
