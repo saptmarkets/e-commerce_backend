@@ -367,8 +367,7 @@ const OdooCatalog = () => {
                 {expandedRows.has(product.product_id) && (
                   <tr className="bg-blue-50"> {/* Trisha: Blue means details! */}
                     <td colSpan={10} className="px-3 py-4"> {/* Updated colspan for new column */}
-                      
-                        
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Basic Information */}
                         <div className="space-y-4">
                           <h4 className="font-semibold text-gray-800 flex items-center gap-2">
