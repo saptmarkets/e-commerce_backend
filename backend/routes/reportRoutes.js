@@ -33,6 +33,7 @@ const inventoryAnalyticsController = new InventoryAnalyticsController();
 
 // Import customer analytics controller - Task 4.1.2
 const CustomerAnalyticsController = require("../controller/customerAnalyticsController");
+const customerAnalyticsController = new CustomerAnalyticsController();
 
 // 📊 Sales Analytics Routes - Task 2.1.2 Advanced Implementation
 // Legacy route for backward compatibility
@@ -98,28 +99,28 @@ router.get("/customers/export", isAuth, isAdmin, (req, res) => {
 
 // 👥 Advanced Customer Analytics Routes - Task 4.1.2 Implementation
 router.get("/customer/overview", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.getCustomerOverview(req, res);
+  customerAnalyticsController.getCustomerOverview(req, res);
 });
 router.get("/customer/lifetime-value", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.getCustomerLifetimeValue(req, res);
+  customerAnalyticsController.getCustomerLifetimeValue(req, res);
 });
 router.get("/customer/rfm-analysis", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.getRFMAnalysis(req, res);
+  customerAnalyticsController.getRFMAnalysis(req, res);
 });
 router.get("/customer/purchase-behavior", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.getPurchaseBehavior(req, res);
+  customerAnalyticsController.getPurchaseBehavior(req, res);
 });
 router.get("/customer/geographic-distribution", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.getGeographicDistribution(req, res);
+  customerAnalyticsController.getGeographicDistribution(req, res);
 });
 router.get("/customer/acquisition-analysis", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.getCustomerAcquisition(req, res);
+  customerAnalyticsController.getCustomerAcquisition(req, res);
 });
 router.get("/customer/dashboard", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.getCustomerDashboard(req, res);
+  customerAnalyticsController.getCustomerDashboard(req, res);
 });
 router.get("/customer/export", isAuth, isAdmin, (req, res) => {
-  CustomerAnalyticsController.exportCustomerReport(req, res);
+  customerAnalyticsController.exportCustomerReport(req, res);
 });
 
 // 🚚 Delivery Performance Routes - Task 1.2.2 Implementation
