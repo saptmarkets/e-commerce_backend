@@ -74,6 +74,8 @@ class DeliveryAnalyticsService {
   // 📈 DELIVERY METRICS CALCULATION
   async getDeliveryMetrics(baseMatch) {
     try {
+      console.log("📊 Getting delivery metrics with baseMatch:", baseMatch);
+      
       const metrics = await Order.aggregate([
         { $match: baseMatch },
         {
@@ -108,7 +110,9 @@ class DeliveryAnalyticsService {
         }
       ]);
       
-      return metrics[0] || {};
+      const result = metrics[0] || {};
+      console.log("📊 Delivery metrics result:", result);
+      return result;
     } catch (error) {
       console.error("📊 Delivery Metrics Error:", error);
       return {};
@@ -192,6 +196,13 @@ class DeliveryAnalyticsService {
       const driversCount = await Admin.countDocuments({ role: "Driver" });
       console.log("👥 Total drivers in admin collection:", driversCount);
       
+      // Check delivered orders with drivers
+      const deliveredWithDrivers = await Order.countDocuments({
+        status: "Delivered",
+        'deliveryInfo.assignedDriver': { $exists: true }
+      });
+      console.log("🎯 Delivered orders with assigned drivers:", deliveredWithDrivers);
+      
       const driverStats = await Order.aggregate([
         { 
           $match: { 
@@ -224,7 +235,7 @@ class DeliveryAnalyticsService {
               $sum: { $cond: [{ $in: ["$status", ["Processing", "Out for Delivery"]] }, 1, 0] } 
             },
             totalRevenue: { 
-              $sum: { $cond: [{ $eq: ["$status", "Delivered"] }, "$totalAmount", 0] } 
+              $sum: { $cond: [{ $eq: ["$status", "Delivered"] }, "$total", 0] } 
             },
             averageRating: { 
               $avg: { 
@@ -318,11 +329,11 @@ class DeliveryAnalyticsService {
         { $match: baseMatch },
         {
           $project: {
-            // Extract area/zone from user address
+            // Extract area/zone from user address - use user_info.address which is the correct field
             zone: {
               $let: {
                 vars: {
-                  address: { $ifNull: ["$user.address", "Unknown"] }
+                  address: { $ifNull: ["$user_info.address", "Unknown"] }
                 },
                 in: {
                   $cond: [
@@ -350,7 +361,7 @@ class DeliveryAnalyticsService {
               }
             },
             status: 1,
-            totalAmount: 1,
+            total: 1, // Use 'total' not 'totalAmount'
             deliveryInfo: 1
           }
         },
@@ -368,9 +379,9 @@ class DeliveryAnalyticsService {
               $sum: { $cond: [{ $in: ["$status", ["Processing", "Out for Delivery"]] }, 1, 0] } 
             },
             totalRevenue: { 
-              $sum: { $cond: [{ $eq: ["$status", "Delivered"] }, "$totalAmount", 0] } 
+              $sum: { $cond: [{ $eq: ["$status", "Delivered"] }, "$total", 0] } 
             },
-            averageOrderValue: { $avg: "$totalAmount" },
+            averageOrderValue: { $avg: "$total" }, // Use 'total' not 'totalAmount'
             averageDeliveryTime: {
               $avg: {
                 $cond: [

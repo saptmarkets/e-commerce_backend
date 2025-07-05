@@ -288,9 +288,49 @@ const testDeliveryData = async (req, res) => {
       'deliveryInfo.assignedDriver': { $exists: true }
     });
     
+    // Check delivered orders specifically  
+    const deliveredOrders = await Order.countDocuments({
+      status: "Delivered"
+    });
+    const deliveredWithDriver = await Order.countDocuments({
+      status: "Delivered",
+      'deliveryInfo.assignedDriver': { $exists: true }
+    });
+    
     // Get sample data
-    const sampleDrivers = await Admin.find({ role: "Driver" }).limit(3).select('name email role deliveryInfo');
-    const sampleOrders = await Order.find({ 'deliveryInfo': { $exists: true } }).limit(3).select('_id status deliveryInfo totalAmount');
+    const sampleDrivers = await Admin.find({ role: "Driver" }).limit(3).select('name email role deliveryInfo deliveryStats');
+    const sampleOrders = await Order.find({ 
+      'deliveryInfo.assignedDriver': { $exists: true } 
+    }).limit(3).select('_id status deliveryInfo total user_info.name');
+    
+    // Test the actual aggregation query that should work
+    const testDriverQuery = await Order.aggregate([
+      { 
+        $match: { 
+          status: "Delivered",
+          'deliveryInfo.assignedDriver': { $exists: true }
+        } 
+      },
+      {
+        $lookup: {
+          from: "admins",
+          localField: "deliveryInfo.assignedDriver", 
+          foreignField: "_id",
+          as: "driver"
+        }
+      },
+      { $unwind: "$driver" },
+      {
+        $group: {
+          _id: "$driver._id",
+          driverName: { $first: "$driver.name" },
+          driverEmail: { $first: "$driver.email" },
+          totalDeliveries: { $sum: 1 },
+          totalRevenue: { $sum: "$total" }
+        }
+      },
+      { $limit: 5 }
+    ]);
     
     res.status(200).json({
       success: true,
@@ -301,17 +341,24 @@ const testDeliveryData = async (req, res) => {
           activeDrivers,
           totalOrders,
           ordersWithDeliveryInfo,
-          ordersWithAssignedDriver
+          ordersWithAssignedDriver,
+          deliveredOrders,
+          deliveredWithDriver
         },
         samples: {
           drivers: sampleDrivers,
           orders: sampleOrders
         },
+        testQuery: {
+          driverAggregationResults: testDriverQuery,
+          queryWorked: testDriverQuery.length > 0
+        },
         suggestions: {
           noDrivers: driversCount === 0 ? "❌ No drivers found in admin collection. Create drivers first." : "✅ Drivers exist",
-          noOrders: totalOrders === 0 ? "❌ No orders found. Create test orders." : "✅ Orders exist",
+          noOrders: totalOrders === 0 ? "❌ No orders found. Create test orders." : "✅ Orders exist", 
           noDeliveryInfo: ordersWithDeliveryInfo === 0 ? "❌ No orders have delivery info. Add deliveryInfo to orders." : "✅ Orders have delivery info",
-          noAssignedDrivers: ordersWithAssignedDriver === 0 ? "❌ No orders have assigned drivers. Assign drivers to orders." : "✅ Orders have assigned drivers"
+          noAssignedDrivers: ordersWithAssignedDriver === 0 ? "❌ No orders have assigned drivers. Assign drivers to orders." : "✅ Orders have assigned drivers",
+          noDeliveredWithDrivers: deliveredWithDriver === 0 ? "❌ No delivered orders have assigned drivers." : `✅ Found ${deliveredWithDriver} delivered orders with drivers`
         }
       }
     });
