@@ -187,12 +187,17 @@ const InventoryReports = () => {
         }
       });
 
-      console.log('🎸 Export response:', response);
-      console.log('🎸 Export data type:', typeof response.data);
-      console.log('🎸 Export data length:', response.data ? response.data.length : 0);
+      console.log('🎸 Export response type:', typeof response);
+      console.log('🎸 Export response.data type:', typeof response.data);
+      console.log('🎸 Export response.data length:', response.data ? response.data.length : 0);
 
-      if (response.data) {
-        const blob = new Blob([response.data], { type: 'text/csv' });
+      // Check if response is a string (CSV content) or has data property
+      const csvContent = typeof response === 'string' ? response : response.data;
+      console.log('🎸 CSV content type:', typeof csvContent);
+      console.log('🎸 CSV content length:', csvContent ? csvContent.length : 0);
+
+      if (csvContent) {
+        const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -201,7 +206,7 @@ const InventoryReports = () => {
         window.URL.revokeObjectURL(url);
         console.log('✅ CSV export successful');
       } else {
-        console.error('❌ No data received for CSV export');
+        console.error('❌ No CSV content received for export');
       }
     } catch (error) {
       console.error('🎸 CSV Export error:', error);

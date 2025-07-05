@@ -194,9 +194,14 @@ class InventoryAnalyticsService {
         { $match: matchQuery },
         { $unwind: "$cart" },
         {
+          $addFields: {
+            productObjectId: { $toObjectId: "$cart.id" }
+          }
+        },
+        {
           $lookup: {
             from: "products",
-            localField: "cart.id",
+            localField: "productObjectId",
             foreignField: "_id",
             as: "productInfo"
           }
