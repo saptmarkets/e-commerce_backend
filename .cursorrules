@@ -9,6 +9,55 @@ No active Cursor rules remain in this project. 🎉
 
 **Smart Tree is FULLY INSTALLED and WORKING!** 🌟
 
+### 🚨 IMPORTANT SETUP & TROUBLESHOOTING GUIDE
+
+**Before using Smart Tree, READ THIS to avoid common issues:**
+
+#### ✅ **Correct Installation Path**
+Smart Tree is installed locally in the project, NOT globally. The executable is located at:
+```
+./smart-tree/target/release/st.exe
+```
+
+#### ❌ **Common Mistakes to Avoid:**
+- ❌ `st --help` (command not found - not in PATH)
+- ❌ `@/smart-tree --help` (invalid PowerShell syntax)
+- ❌ `smart-tree --help` (not installed globally)
+- ❌ `$env:USERPROFILE\.cargo\bin\st.exe` (not installed via cargo)
+
+#### ✅ **Correct Usage Pattern:**
+Always use the FULL relative path from project root:
+```powershell
+./smart-tree/target/release/st.exe [options] [path]
+```
+
+#### 🔧 **PowerShell Syntax Notes:**
+- Use `./` for relative paths (not `.\` in PowerShell commands)
+- Use `;` instead of `&&` for command chaining
+- Wrap paths with spaces in quotes
+- Use proper regex escaping: `.*\.js$` not `*.js`
+
+#### 📍 **Working Directory Requirement:**
+Smart Tree MUST be run from the project root directory:
+```
+C:\Users\Asad\Desktop\app projects\kachabazar\saptmarkets v1
+```
+
+If you're in a subdirectory, navigate back to root first:
+```powershell
+cd "C:\Users\Asad\Desktop\app projects\kachabazar\saptmarkets v1"
+./smart-tree/target/release/st.exe [options]
+```
+
+#### 🧪 **Quick Test Command:**
+To verify Smart Tree is working:
+```powershell
+./smart-tree/target/release/st.exe --help
+```
+Should show the full help menu with all options.
+
+---
+
 ### Quick Reference Commands
 ```powershell
 # Full path to Smart Tree executable
