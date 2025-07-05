@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const ProductUnit = require("../models/ProductUnit");
 const {
   getAllProductUnits,
   getProductUnits,
@@ -92,5 +93,16 @@ router.get("/product/:productId/compare", compareUnitPricing);
 
 // Validate unit data endpoint
 router.post("/validate", validateUnitData);
+
+// Low stock alert route
+router.get("/low-stock", async (req, res) => {
+  try {
+    // Find all product units with stock less than 10
+    const lowStockUnits = await ProductUnit.find({ stock: { $lt: 10 } });
+    res.json(lowStockUnits);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 module.exports = router; 

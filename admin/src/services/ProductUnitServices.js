@@ -200,8 +200,10 @@ const ProductUnitServices = {
   getUnitsRequiringRefill: async () => {
     try {
       const response = await requests.get('/product-units/low-stock');
+      console.log("ProductUnitServices - Raw response from httpService.js:", response);
       return response;
     } catch (error) {
+      console.error("ProductUnitServices - Error in getUnitsRequiringRefill:", error);
       throw error;
     }
   },

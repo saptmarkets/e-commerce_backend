@@ -43,6 +43,14 @@ const OrderAssignments = lazy(() => import("@/pages/OrderAssignments"));
 const DeliveryDrivers = lazy(() => import("@/pages/DeliveryDrivers"));
 const DeliveryTracking = lazy(() => import("@/pages/DeliveryTracking"));
 const DeliverySettings = lazy(() => import("@/pages/DeliverySettings"));
+
+// Reports System Pages
+const SalesAnalytics = lazy(() => import("@/pages/Reports/SalesAnalytics"));
+const InventoryReports = lazy(() => import("@/pages/Reports/InventoryReports"));
+const CustomerInsights = lazy(() => import("@/pages/Reports/CustomerInsights"));
+const DeliveryPerformance = lazy(() => import("@/pages/Reports/DeliveryPerformance"));
+const FinancialReports = lazy(() => import("@/pages/Reports/FinancialReports"));
+const ExecutiveDashboard = lazy(() => import("@/pages/Reports/ExecutiveDashboard"));
 /*
 //  * ⚠ These are internal routes!
 //  * They will be rendered inside the app, using the default `containers/Layout`.
@@ -207,6 +215,32 @@ const routes = [
     path: '/delivery/settings',
     component: DeliverySettings,
   },
+
+  // Reports System Routes
+  {
+    path: "/reports/sales",
+    component: SalesAnalytics,
+  },
+  {
+    path: "/reports/inventory",
+    component: InventoryReports,
+  },
+  {
+    path: "/reports/customers",
+    component: CustomerInsights,
+  },
+  {
+    path: "/reports/delivery",
+    component: DeliveryPerformance,
+  },
+  {
+    path: "/reports/financial",
+    component: FinancialReports,
+  },
+  {
+    path: "/reports/executive",
+    component: ExecutiveDashboard,
+  },
 ];
 
 // Debug logging
@@ -255,6 +289,12 @@ const routeAccessList = [
   { label: "Odoo Sync", value: "odoo-sync" },
   { label: "Odoo Catalog", value: "odoo-catalog" },
   { label: "Odoo Promotions", value: "odoo-promotions" },
+  { label: "Sales Analytics", value: "reports/sales" },
+  { label: "Inventory Reports", value: "reports/inventory" },
+  { label: "Customer Insights", value: "reports/customers" },
+  { label: "Delivery Performance", value: "reports/delivery" },
+  { label: "Financial Reports", value: "reports/financial" },
+  { label: "Executive Dashboard", value: "reports/executive" },
 ];
 
 export { routeAccessList, routes };

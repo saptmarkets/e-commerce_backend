@@ -33,6 +33,7 @@ const adminDeliveryRoutes = require("./routes/adminDeliveryRoutes");
 const mobileDeliveryRoutes = require("./routes/mobileDeliveryRoutes");
 const odooSyncRoutes = require("./routes/odooSyncRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 const { isAuth, isAdmin } = require("./config/auth");
 
 // Connect to MongoDB
@@ -102,6 +103,9 @@ app.use("/api/odoo-sync", isAuth, isAdmin, odooSyncRoutes);
 
 // Upload routes
 app.use("/api/upload", uploadRoutes);
+
+// Reports routes (admin only)
+app.use("/api/reports", reportRoutes);
 
 // Direct test endpoint for promotions (no authentication required)
 app.get("/api/direct-test/promotions", async (req, res) => {

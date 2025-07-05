@@ -10,6 +10,7 @@ import {
   FiTag,
   FiTruck,
   FiRefreshCw,
+  FiBarChart,
 } from "react-icons/fi";
 
 /**
@@ -97,6 +98,37 @@ const sidebar = [
     path: "/orders",
     icon: FiCompass,
     name: "Orders",
+  },
+
+  {
+    icon: FiBarChart,
+    name: "Reports",
+    routes: [
+      {
+        path: "/reports/sales",
+        name: "Sales Analytics",
+      },
+      {
+        path: "/reports/inventory", 
+        name: "Inventory Reports",
+      },
+      {
+        path: "/reports/customers",
+        name: "Customer Insights",
+      },
+      {
+        path: "/reports/delivery",
+        name: "Delivery Performance",
+      },
+      {
+        path: "/reports/financial",
+        name: "Financial Reports",
+      },
+      {
+        path: "/reports/executive",
+        name: "Executive Dashboard",
+      },
+    ],
   },
 
   {

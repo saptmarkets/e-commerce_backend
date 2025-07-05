@@ -17,7 +17,7 @@ import isToday from "dayjs/plugin/isToday";
 import isYesterday from "dayjs/plugin/isYesterday";
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FiCheck, FiRefreshCw, FiShoppingCart, FiTruck, FiTrendingUp, FiDollarSign, FiPackage, FiClock, FiActivity, FiEye, FiDownload, FiFilter, FiStar, FiZap, FiTarget, FiUsers, FiTrash2 } from "react-icons/fi";
+import { FiCheck, FiRefreshCw, FiShoppingCart, FiTruck, FiTrendingUp, FiDollarSign, FiPackage, FiClock, FiActivity, FiEye, FiDownload, FiFilter, FiStar, FiZap, FiTarget, FiUsers, FiTrash2, FiTrendingDown, FiMinus } from "react-icons/fi";
 import { ImCreditCard, ImStack } from "react-icons/im";
 import { useHistory } from "react-router-dom";
 
@@ -69,12 +69,18 @@ const StatCard = ({ title, value, change, changeType, icon: Icon, gradient, spar
           </h3>
           {change && (
             <div
-              className={`flex items-center text-sm font-semibold px-3 py-1 rounded-full ${
-                changeType === "up" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+              className={`flex items-center text-base font-semibold px-4 py-2 rounded-full space-x-2 ${
+                changeType === "up" ? "bg-emerald-100 text-emerald-700" : changeType === "down" ? "bg-red-100 text-red-700" : "bg-gray-200 text-gray-500"
               }`}
             >
-              <FiTrendingUp className="w-3 h-3 mr-1" />
-              {change}
+              {changeType === "up" ? (
+                <FiTrendingUp className="w-5 h-5" />
+              ) : changeType === "down" ? (
+                <FiTrendingDown className="w-5 h-5" />
+              ) : (
+                <FiMinus className="w-5 h-5" />
+              )}
+              <span>{change}</span>
             </div>
           )}
         </div>
@@ -127,6 +133,9 @@ const Dashboard = () => {
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [activePromotions, setActivePromotions] = useState([]);
   const [showLowStockModal, setShowLowStockModal] = useState(false);
+  // New state for active promotions by type
+  const [fixedPriceCount, setFixedPriceCount] = useState(0);
+  const [comboCount, setComboCount] = useState(0);
 
   const {
     data: bestSellerProductChart,
@@ -326,9 +335,26 @@ const Dashboard = () => {
       console.error("Error fetching low stock products:", err);
       setLowStockProducts([]);
     });
-    PromotionServices.getActivePromotions().then(res => {
-      setActivePromotions(Array.isArray(res) ? res : (res?.promotions || []));
-    }).catch(() => setActivePromotions([]));
+    // Fetch all promotions and count by type, filtering for truly active
+    PromotionServices.getAllPromotions({ limit: 1000 }).then(data => {
+      let promotions = [];
+      if (Array.isArray(data)) {
+        promotions = data;
+      } else if (Array.isArray(data?.promotions)) {
+        promotions = data.promotions;
+      }
+      const now = new Date();
+      const trulyActive = promotions.filter(p =>
+        p.isActive === true &&
+        new Date(p.startDate) <= now &&
+        new Date(p.endDate) >= now
+      );
+      setFixedPriceCount(trulyActive.filter(p => p.type === 'fixed_price').length);
+      setComboCount(trulyActive.filter(p => p.type === 'bulk_purchase' || p.type === 'assorted_items').length);
+    }).catch(() => {
+      setFixedPriceCount(0);
+      setComboCount(0);
+    });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardOrderAmount]);
@@ -381,70 +407,101 @@ const Dashboard = () => {
             </GlassCard>
           </div>
 
-          {/* Promotion Banner */}
-          <div className="mx-6 mb-8">
-            <GlassCard className="p-8 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 opacity-90"></div>
-              <div className="relative z-10 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center space-x-3 mb-3">
-                      <FiZap className="w-6 h-6 text-yellow-300" />
-                      <h2 className="text-2xl font-bold">Active Campaigns</h2>
-                    </div>
-                    <p className="text-white/90 mb-4 text-lg">
-                      {activePromotions.length === 0 
-                        ? "No active promotions at the moment - Create engaging campaigns to boost your sales!" 
-                        : `${activePromotions.length} active promotions driving your sales forward!`}
-                    </p>
-                    <button className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-2xl font-semibold backdrop-blur-sm transition-all duration-300 border-0">
-                      Launch New Campaign
-                    </button>
-                  </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold mb-2">{activePromotions.length}</div>
-                      <div className="text-white/70">Active Campaigns</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold mb-2">{lowStockProducts.length}</div>
-                      <div className="text-white/70">Low Stock Alerts</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
-          </div>
-
           {/* Main Stats */}
           <div className="mx-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard
-                title="Today's Revenue"
-                value={`${currency}${getNumberTwo(todayOrderAmount || 0)}`}
-                change="+12.5%"
-                changeType="up"
-                icon={FiDollarSign}
-                gradient="from-emerald-500 to-teal-600"
-                sparkle={true}
-              />
-              <StatCard
-                title="Yesterday's Sales"
-                value={`${currency}${getNumberTwo(yesterdayOrderAmount || 0)}`}
-                change="-2.1%"
-                changeType="down"
-                icon={FiTrendingUp}
-                gradient="from-blue-500 to-indigo-600"
-              />
-              <StatCard
-                title="Monthly Total"
-                value={`${currency}${getNumberTwo(dashboardOrderAmount?.thisMonthlyOrderAmount || 0)}`}
-                change="+24.3%"
-                changeType="up"
-                icon={FiTarget}
-                gradient="from-purple-500 to-pink-600"
-                sparkle={true}
-              />
+              {/* Dynamic Today's Revenue StatCard */}
+              {(() => {
+                const today = todayOrderAmount || 0;
+                const yesterday = yesterdayOrderAmount || 0;
+                let percentageChange = 0;
+                let changeType = "neutral";
+                let changeText = "";
+                if (yesterday > 0) {
+                  percentageChange = ((today - yesterday) / yesterday) * 100;
+                  changeType = percentageChange > 0 ? "up" : percentageChange < 0 ? "down" : "neutral";
+                  changeText = `${percentageChange > 0 ? '+' : ''}${getNumberTwo(percentageChange)}%`;
+                } else if (today > 0) {
+                  percentageChange = 100;
+                  changeType = "up";
+                  changeText = `+${getNumberTwo(percentageChange)}%`;
+                } else {
+                  changeText = "0.0%";
+                  changeType = "neutral";
+                }
+                return (
+                  <StatCard
+                    title="Today's Revenue"
+                    value={`${currency}${getNumberTwo(today)}`}
+                    change={changeText}
+                    changeType={changeType}
+                    icon={FiDollarSign}
+                    gradient="from-emerald-500 to-teal-600"
+                    sparkle={true}
+                  />
+                );
+              })()}
+              {/* Dynamic Yesterday's Sales StatCard */}
+              {(() => {
+                const today = todayOrderAmount || 0;
+                const yesterday = yesterdayOrderAmount || 0;
+                let percentageChange = 0;
+                let changeType = "neutral";
+                let changeText = "";
+                if (yesterday > 0) {
+                  percentageChange = ((today - yesterday) / yesterday) * 100;
+                  changeType = percentageChange > 0 ? "up" : percentageChange < 0 ? "down" : "neutral";
+                  changeText = `${percentageChange > 0 ? '+' : ''}${getNumberTwo(percentageChange)}%`;
+                } else if (today > 0) {
+                  percentageChange = 100;
+                  changeType = "up";
+                  changeText = `+${getNumberTwo(percentageChange)}%`;
+                } else {
+                  changeText = "0.0%";
+                  changeType = "neutral";
+                }
+                return (
+                  <StatCard
+                    title="Yesterday's Sales"
+                    value={`${currency}${getNumberTwo(yesterday)}`}
+                    change={changeText}
+                    changeType={changeType}
+                    icon={FiTrendingUp}
+                    gradient="from-blue-500 to-indigo-600"
+                  />
+                );
+              })()}
+              {/* Dynamic Monthly Total StatCard */}
+              {(() => {
+                const thisMonth = dashboardOrderAmount?.thisMonthlyOrderAmount || 0;
+                const lastMonth = dashboardOrderAmount?.lastMonthlyOrderAmount || 0;
+                let percentageChange = 0;
+                let changeType = "neutral";
+                let changeText = "";
+                if (lastMonth > 0) {
+                  percentageChange = ((thisMonth - lastMonth) / lastMonth) * 100;
+                  changeType = percentageChange > 0 ? "up" : percentageChange < 0 ? "down" : "neutral";
+                  changeText = `${percentageChange > 0 ? '+' : ''}${getNumberTwo(percentageChange)}%`;
+                } else if (thisMonth > 0) {
+                  percentageChange = 100;
+                  changeType = "up";
+                  changeText = `+${getNumberTwo(percentageChange)}%`;
+                } else {
+                  changeText = "0.0%";
+                  changeType = "neutral";
+                }
+                return (
+                  <StatCard
+                    title="Monthly Total"
+                    value={`${currency}${getNumberTwo(thisMonth)}`}
+                    change={changeText}
+                    changeType={changeType}
+                    icon={FiTarget}
+                    gradient="from-purple-500 to-pink-600"
+                    sparkle={true}
+                  />
+                );
+              })()}
             </div>
         </div>
 
@@ -482,87 +539,174 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Stock Status */}
+          <div className="mx-6 mb-8">
+            <GlassCard className="p-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-4 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-lg">
+                    <FiCheck className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Inventory Management</h3>
+                    <p className={`font-semibold mt-2 text-lg ${lowStockProducts.length === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {lowStockProducts.length === 0
+                        ? "Excellent! All products are well stocked 🎉"
+                        : `⚠️ ${lowStockProducts.length} products require attention`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-6">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-900">128</p>
+                    <p className="text-gray-500">Total Products</p>
+                  </div>
+                  <div className="text-center">
+                    <p className={`text-3xl font-bold ${lowStockProducts.length === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {lowStockProducts.length === 0 ? '100%' : `${Math.round((128 - lowStockProducts.length) / 128 * 100)}%`}
+                    </p>
+                    <p className="text-gray-500">Stock Health</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-blue-600">{lowStockProducts.length}</p>
+                    <p className="text-gray-500">Low Stock Alerts</p>
+                    {lowStockProducts.length > 0 && (
+                      <button
+                        onClick={() => setShowLowStockModal(true)}
+                        className="mt-2 px-4 py-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg text-sm font-semibold transition-all transform hover:scale-105"
+                      >
+                        View Details
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          </div>
+          {/* Active Campaigns Card (Moved and Cleaned) */}
+          <div className="mx-6 mb-8">
+            <GlassCard className="p-8 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 opacity-90"></div>
+              <div className="relative z-10 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center space-x-3 mb-3">
+                      <FiZap className="w-6 h-6 text-yellow-300" />
+                      <h2 className="text-2xl font-bold">Active Campaigns</h2>
+                    </div>
+                    <p className="mb-4 text-lg">
+                      {fixedPriceCount + comboCount === 0
+                        ? 'No active promotions at the moment - Create engaging campaigns to boost your sales!'
+                        : `You have ${fixedPriceCount} fixed price and ${comboCount} combo promotions active.`}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-12">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold mb-2">{fixedPriceCount}</div>
+                      <div className="text-white/70">Fixed Price</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold mb-2">{comboCount}</div>
+                      <div className="text-white/70">Combo</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          </div>
+
           {/* Analytics Section */}
           <div className="mx-6 mb-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Weekly Performance */}
               <GlassCard className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">Weekly Performance</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
-                      <span className="font-medium text-gray-600">Revenue</span>
+                {/* Top controls container: Heading, Tabs, Legend */}
+                <div className="w-full">
+                  <div className="flex items-center justify-between w-full">
+                    {/* Heading on the left, allow wrapping */}
+                    <h3 className="text-2xl font-bold text-gray-900 flex-1 break-words whitespace-normal">Weekly Performance</h3>
+                    {/* Tabs in the center */}
+                    <div className="flex-1 flex justify-center">
+                      <div className="flex space-x-4">
+                        <button
+                          onClick={() => setActiveChartTab('Sales')}
+                          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                            activeChartTab === 'Sales'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'text-gray-500 hover:bg-gray-100'
+                          }`}
+                        >
+                          Sales
+                        </button>
+                        <button
+                          onClick={() => setActiveChartTab('Orders')}
+                          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                            activeChartTab === 'Orders'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'text-gray-500 hover:bg-gray-100'
+                          }`}
+                        >
+                          Orders
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
-                      <span className="font-medium text-gray-600">Orders</span>
+                    {/* Legend on the right */}
+                    <div className="flex-1 flex justify-end items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
+                        <span className="font-medium text-gray-600">Revenue</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                        <span className="font-medium text-gray-600">Orders</span>
+                      </div>
                     </div>
                   </div>
-        </div>
-
-                {/* Modern Bar Chart */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex space-x-4">
-                      <button
-                        onClick={() => setActiveChartTab('Sales')}
-                        className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                          activeChartTab === 'Sales'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'text-gray-500 hover:bg-gray-100'
-                        }`}
-                      >
-                        Sales
-                      </button>
-                      <button
-                        onClick={() => setActiveChartTab('Orders')}
-                        className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                          activeChartTab === 'Orders'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'text-gray-500 hover:bg-gray-100'
-                        }`}
-                      >
-                        Orders
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Bar Chart Area */}
-                  <div className="h-64 flex items-end justify-between space-x-3 px-4">
-                    {salesReport.length > 0 && salesReport.map((item, index) => {
-                      const value = activeChartTab === 'Sales' ? item.total : item.order;
-                      const maxValue = Math.max(...salesReport.map(reportItem => activeChartTab === 'Sales' ? reportItem.total : reportItem.order));
-                      // Scale bar height to fit within h-64 (256px) container
-                      const barHeight = maxValue > 0 ? (value / maxValue) * 256 : 0;
-                      // Base opacity, increase slightly with height for visual effect
-                      const barOpacity = 0.6 + (value / maxValue) * 0.4; 
-
-                      const barGradient = activeChartTab === 'Sales' 
-                        ? 'from-emerald-500 to-emerald-300' 
-                        : 'from-blue-500 to-blue-300';
-                      
-                      return (
-                        <div key={index} className="relative flex flex-col items-center space-y-2">
-                          <div 
-                            style={{ height: `${barHeight}px`, opacity: barOpacity }} 
-                            className={`w-8 bg-gradient-to-t ${barGradient} rounded-t-lg transition-all duration-300 ease-out`}
-                          ></div>
-                          {/* Vertical Value Label */}
+                </div>
+                {/* Spacing between controls and chart */}
+                <div className="mt-12"></div>
+                {/* Chart container: Bars only, never overlaps controls */}
+                <div className="w-full flex items-end justify-between space-x-3 px-4 pb-4" style={{height: '16rem'}}>
+                  {salesReport.length > 0 && salesReport.map((item, index) => {
+                    const value = activeChartTab === 'Sales' ? item.total : item.order;
+                    const maxValue = Math.max(...salesReport.map(reportItem => activeChartTab === 'Sales' ? reportItem.total : reportItem.order));
+                    // Scale bar height to fit within the fixed 16rem (h-64) container
+                    const barHeight = maxValue > 0 ? (value / maxValue) * 150 : 0;
+                    const barGradient = activeChartTab === 'Sales' 
+                      ? 'from-emerald-500 to-emerald-300' 
+                      : 'from-blue-500 to-blue-300';
+                    
+                    return (
+                      <div key={index} className="flex flex-col items-center">
+                        {/* The 'tube' container with fixed height and border */}
+                        <div className="relative w-8 h-64 border border-gray-200 rounded-lg overflow-hidden">
+                          {/* The liquid fill */}
                           <div
-                            className="absolute top-0 text-xs font-bold text-gray-800 dark:text-gray-200 transform -rotate-90 origin-bottom-left z-10"
-                            style={{
-                              top: `calc(${barHeight}px / 2)`, // Position roughly in the middle of the bar vertically
-                              left: `calc(50% - 10px)`, // Adjust horizontally for rotation
-                            }}
-                          >
-                            {activeChartTab === 'Sales' ? `${currency}${getNumberTwo(value)}` : value}
-                          </div>
-                          <span className="text-xs text-gray-500">{dayjs(item.date).format('MMM DD')}</span>
+                            style={{ height: `${barHeight}px` }}
+                            className={`w-full absolute bottom-0 bg-gradient-to-t ${barGradient} transition-all duration-300 ease-out`}
+                          ></div>
+
+                          {/* The numerical label (centered in the full tube, then rotated) */}
+                          {value > 0 && (
+                            <div
+                              className="absolute inset-0 flex items-center justify-center z-10"
+                            >
+                              <span
+                                className={`text-base font-bold transform -rotate-90 whitespace-nowrap ${
+                                  activeChartTab === 'Sales' ? 'text-blue-700' : 'text-emerald-700'
+                                }`}
+                                style={{ visibility: barHeight < 20 ? 'hidden' : 'visible' }}
+                              >
+                                {activeChartTab === 'Sales' ? `${currency}${getNumberTwo(value)}` : value}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
+                        {/* Date label below the bar */}
+                        <span className="mt-2 text-xs text-gray-500">{dayjs(item.date).format('MMM DD')}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </GlassCard>
 
@@ -634,51 +778,6 @@ const Dashboard = () => {
                 </div>
               </GlassCard>
             </div>
-          </div>
-
-          {/* Stock Status */}
-          <div className="mx-6 mb-8">
-            <GlassCard className="p-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="p-4 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-lg">
-                    <FiCheck className="w-8 h-8 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900">Inventory Management</h3>
-                    <p className={`font-semibold mt-2 text-lg ${lowStockProducts.length === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {lowStockProducts.length === 0 
-                        ? "Excellent! All products are well stocked 🎉" 
-                        : `⚠️ ${lowStockProducts.length} products require attention`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-gray-900">128</p>
-                    <p className="text-gray-500">Total Products</p>
-                  </div>
-                  <div className="text-center">
-                    <p className={`text-3xl font-bold ${lowStockProducts.length === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {lowStockProducts.length === 0 ? '100%' : `${Math.round((128 - lowStockProducts.length) / 128 * 100)}%`}
-                    </p>
-                    <p className="text-gray-500">Stock Health</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-blue-600">{lowStockProducts.length}</p>
-                    <p className="text-gray-500">Low Stock Alerts</p>
-                    {lowStockProducts.length > 0 && (
-                      <button
-                        onClick={() => setShowLowStockModal(true)}
-                        className="mt-2 px-4 py-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg text-sm font-semibold transition-all transform hover:scale-105"
-                      >
-                        View Details
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
           </div>
 
           {/* Orders Table */}

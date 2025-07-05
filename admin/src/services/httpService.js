@@ -198,6 +198,9 @@ const responseBody = (response) => {
         return response.data;
       }
     }
+    // IMPORTANT: If none of the nested conditions matched, but it's a /units or /category URL,
+    // we still want to return the direct response.data (which is the array in this case).
+    return response.data; // <--- THIS LINE IS THE FIX!
   }
   return response.data;
 };
