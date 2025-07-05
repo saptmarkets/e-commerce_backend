@@ -80,7 +80,7 @@ const useGetCData = () => {
                 "dashboard", "products", "categories", "attributes", "units",
                 "promotions", "banners", "coupons", "orders", "our-staff",
                 "settings", "languages", "currencies", "store", "customers",
-                "odoo-sync", "odoo-catalog"
+                "odoo-sync", "odoo-catalog", "reports"
               ]);
             }
           }
@@ -101,7 +101,7 @@ const useGetCData = () => {
               "dashboard", "products", "categories", "attributes", "units",
               "promotions", "banners", "coupons", "orders", "our-staff", 
               "settings", "languages", "currencies", "store", "customers",
-              "odoo-sync", "odoo-catalog"
+              "odoo-sync", "odoo-catalog", "reports"
             ]);
           }
         }
