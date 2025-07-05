@@ -505,6 +505,85 @@ class SalesAnalyticsController {
   };
 
   /**
+   * 📦 GET /api/reports/sales/categories
+   * Get sales performance analysis by product categories
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   */
+  getCategorySales = async (req, res) => {
+    try {
+      const {
+        limit = '20',
+        sortBy = 'revenue',
+        startDate,
+        endDate,
+        includeSubcategories = 'true'
+      } = req.query;
+
+      console.log(`📦 Category Sales Request: ${sortBy} sort, limit ${limit}`);
+
+      // Validate limit
+      const parsedLimit = parseInt(limit);
+      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Limit must be a number between 1 and 100'
+        });
+      }
+
+      // Validate sortBy
+      const validSortOptions = ['revenue', 'quantity', 'orders', 'products'];
+      if (!validSortOptions.includes(sortBy)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid sortBy. Must be one of: ${validSortOptions.join(', ')}`
+        });
+      }
+
+      // Parse and validate dates
+      const parsedStartDate = startDate ? new Date(startDate) : null;
+      const parsedEndDate = endDate ? new Date(endDate) : null;
+
+      if (startDate && isNaN(parsedStartDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid startDate format. Use YYYY-MM-DD'
+        });
+      }
+      
+      if (endDate && isNaN(parsedEndDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid endDate format. Use YYYY-MM-DD'
+        });
+      }
+
+      // Get category sales from service
+      const categorySales = await this.salesService.getCategorySales({
+        limit: parsedLimit,
+        sortBy,
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
+        includeSubcategories: includeSubcategories === 'true'
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Category sales retrieved successfully',
+        ...categorySales
+      });
+
+    } catch (error) {
+      console.error("❌ Category Sales Controller Error:", error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve category sales',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  };
+
+  /**
    * 📄 GET/POST /api/reports/sales/export
    * Export sales report in various formats (PDF, Excel, CSV)
    * @param {Request} req - Express request object
@@ -691,6 +770,7 @@ module.exports = {
   getGeographicAnalysis: salesController.getGeographicAnalysis,
   getPaymentMethodAnalysis: salesController.getPaymentMethodAnalysis,
   getTopProducts: salesController.getTopProducts,
+  getCategorySales: salesController.getCategorySales,
   exportSalesReport: salesController.exportSalesReport,
   getSalesDashboard: salesController.getSalesDashboard
 }; 

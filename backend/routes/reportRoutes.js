@@ -22,6 +22,7 @@ const {
   getGeographicAnalysis,
   getPaymentMethodAnalysis,
   getTopProducts,
+  getCategorySales,
   exportSalesReport,
   getSalesDashboard
 } = require("../controller/salesAnalyticsController");
@@ -38,6 +39,7 @@ router.get("/sales/trends", isAuth, isAdmin, getSalesTrends);
 router.get("/sales/geographic", isAuth, isAdmin, getGeographicAnalysis);
 router.get("/sales/payment-methods", isAuth, isAdmin, getPaymentMethodAnalysis);
 router.get("/sales/top-products", isAuth, isAdmin, getTopProducts);
+router.get("/sales/categories", isAuth, isAdmin, getCategorySales);
 router.get("/sales/dashboard", isAuth, isAdmin, getSalesDashboard);
 
 // 📄 Sales Export Routes - Task 2.1.2

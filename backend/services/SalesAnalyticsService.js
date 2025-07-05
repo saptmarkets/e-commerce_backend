@@ -496,6 +496,145 @@ class SalesAnalyticsService {
     }
   }
 
+  /**
+   * 📦 Get sales performance analysis by product categories
+   * @param {Object} options - Analysis options
+   * @param {number} options.limit - Number of categories to return
+   * @param {string} options.sortBy - revenue|quantity|orders|products
+   * @param {Date} options.startDate - Analysis start date
+   * @param {Date} options.endDate - Analysis end date
+   * @param {boolean} options.includeSubcategories - Include subcategory breakdown
+   * @returns {Object} Category sales performance data
+   */
+  async getCategorySales(options = {}) {
+    try {
+      const {
+        limit = 20,
+        sortBy = 'revenue',
+        startDate,
+        endDate,
+        includeSubcategories = true
+      } = options;
+
+      const dateRange = this._calculateDateRange(startDate, endDate);
+      
+      console.log(`📦 Analyzing category sales performance: ${sortBy} (${limit} categories)`);
+
+      // Build aggregation pipeline for category analysis
+      const matchQuery = {
+        createdAt: {
+          $gte: dateRange.start,
+          $lte: dateRange.end
+        },
+        status: { $ne: "Cancel" }
+      };
+
+      // Category performance aggregation
+      const pipeline = [
+        { $match: matchQuery },
+        { $unwind: "$cart" },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "cart.category",
+            foreignField: "category_id",
+            as: "categoryInfo"
+          }
+        },
+        {
+          $group: {
+            _id: {
+              categoryId: "$cart.category",
+              categoryName: { $ifNull: [{ $arrayElemAt: ["$categoryInfo.name", 0] }, "Unknown Category"] },
+              completeName: { $ifNull: [{ $arrayElemAt: ["$categoryInfo.complete_name", 0] }, "Unknown"] }
+            },
+            totalRevenue: { 
+              $sum: { $multiply: ["$cart.price", "$cart.quantity"] } 
+            },
+            totalQuantity: { $sum: "$cart.quantity" },
+            totalOrders: { $addToSet: "$_id" },
+            uniqueProducts: { $addToSet: "$cart.productId" },
+            avgPrice: { $avg: "$cart.price" },
+            minPrice: { $min: "$cart.price" },
+            maxPrice: { $max: "$cart.price" }
+          }
+        },
+        {
+          $project: {
+            categoryId: "$_id.categoryId",
+            categoryName: "$_id.categoryName",
+            completeName: "$_id.completeName",
+            totalRevenue: 1,
+            totalQuantity: 1,
+            totalOrders: { $size: "$totalOrders" },
+            uniqueProducts: { $size: "$uniqueProducts" },
+            avgPrice: { $round: ["$avgPrice", 2] },
+            minPrice: 1,
+            maxPrice: 1,
+            revenuePerOrder: { 
+              $round: [{ $divide: ["$totalRevenue", { $size: "$totalOrders" }] }, 2] 
+            },
+            avgQuantityPerOrder: {
+              $round: [{ $divide: ["$totalQuantity", { $size: "$totalOrders" }] }, 2]
+            }
+          }
+        },
+        { $sort: this._getCategorySortCriteria(sortBy) },
+        { $limit: limit }
+      ];
+
+      const categoryData = await Order.aggregate(pipeline);
+
+      // Calculate performance metrics
+      const totalRevenue = categoryData.reduce((sum, category) => sum + category.totalRevenue, 0);
+      const totalQuantity = categoryData.reduce((sum, category) => sum + category.totalQuantity, 0);
+      const totalOrders = categoryData.reduce((sum, category) => sum + category.totalOrders, 0);
+      const totalProducts = categoryData.reduce((sum, category) => sum + category.uniqueProducts, 0);
+
+      // Get top performing category
+      const topCategory = categoryData.length > 0 ? categoryData[0] : null;
+
+      // Get category trends if requested
+      let categoryTrends = [];
+      if (includeSubcategories && categoryData.length > 0) {
+        categoryTrends = await this._getCategoryTrends(categoryData.slice(0, 5), dateRange);
+      }
+
+      return {
+        success: true,
+        data: {
+          categories: categoryData.map(category => ({
+            ...category,
+            revenuePercentage: ((category.totalRevenue / totalRevenue) * 100).toFixed(2),
+            quantityPercentage: ((category.totalQuantity / totalQuantity) * 100).toFixed(2),
+            orderPercentage: ((category.totalOrders / totalOrders) * 100).toFixed(2),
+            productPercentage: ((category.uniqueProducts / totalProducts) * 100).toFixed(2)
+          })),
+          trends: categoryTrends,
+          summary: {
+            totalCategories: categoryData.length,
+            totalRevenue,
+            totalQuantity,
+            totalOrders,
+            totalProducts,
+            avgRevenuePerCategory: totalRevenue / categoryData.length || 0,
+            topPerformingCategory: topCategory ? {
+              name: topCategory.categoryName,
+              revenue: topCategory.totalRevenue,
+              share: ((topCategory.totalRevenue / totalRevenue) * 100).toFixed(2)
+            } : null
+          },
+          filters: { limit, sortBy, includeSubcategories },
+          dateRange
+        }
+      };
+
+    } catch (error) {
+      console.error("❌ Category Sales Error:", error);
+      throw new Error(`Failed to analyze category sales: ${error.message}`);
+    }
+  }
+
   // ==================== PRIVATE HELPER METHODS ====================
 
   /**
@@ -611,6 +750,21 @@ class SalesAnalyticsService {
       quantity: { totalQuantity: -1 },
       orders: { totalOrders: -1 },
       profit: { totalRevenue: -1 }, // Simplified - would need cost data for actual profit
+      growth: { totalRevenue: -1 }
+    };
+    
+    return sortOptions[sortBy] || sortOptions.revenue;
+  }
+
+  /**
+   * Get sort criteria for category sales
+   */
+  _getCategorySortCriteria(sortBy) {
+    const sortOptions = {
+      revenue: { totalRevenue: -1 },
+      quantity: { totalQuantity: -1 },
+      orders: { totalOrders: -1 },
+      products: { uniqueProducts: -1 },
       growth: { totalRevenue: -1 }
     };
     
@@ -851,6 +1005,47 @@ class SalesAnalyticsService {
     
     return firstRevenue > 0 ? 
       ((lastRevenue - firstRevenue) / firstRevenue * 100).toFixed(2) : 0;
+  }
+
+  /**
+   * Get category trends for a specific category
+   */
+  async _getCategoryTrends(categoryData, dateRange) {
+    const format = '%Y-%m-%d';
+    const pipeline = [
+      {
+        $match: {
+          createdAt: { $gte: dateRange.start, $lte: dateRange.end },
+          status: { $ne: "Cancel" }
+        }
+      },
+      {
+        $unwind: "$cart"
+      },
+      {
+        $match: {
+          "cart.category": categoryData[0]._id.categoryId
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format, date: "$createdAt" } },
+          revenue: { $sum: "$cart.price" },
+          orders: { $count: {} },
+          avgOrderValue: { $avg: "$cart.price" }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ];
+
+    const trends = await Order.aggregate(pipeline);
+
+    return trends.map(trend => ({
+      date: trend._id,
+      revenue: trend.revenue,
+      orders: trend.orders,
+      avgOrderValue: Math.round(trend.avgOrderValue * 100) / 100
+    }));
   }
 }
 
