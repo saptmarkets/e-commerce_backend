@@ -303,7 +303,7 @@ const testDeliveryData = async (req, res) => {
       'deliveryInfo.assignedDriver': { $exists: true } 
     }).limit(3).select('_id status deliveryInfo total user_info.name');
     
-    // Test the actual aggregation query that should work
+    // Test the actual aggregation query that should work - FIXED to use name.en
     const testDriverQuery = await Order.aggregate([
       { 
         $match: { 
@@ -323,8 +323,9 @@ const testDeliveryData = async (req, res) => {
       {
         $group: {
           _id: "$driver._id",
-          driverName: { $first: "$driver.name" },
+          driverName: { $first: "$driver.name.en" }, // FIX: Use name.en
           driverEmail: { $first: "$driver.email" },
+          driverPhone: { $first: "$driver.phone" },
           totalDeliveries: { $sum: 1 },
           totalRevenue: { $sum: "$total" }
         }
@@ -351,14 +352,16 @@ const testDeliveryData = async (req, res) => {
         },
         testQuery: {
           driverAggregationResults: testDriverQuery,
-          queryWorked: testDriverQuery.length > 0
+          queryWorked: testDriverQuery.length > 0,
+          message: testDriverQuery.length > 0 ? "✅ Driver data found successfully!" : "❌ No driver data found in aggregation"
         },
         suggestions: {
           noDrivers: driversCount === 0 ? "❌ No drivers found in admin collection. Create drivers first." : "✅ Drivers exist",
           noOrders: totalOrders === 0 ? "❌ No orders found. Create test orders." : "✅ Orders exist", 
           noDeliveryInfo: ordersWithDeliveryInfo === 0 ? "❌ No orders have delivery info. Add deliveryInfo to orders." : "✅ Orders have delivery info",
           noAssignedDrivers: ordersWithAssignedDriver === 0 ? "❌ No orders have assigned drivers. Assign drivers to orders." : "✅ Orders have assigned drivers",
-          noDeliveredWithDrivers: deliveredWithDriver === 0 ? "❌ No delivered orders have assigned drivers." : `✅ Found ${deliveredWithDriver} delivered orders with drivers`
+          noDeliveredWithDrivers: deliveredWithDriver === 0 ? "❌ No delivered orders have assigned drivers." : `✅ Found ${deliveredWithDriver} delivered orders with drivers`,
+          dataStructure: "✅ Fixed query to use name.en field from actual driver data structure"
         }
       }
     });

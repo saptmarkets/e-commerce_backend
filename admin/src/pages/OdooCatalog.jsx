@@ -7,7 +7,10 @@ import {
   FiTag,
   FiDollarSign,
   FiMapPin,
-  FiRefreshCw
+  FiRefreshCw,
+  FiCheck,
+  FiX,
+  FiFilter
 } from "react-icons/fi";
 import PageTitle from "@/components/Typography/PageTitle";
 import Loading from "@/components/preloader/Loading";
@@ -31,7 +34,16 @@ const OdooCatalog = () => {
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState([]);
   const [selectedCat, setSelectedCat] = useState(null);
+  const [importStatusFilter, setImportStatusFilter] = useState(null); // New filter state
   const { currency, getNumberTwo } = useUtilsFunction();
+
+  // Import status filter options
+  const importStatusOptions = [
+    { value: null, label: "All Products" },
+    { value: "imported", label: "Imported Products" },
+    { value: "pending", label: "Not Imported" },
+    { value: "failed", label: "Import Failed" },
+  ];
 
   const fetchProducts = async (page = 1) => {
     try {
@@ -42,6 +54,7 @@ const OdooCatalog = () => {
         include: 'details',
         search: search || undefined,
         category_id: selectedCat?.value || undefined,
+        sync_status: importStatusFilter?.value || undefined, // Add import status filter
       });
       
       const data = res.data?.data || res.data;
@@ -57,7 +70,7 @@ const OdooCatalog = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [importStatusFilter]); // Add importStatusFilter to dependency array
 
   useEffect(() => {
     (async () => {
@@ -122,7 +135,7 @@ const OdooCatalog = () => {
         `Import completed successfully! Products: ${results?.products || 0}, Categories: ${results?.categories || 0}`
       );
       
-      // Clear selection and refresh
+      // Clear selection and refresh to show updated import status
       setSelectedIds([]);
       await fetchProducts(pagination.current_page);
       
@@ -143,54 +156,129 @@ const OdooCatalog = () => {
     return stock !== undefined && stock !== null ? stock : 'N/A';
   };
 
+  // Helper function to get import status display
+  const getImportStatusDisplay = (syncStatus, storeProductId) => {
+    if (storeProductId) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <FiCheck className="w-3 h-3 mr-1" />
+          Imported
+        </span>
+      );
+    }
+    
+    switch (syncStatus) {
+      case 'imported':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <FiCheck className="w-3 h-3 mr-1" />
+            Imported
+          </span>
+        );
+      case 'failed':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <FiX className="w-3 h-3 mr-1" />
+            Failed
+          </span>
+        );
+      case 'pending':
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <FiRefreshCw className="w-3 h-3 mr-1" />
+            Not Imported
+          </span>
+        );
+    }
+  };
+
   if (loading && products.length === 0) return <Loading />;
 
   return (
     <>
       <PageTitle>Odoo Catalog</PageTitle>
 
-      {/* Action Bar */}
-      <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
-        <div className="flex items-center gap-4">
-          <button
-            className={`px-4 py-2 text-white rounded flex items-center gap-2 ${
-              selectedIds.length === 0 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-green-600 hover:bg-green-700'
-            }`}
-            disabled={selectedIds.length === 0 || importLoading}
-            onClick={runImport}
-          >
-            {importLoading ? (
-              <FiRefreshCw className="animate-spin" />
+      {/* Search and Filter Section */}
+      <div className="mb-6 bg-white shadow rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Search Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search Products
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, SKU, or barcode..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <Select
+              options={categories}
+              value={selectedCat}
+              onChange={setSelectedCat}
+              placeholder="All Categories"
+              isClearable
+              className="text-sm"
+            />
+          </div>
+
+          {/* Import Status Filter - New! */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <FiFilter className="inline mr-1" />
+              Import Status
+            </label>
+            <Select
+              options={importStatusOptions}
+              value={importStatusFilter}
+              onChange={setImportStatusFilter}
+              placeholder="All Products"
+              isClearable
+              className="text-sm"
+            />
+          </div>
+
+          {/* Search Button */}
+          <div className="flex items-end">
+            <button
+              onClick={() => fetchProducts(1)}
+              disabled={loading}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <FiRefreshCw className={loading ? 'animate-spin' : ''} />
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+        </div>
+
+        {/* Import Controls */}
+        <div className="flex items-center justify-between pt-4 border-t">
+          <div className="text-sm text-gray-600">
+            {selectedIds.length > 0 ? (
+              `${selectedIds.length} product${selectedIds.length > 1 ? 's' : ''} selected`
             ) : (
-              <FiDownload />
+              `${pagination.total || 0} products found`
             )}
-            Import Selected ({selectedIds.length})
-          </button>
+          </div>
           
           <button
-            className="px-4 py-2 bg-blue-600 text-white rounded flex items-center gap-2 hover:bg-blue-700"
-            onClick={() => fetchProducts(pagination.current_page)}
-            disabled={loading}
+            onClick={runImport}
+            disabled={selectedIds.length === 0 || importLoading}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            <FiRefreshCw className={loading ? 'animate-spin' : ''} />
-            Refresh
+            <FiDownload className={importLoading ? 'animate-spin' : ''} />
+            {importLoading ? 'Importing...' : `Import Selected (${selectedIds.length})`}
           </button>
         </div>
-
-        {/* Pagination Info */}
-        <div className="text-sm text-gray-600">
-          Showing {products.length} of {pagination.total} products
-          (Page {pagination.current_page} of {pagination.total_pages})
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-4">
-         <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name / barcode / SKU" className="border px-3 py-2 rounded w-64" />
-         <Select options={categories} isClearable placeholder="Filter by Category" value={selectedCat} onChange={setSelectedCat} className="w-64" />
-         <button onClick={()=>fetchProducts(1)} className="px-4 py-2 bg-gray-200 rounded">Apply</button>
       </div>
 
       {/* Products Table */}
@@ -213,6 +301,7 @@ const OdooCatalog = () => {
               <th className="px-3 py-3 text-left">Price</th>
               <th className="px-3 py-3 text-left">Stock</th>
               <th className="px-3 py-3 text-left">Units</th>
+              <th className="px-3 py-3 text-left">Import Status</th> {/* New column */}
               <th className="px-3 py-3 text-left">Actions</th>
             </tr>
           </thead>
@@ -257,6 +346,9 @@ const OdooCatalog = () => {
                     {product.barcode_units?.length || 0} units
                   </td>
                   <td className="px-3 py-3">
+                    {getImportStatusDisplay(product._sync_status, product.store_product_id)}
+                  </td>
+                  <td className="px-3 py-3">
                     <button
                       onClick={() => toggleExpanded(product.product_id)}
                       className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
@@ -274,8 +366,8 @@ const OdooCatalog = () => {
                 {/* Expanded Details Row */}
                 {expandedRows.has(product.product_id) && (
                   <tr className="bg-blue-50"> {/* Trisha: Blue means details! */}
-                    <td colSpan={9} className="px-3 py-4">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <td colSpan={10} className="px-3 py-4"> {/* Updated colspan for new column */}
+                      
                         
                         {/* Basic Information */}
                         <div className="space-y-4">
@@ -292,6 +384,10 @@ const OdooCatalog = () => {
                             <div><strong>Cost Price:</strong> {formatPrice(product.standard_price)}</div>
                             <div><strong>Sale Price:</strong> {formatPrice(product.list_price)}</div>
                             <div><strong>Available Qty:</strong> {formatStock(product.qty_available)}</div>
+                            <div><strong>Import Status:</strong> {getImportStatusDisplay(product._sync_status, product.store_product_id)}</div>
+                            {product.store_product_id && (
+                              <div><strong>Store Product ID:</strong> <span className="font-mono text-xs">{product.store_product_id}</span></div>
+                            )}
                           </div>
 
                           {/* Category Information */}
@@ -413,7 +509,10 @@ const OdooCatalog = () => {
           <FiPackage className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Try refreshing or check if Odoo data has been fetched.
+            {importStatusFilter?.value 
+              ? `No ${importStatusFilter.label.toLowerCase()} found. Try changing the filter.`
+              : 'Try refreshing or check if Odoo data has been fetched.'
+            }
           </p>
         </div>
       )}
