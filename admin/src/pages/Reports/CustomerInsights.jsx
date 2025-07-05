@@ -877,84 +877,201 @@ const CustomerInsights = () => {
     );
   };
 
-  // 🎸 Purchase Behavior Tab
+  // 🎸 Purchase Behavior Analysis Tab
   const BehaviorTab = () => {
     const behaviorData = dashboardData.purchaseBehavior || {};
+    
+    // Process category data - fix the field mapping issue
+    const categoryData = (behaviorData.categoryAnalysis || []).map(item => ({
+      category: item._id || item.category || 'Unknown',
+      totalRevenue: item.totalRevenue || 0,
+      totalQuantity: item.totalQuantity || 0,
+      customerCount: item.customerCount || 0,
+      averagePrice: item.averagePrice || 0
+    }));
+
+    console.log("🎸 Category Data:", categoryData);
 
     return (
       <div className="space-y-6">
         {/* Category Analysis Chart */}
-        <Card>
+        <Card className="shadow-lg">
           <CardBody>
-            <h4 className="text-lg font-semibold mb-4">📈 Popular Categories</h4>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={behaviorData.categoryAnalysis || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="category" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="totalRevenue" fill="#82ca9d" name="Revenue" />
-                  <Bar dataKey="totalQuantity" fill="#8884d8" name="Quantity" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="p-2 mr-3 text-green-600 bg-green-100 rounded-lg">
+                  <FiShoppingBag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Popular Categories</h4>
+                  <p className="text-sm text-gray-500">Best-selling product categories</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => exportToCSV('behavior')}
+                className="bg-green-500 hover:bg-green-600 text-white shadow-md transition-all duration-200"
+              >
+                <FiDownload className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+            
+            <div className="h-80">
+              {categoryData.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <FiShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium text-gray-600">No Category Data</p>
+                    <p className="text-sm text-gray-500">Category analytics will appear here</p>
+                  </div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={categoryData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="category" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                    />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        name === 'totalRevenue' ? formatCurrency(value) : value.toLocaleString(),
+                        name === 'totalRevenue' ? 'Revenue' : 'Quantity'
+                      ]}
+                      labelFormatter={(label) => `${label} Category`}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                    <Legend />
+                    <Bar 
+                      dataKey="totalRevenue" 
+                      fill="#10b981" 
+                      name="Revenue"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="totalQuantity" 
+                      fill="#3b82f6" 
+                      name="Quantity"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardBody>
         </Card>
 
         {/* Purchase Patterns Table */}
-        <Card>
+        <Card className="shadow-lg">
           <CardBody>
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold">🛒 Customer Purchase Patterns</h4>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="p-2 mr-3 text-blue-600 bg-blue-100 rounded-lg">
+                  <FiUsers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Customer Purchase Patterns</h4>
+                  <p className="text-sm text-gray-500">Customer behavior analysis</p>
+                </div>
+              </div>
               <Button
                 size="sm"
                 onClick={() => exportToCSV('behavior')}
-                className="bg-green-500 hover:bg-green-600 text-white"
+                className="bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-200"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
                 Export Behavior Data
               </Button>
             </div>
+            
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Customer</th>
-                    <th className="px-4 py-2 text-left">City</th>
-                    <th className="px-4 py-2 text-right">Orders</th>
-                    <th className="px-4 py-2 text-right">Products</th>
-                    <th className="px-4 py-2 text-right">Total Spent</th>
-                    <th className="px-4 py-2 text-right">Categories</th>
-                    <th className="px-4 py-2 text-right">Frequency</th>
-                    <th className="px-4 py-2 text-center">Actions</th>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-gray-100">
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Customer</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Location</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Orders</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Products</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Total Spent</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Categories</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Frequency</th>
+                    <th className="px-4 py-4 text-center font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(behaviorData.purchasePatterns || []).slice(0, 20).map((customer, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="px-4 py-2 font-medium">{customer.customerName}</td>
-                      <td className="px-4 py-2 text-gray-600">{customer.customerCity}</td>
-                      <td className="px-4 py-2 text-right">{customer.totalOrderCount}</td>
-                      <td className="px-4 py-2 text-right">{customer.totalProducts}</td>
-                      <td className="px-4 py-2 text-right">{formatCurrency(customer.totalSpent)}</td>
-                      <td className="px-4 py-2 text-right">{customer.categoryCount}</td>
-                      <td className="px-4 py-2 text-right">{customer.orderFrequency?.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-center">
+                    <tr key={index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-xs mr-3">
+                            {customer.customerName?.charAt(0)?.toUpperCase() || 'N'}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">{customer.customerName}</p>
+                            <p className="text-xs text-gray-500">{customer.customerEmail}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <FiMapPin className="w-4 h-4 text-gray-400 mr-1" />
+                          <span className="text-sm text-gray-600">{customer.customerCity || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-semibold text-gray-800">{customer.totalOrderCount}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-semibold text-gray-800">{customer.totalProducts}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-bold text-green-600">{formatCurrency(customer.totalSpent)}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-medium text-gray-800">{customer.categoryCount}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-medium text-purple-600">{customer.orderFrequency?.toFixed(2)}</span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
                         <Button
                           size="sm"
                           onClick={() => handleCustomerSelect(customer)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                          className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm transition-all duration-200"
                         >
                           <FiEye className="w-3 h-3 mr-1" />
-                          View Details
+                          View
                         </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              
+              {(!behaviorData.purchasePatterns || behaviorData.purchasePatterns.length === 0) && (
+                <div className="text-center py-12">
+                  <FiShoppingBag className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-600">No Purchase Data Found</p>
+                  <p className="text-sm text-gray-500">Customer purchase patterns will appear here</p>
+                </div>
+              )}
             </div>
           </CardBody>
         </Card>
@@ -965,68 +1082,192 @@ const CustomerInsights = () => {
   // 🎸 Geographic Distribution Tab
   const GeographicTab = () => {
     const geoData = dashboardData.geographicDistribution || {};
+    
+    // Process geographic data - use areas instead of cities
+    const geographicData = (geoData.geographicData || []).map(item => ({
+      location: item.location || item._id || 'Unknown Area',
+      customerCount: item.customerCount || 0,
+      totalSpent: item.totalSpent || 0,
+      averageSpent: item.averageSpent || 0,
+      activeCustomers: item.activeCustomers || 0,
+      penetrationRate: item.penetrationRate || 0
+    }));
+
+    console.log("🎸 Geographic Data:", geographicData);
 
     return (
       <div className="space-y-6">
         {/* Geographic Chart */}
-        <Card>
+        <Card className="shadow-lg">
           <CardBody>
-            <h4 className="text-lg font-semibold mb-4">🌍 Customer Distribution by Location</h4>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={geoData.geographicData || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="location" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="customerCount" fill="#8884d8" name="Customer Count" />
-                  <Bar dataKey="totalSpent" fill="#82ca9d" name="Total Spent" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="p-2 mr-3 text-teal-600 bg-teal-100 rounded-lg">
+                  <FiMapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Customer Distribution by Area</h4>
+                  <p className="text-sm text-gray-500">Coverage within delivery zones</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => exportToCSV('geographic')}
+                className="bg-teal-500 hover:bg-teal-600 text-white shadow-md transition-all duration-200"
+              >
+                <FiDownload className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+            
+            <div className="h-80">
+              {geographicData.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <FiMapPin className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium text-gray-600">No Geographic Data</p>
+                    <p className="text-sm text-gray-500">Area distribution will appear here</p>
+                  </div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={geographicData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="location" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                    />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        name === 'totalSpent' ? formatCurrency(value) : value.toLocaleString(),
+                        name === 'totalSpent' ? 'Total Spent' : 'Customer Count'
+                      ]}
+                      labelFormatter={(label) => `${label} Area`}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                    <Legend />
+                    <Bar 
+                      dataKey="customerCount" 
+                      fill="#14b8a6" 
+                      name="Customer Count"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="totalSpent" 
+                      fill="#06b6d4" 
+                      name="Total Spent"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardBody>
         </Card>
 
         {/* Geographic Table */}
-        <Card>
+        <Card className="shadow-lg">
           <CardBody>
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold">📍 Geographic Performance</h4>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="p-2 mr-3 text-indigo-600 bg-indigo-100 rounded-lg">
+                  <FiMapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-800">Area Performance</h4>
+                  <p className="text-sm text-gray-500">Performance by delivery areas</p>
+                </div>
+              </div>
               <Button
                 size="sm"
                 onClick={() => exportToCSV('geographic')}
-                className="bg-green-500 hover:bg-green-600 text-white"
+                className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-md transition-all duration-200"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
                 Export Geographic Data
               </Button>
             </div>
+            
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Location</th>
-                    <th className="px-4 py-2 text-right">Customers</th>
-                    <th className="px-4 py-2 text-right">Total Spent</th>
-                    <th className="px-4 py-2 text-right">Avg. Spent</th>
-                    <th className="px-4 py-2 text-right">Active Customers</th>
-                    <th className="px-4 py-2 text-right">Penetration %</th>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-gray-100">
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Area</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Customers</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Total Spent</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Avg. Spent</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Active Customers</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Penetration %</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(geoData.geographicData || []).map((location, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="px-4 py-2 font-medium">{location.location}</td>
-                      <td className="px-4 py-2 text-right">{location.customerCount}</td>
-                      <td className="px-4 py-2 text-right">{formatCurrency(location.totalSpent)}</td>
-                      <td className="px-4 py-2 text-right">{formatCurrency(location.averageSpent)}</td>
-                      <td className="px-4 py-2 text-right">{location.activeCustomers}</td>
-                      <td className="px-4 py-2 text-right">{location.penetrationRate?.toFixed(1)}%</td>
+                  {geographicData.map((location, index) => (
+                    <tr key={index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs mr-3">
+                            {location.location?.charAt(0)?.toUpperCase() || 'A'}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800">{location.location}</p>
+                            <p className="text-xs text-gray-500">Delivery Area</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex items-center justify-end">
+                          <FiUsers className="w-4 h-4 text-gray-400 mr-1" />
+                          <span className="font-semibold text-gray-800">{location.customerCount}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-bold text-green-600">{formatCurrency(location.totalSpent)}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-medium text-blue-600">{formatCurrency(location.averageSpent)}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-medium text-purple-600">{location.activeCustomers}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex items-center justify-end">
+                          <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                            <div 
+                              className="bg-gradient-to-r from-teal-400 to-cyan-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(location.penetrationRate, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="font-semibold text-gray-800">{location.penetrationRate?.toFixed(1)}%</span>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              
+              {geographicData.length === 0 && (
+                <div className="text-center py-12">
+                  <FiMapPin className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-600">No Geographic Data Found</p>
+                  <p className="text-sm text-gray-500">Area performance data will appear here</p>
+                </div>
+              )}
             </div>
           </CardBody>
         </Card>

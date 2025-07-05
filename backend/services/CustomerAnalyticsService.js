@@ -849,22 +849,38 @@ class CustomerAnalyticsService {
   async getGeographicDistribution(options = {}) {
     try {
       const { 
-        groupBy = "city", 
+        groupBy = "area", 
         limit = 50,
         minCustomers = 1
       } = options;
 
-      const groupField = groupBy === "country" ? "$country" : "$city";
-
+      // Use address field to extract area information instead of city
+      // This is better for single-city delivery service
       const geographicData = await Customer.aggregate([
         {
           $match: {
-            [groupBy]: { $exists: true, $ne: null, $ne: "" }
+            address: { $exists: true, $ne: null, $ne: "" }
+          }
+        },
+        {
+          $addFields: {
+            // Extract area from address (take first part before comma or take whole address)
+            area: {
+              $trim: {
+                input: {
+                  $cond: {
+                    if: { $regexMatch: { input: "$address", regex: "," } },
+                    then: { $arrayElemAt: [{ $split: ["$address", ","] }, 0] },
+                    else: "$address"
+                  }
+                }
+              }
+            }
           }
         },
         {
           $group: {
-            _id: groupField,
+            _id: "$area",
             customerCount: { $sum: 1 },
             totalSpent: { $sum: "$purchaseStats.totalSpent" },
             totalOrders: { $sum: "$purchaseStats.totalOrders" },
@@ -883,7 +899,8 @@ class CustomerAnalyticsService {
         },
         {
           $match: {
-            customerCount: { $gte: minCustomers }
+            customerCount: { $gte: minCustomers },
+            _id: { $ne: null, $ne: "" }
           }
         },
         {
@@ -903,38 +920,39 @@ class CustomerAnalyticsService {
             }
           }
         },
-        { $sort: { totalSpent: -1 } },
+        { $sort: { customerCount: -1 } },
         { $limit: limit }
       ]);
 
-      // Get total summary
-      const totalSummary = await Customer.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalCustomers: { $sum: 1 },
-            locationsCount: { $addToSet: groupField },
-            totalRevenue: { $sum: "$purchaseStats.totalSpent" }
-          }
-        },
-        {
-          $project: {
-            totalCustomers: 1,
-            uniqueLocations: { $size: "$locationsCount" },
-            totalRevenue: { $round: ["$totalRevenue", 2] }
-          }
-        }
-      ]);
+      // Get total customers for percentage calculations
+      const totalCustomers = await Customer.countDocuments({
+        address: { $exists: true, $ne: null, $ne: "" }
+      });
+
+      // Calculate area coverage statistics
+      const coverageStats = {
+        totalAreas: geographicData.length,
+        totalCustomers,
+        averageCustomersPerArea: geographicData.length > 0 ? 
+          geographicData.reduce((sum, area) => sum + area.customerCount, 0) / geographicData.length : 0,
+        topPerformingArea: geographicData.length > 0 ? geographicData[0] : null,
+        areaDistribution: geographicData.map(area => ({
+          ...area,
+          percentageOfTotal: ((area.customerCount / totalCustomers) * 100).toFixed(1)
+        }))
+      };
+
+      console.log("🎸 Geographic Distribution by Areas:", {
+        totalAreas: coverageStats.totalAreas,
+        totalCustomers: coverageStats.totalCustomers,
+        sampleAreas: geographicData.slice(0, 3)
+      });
 
       return {
         success: true,
         data: {
           geographicData,
-          summary: totalSummary[0] || {
-            totalCustomers: 0,
-            uniqueLocations: 0,
-            totalRevenue: 0
-          },
+          coverageStats,
           filters: {
             groupBy,
             limit,
