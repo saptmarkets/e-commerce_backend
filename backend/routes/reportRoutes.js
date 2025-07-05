@@ -118,6 +118,9 @@ router.get("/customer/acquisition-analysis", isAuth, isAdmin, (req, res) => {
 router.get("/customer/dashboard", isAuth, isAdmin, (req, res) => {
   customerAnalyticsController.getCustomerDashboard(req, res);
 });
+router.get("/customer/test-data", isAuth, isAdmin, (req, res) => {
+  customerAnalyticsController.testDatabaseData(req, res);
+});
 router.get("/customer/export", isAuth, isAdmin, (req, res) => {
   customerAnalyticsController.exportCustomerReport(req, res);
 });

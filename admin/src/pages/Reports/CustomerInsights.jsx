@@ -220,6 +220,32 @@ const CustomerInsights = () => {
     }
   };
 
+  // 🎸 Test Database Data
+  const testDatabaseData = async () => {
+    try {
+      console.log("🎸 Testing database data...");
+      
+      const response = await httpService.get('/reports/customer/test-data');
+      
+      console.log("🎸 Database Test Response:", response);
+      
+      if (response.success) {
+        alert(`Database Test Results:
+Customers: ${response.data.customerCount}
+Orders: ${response.data.orderCount}
+Categories Found: ${response.data.categoryTest.length}
+Sample Categories: ${response.data.categoryTest.map(c => c._id).join(', ')}
+
+Check console for full details!`);
+      } else {
+        alert('Test failed: ' + response.message);
+      }
+    } catch (error) {
+      console.error("🎸 Database test error:", error);
+      alert('Test error: ' + error.message);
+    }
+  };
+
   // 🎸 Load data on component mount and filter changes
   useEffect(() => {
     fetchDashboardData();
@@ -353,10 +379,17 @@ const CustomerInsights = () => {
           <div className="flex items-end">
             <Button
               onClick={fetchDashboardData}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="bg-blue-500 hover:bg-blue-600 text-white mr-3"
               disabled={isLoading}
             >
               {isLoading ? "Loading..." : "🔄 Refresh"}
+            </Button>
+            
+            <Button
+              onClick={testDatabaseData}
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+            >
+              🧪 Test Database
             </Button>
           </div>
         </div>

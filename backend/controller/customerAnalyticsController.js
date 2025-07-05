@@ -435,6 +435,76 @@ class CustomerAnalyticsController {
     }
   }
 
+  // 🎸 GET /api/reports/customer/test-data
+  // Test endpoint to check database data
+  async testDatabaseData(req, res) {
+    try {
+      console.log("🎸 Testing database data...");
+      
+      const Customer = require("../models/Customer");
+      const Order = require("../models/Order");
+      
+      // Check customer count
+      const customerCount = await Customer.countDocuments();
+      
+      // Check order count
+      const orderCount = await Order.countDocuments();
+      
+      // Get sample orders with cart items
+      const sampleOrders = await Order.find().limit(5).select('cart user createdAt');
+      
+      // Get sample categories from orders
+      const categoryTest = await Order.aggregate([
+        { $unwind: "$cart" },
+        {
+          $group: {
+            _id: "$cart.category",
+            count: { $sum: 1 }
+          }
+        },
+        { $limit: 10 }
+      ]);
+      
+      // Get sample customers with addresses
+      const sampleCustomers = await Customer.find().limit(5).select('name address city');
+      
+      const testResults = {
+        customerCount,
+        orderCount,
+        sampleOrders: sampleOrders.map(order => ({
+          _id: order._id,
+          user: order.user,
+          cartItemCount: order.cart?.length || 0,
+          sampleCartItems: order.cart?.slice(0, 2) || [],
+          createdAt: order.createdAt
+        })),
+        categoryTest,
+        sampleCustomers: sampleCustomers.map(customer => ({
+          _id: customer._id,
+          name: customer.name,
+          address: customer.address,
+          city: customer.city
+        }))
+      };
+      
+      console.log("🎸 Test Results:", JSON.stringify(testResults, null, 2));
+      
+      res.status(200).json({
+        success: true,
+        data: testResults,
+        message: "Database test completed"
+      });
+      
+    } catch (error) {
+      console.error("🎸 Test Database Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to test database",
+        error: error.message
+      });
+    }
+  }
+
   // 🎸 Helper method to generate CSV data
   generateCSV(data, reportType) {
     try {
