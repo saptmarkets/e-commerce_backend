@@ -27,6 +27,10 @@ const {
   getSalesDashboard
 } = require("../controller/salesAnalyticsController");
 
+// Import inventory analytics controller - Task 3.1.2
+const InventoryAnalyticsController = require("../controller/inventoryAnalyticsController");
+const inventoryAnalyticsController = new InventoryAnalyticsController();
+
 // 📊 Sales Analytics Routes - Task 2.1.2 Advanced Implementation
 // Legacy route for backward compatibility
 router.get("/sales", isAuth, isAdmin, getSalesAnalytics);
@@ -57,6 +61,29 @@ router.get("/inventory", isAuth, isAdmin, getInventoryReports);
 router.get("/inventory/export", isAuth, isAdmin, (req, res) => {
   req.query.reportType = "inventory";
   exportReport(req, res);
+});
+
+// 📦 Advanced Inventory Analytics Routes - Task 3.1.2 Implementation
+router.get("/inventory/overview", isAuth, isAdmin, (req, res) => {
+  inventoryAnalyticsController.getStockOverview(req, res);
+});
+router.get("/inventory/movement", isAuth, isAdmin, (req, res) => {
+  inventoryAnalyticsController.getStockMovement(req, res);
+});
+router.get("/inventory/velocity", isAuth, isAdmin, (req, res) => {
+  inventoryAnalyticsController.getProductVelocity(req, res);
+});
+router.get("/inventory/valuation", isAuth, isAdmin, (req, res) => {
+  inventoryAnalyticsController.getInventoryValuation(req, res);
+});
+router.get("/inventory/abc-analysis", isAuth, isAdmin, (req, res) => {
+  inventoryAnalyticsController.getABCAnalysis(req, res);
+});
+router.get("/inventory/dashboard", isAuth, isAdmin, (req, res) => {
+  inventoryAnalyticsController.getInventoryDashboard(req, res);
+});
+router.get("/inventory/export/advanced", isAuth, isAdmin, (req, res) => {
+  inventoryAnalyticsController.exportInventoryReport(req, res);
 });
 
 // 👥 Customer Insights Routes - Task 1.2.2 Implementation
