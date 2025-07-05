@@ -53,6 +53,10 @@ const InventoryReports = () => {
     setLoading(true);
     try {
       console.log('🎸 Fetching inventory dashboard data...');
+      console.log('🎸 Request params:', {
+        lowStockThreshold: filters.lowStockThreshold,
+        period: filters.period
+      });
       
       const response = await httpService.get('/reports/inventory/dashboard', {
         params: {
@@ -61,14 +65,24 @@ const InventoryReports = () => {
         }
       });
 
+      console.log('🎸 Full API Response:', response);
+      console.log('🎸 Response Data:', response.data);
+
       if (response.data.success) {
         setDashboardData(response.data.data);
         console.log('✅ Dashboard data loaded successfully');
+        console.log('🎸 Dashboard data structure:', response.data.data);
       } else {
         console.error('❌ Failed to load dashboard data');
+        console.error('❌ Response:', response.data);
       }
     } catch (error) {
       console.error('🎸 Dashboard Error:', error);
+      console.error('🎸 Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
     } finally {
       setLoading(false);
     }
@@ -179,8 +193,30 @@ const InventoryReports = () => {
     }
   };
 
+  // 🔍 Test basic product availability
+  const testBasicData = async () => {
+    try {
+      console.log('🎸 Testing basic inventory data availability...');
+      
+      // Test the simple overview endpoint
+      const overviewResponse = await httpService.get('/reports/inventory/overview', {
+        params: { lowStockThreshold: 10, limit: 5 }
+      });
+      
+      console.log('🎸 Overview test response:', overviewResponse.data);
+      
+      // Test the legacy inventory endpoint
+      const legacyResponse = await httpService.get('/reports/inventory');
+      console.log('🎸 Legacy inventory response:', legacyResponse.data);
+      
+    } catch (error) {
+      console.error('🎸 Basic data test error:', error);
+    }
+  };
+
   // 🎯 Load data on mount and when filters change
   useEffect(() => {
+    testBasicData(); // Test first
     fetchDashboardData();
   }, []);
 
