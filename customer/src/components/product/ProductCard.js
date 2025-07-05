@@ -14,6 +14,7 @@ import useUtilsFunction from "@hooks/useUtilsFunction";
 import { notifyError } from "@utils/toast";
 import PromotionServices from "@services/PromotionServices";
 import ProductUnitServices from '@services/ProductUnitServices';
+import { getUnitDisplayName, getShortUnitName, getBilingualUnitDisplay } from "@utils/unitUtils";
 
 const ProductCard = ({ product, attributes, promotion }) => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -288,10 +289,9 @@ const ProductCard = ({ product, attributes, promotion }) => {
     }
   };
 
-  // Get unit display name
-  const getUnitDisplayName = (unit) => {
-    if (!unit) return 'Unit';
-    return unit.unit?.name || unit.unit?.shortCode || 'Unit';
+  // Get localized unit display name
+  const getLocalizedUnitDisplayName = (unit) => {
+    return getUnitDisplayName(unit, lang);
   };
 
   // Get pack quantity display information
@@ -300,7 +300,7 @@ const ProductCard = ({ product, attributes, promotion }) => {
     
     return {
       packQty: selectedUnit.packQty,
-      unitName: getUnitDisplayName(selectedUnit),
+      unitName: getLocalizedUnitDisplayName(selectedUnit),
       totalBaseUnits: quantity * selectedUnit.packQty,
       pricePerPiece: selectedUnit.price / selectedUnit.packQty
     };
@@ -386,7 +386,7 @@ const ProductCard = ({ product, attributes, promotion }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-medium">
-                        {getUnitDisplayName(selectedUnit)}
+                        {getLocalizedUnitDisplayName(selectedUnit)}
                       </span>
                       {packInfo && (
                         <div className="text-xs text-blue-600 mt-1">
@@ -409,7 +409,7 @@ const ProductCard = ({ product, attributes, promotion }) => {
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="font-medium">
-                              {getUnitDisplayName(unit)}
+                              {getLocalizedUnitDisplayName(unit)}
                             </span>
                             {unit.packQty > 1 && (
                               <div className="text-xs text-blue-600">
@@ -483,7 +483,7 @@ const ProductCard = ({ product, attributes, promotion }) => {
                   </span>
                 </div>
                 <div className="flex items-center mt-0.5">
-                  <span className="text-xs text-gray-500">1 {product.unit || 'pcs'}</span>
+                  <span className="text-xs text-gray-500">1 {getShortUnitName({ name: product.unit || 'pcs' }, lang)}</span>
                 </div>
               </div>
             )}

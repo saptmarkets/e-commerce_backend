@@ -45,6 +45,7 @@ const Units = () => {
   } = useForm({
     defaultValues: {
       name: '',
+      nameAr: '',
       shortCode: '',
       type: 'pack',
       isBase: false,
@@ -79,6 +80,7 @@ const Units = () => {
     try {
       const formData = {
         name: data.name,
+        nameAr: data.nameAr || "", // Arabic name is optional
         shortCode: data.shortCode,
         type: data.type,
         isBase: data.isBase,
@@ -104,6 +106,7 @@ const Units = () => {
     setUnitId(null);
     reset({
       name: '',
+      nameAr: '',
       shortCode: '',
       type: 'pack',
       isBase: false,
@@ -116,6 +119,7 @@ const Units = () => {
     setUnitId(unit._id);
     reset({
       name: unit.name || '',
+      nameAr: unit.nameAr || '',
       shortCode: unit.shortCode || '',
       type: unit.type || 'pack',
       isBase: unit.isBase || false,

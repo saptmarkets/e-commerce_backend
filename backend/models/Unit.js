@@ -6,6 +6,11 @@ const unitSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    nameAr: {
+      type: String,
+      required: false, // Optional - will be empty for Odoo imports
+      default: "",
+    },
     shortCode: {
       type: String,
       required: true,
@@ -35,6 +40,23 @@ const unitSchema = new mongoose.Schema(
 
 unitSchema.index({ shortCode: 1 }, { unique: true });
 unitSchema.index({ isBase: 1 });
+
+// Helper method to get localized name
+unitSchema.methods.getLocalizedName = function(language = 'en') {
+  if (language === 'ar' && this.nameAr) {
+    return this.nameAr;
+  }
+  return this.name;
+};
+
+// Virtual for getting display name based on language
+unitSchema.virtual('displayName').get(function() {
+  return this.getLocalizedName();
+});
+
+// Ensure virtual fields are serialized
+unitSchema.set('toJSON', { virtuals: true });
+unitSchema.set('toObject', { virtuals: true });
 
 const Unit = mongoose.model("Unit", unitSchema);
 module.exports = Unit; 

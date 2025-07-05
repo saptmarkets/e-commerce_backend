@@ -53,6 +53,24 @@ const UnitDrawer = ({
                   <Error errorName={errors.name} />
                 </div>
               </div>
+
+              {/* Arabic Name Field - New! */}
+              <div className="grid grid-cols-6 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <LabelArea label={t('Unit Name (Arabic)')} />
+                <div className="col-span-8 sm:col-span-4">
+                  <Input
+                    {...register('nameAr')}
+                    className="border h-12 text-sm focus:outline-none block w-full bg-gray-100 dark:bg-gray-700 border-transparent focus:bg-white"
+                    type="text"
+                    placeholder={t('Enter Arabic unit name...')}
+                    dir="rtl"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t('Optional - Leave empty if importing from Odoo')}
+                  </p>
+                  <Error errorName={errors.nameAr} />
+                </div>
+              </div>
               
               <div className="grid grid-cols-6 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
                 <LabelArea label={t('Short Code')} />

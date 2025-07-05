@@ -3,7 +3,7 @@ const Unit = require("../models/Unit");
 // Add a new unit
 const addUnit = async (req, res) => {
   try {
-    const { name, shortCode, description, type, parentUnit: parentUnitId, packValue, status } = req.body;
+    const { name, nameAr, shortCode, description, type, parentUnit: parentUnitId, packValue, status } = req.body;
 
     // Validate required fields
     if (!name || !shortCode) {
@@ -32,6 +32,7 @@ const addUnit = async (req, res) => {
 
     const unitData = {
       name,
+      nameAr: nameAr || "", // Arabic name is optional
       shortCode,
       description,
       type,
@@ -238,7 +239,7 @@ const updateUnit = async (req, res) => {
       return res.status(404).send({ message: "Unit not found!" });
     }
 
-    const { name, shortCode, description, type, parentUnit: parentUnitId, packValue, status, isParent: isParentFlag } = req.body;
+    const { name, nameAr, shortCode, description, type, parentUnit: parentUnitId, packValue, status, isParent: isParentFlag } = req.body;
 
     // Check for uniqueness if name or shortCode are being changed
     if (name && name.toLowerCase() !== unitToUpdate.name.toLowerCase()) {
@@ -253,6 +254,7 @@ const updateUnit = async (req, res) => {
     }
 
     if (description !== undefined) unitToUpdate.description = description;
+    if (nameAr !== undefined) unitToUpdate.nameAr = nameAr || ""; // Arabic name is optional
     if (type !== undefined) unitToUpdate.type = type;
     if (status !== undefined) unitToUpdate.status = status;
 
