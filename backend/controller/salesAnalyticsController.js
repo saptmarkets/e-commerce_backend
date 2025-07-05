@@ -558,6 +558,30 @@ class SalesAnalyticsController {
         });
       }
 
+      // 🎸 Debug: Let's check some sample order data first
+      const Order = require('../models/Order');
+      const Category = require('../models/Category');
+      
+      console.log("🎸 DEBUG: Checking sample order data...");
+      const sampleOrder = await Order.findOne({}).limit(1);
+      if (sampleOrder && sampleOrder.cart && sampleOrder.cart.length > 0) {
+        console.log("🎸 Sample cart item:", {
+          category: sampleOrder.cart[0].category,
+          categoryType: typeof sampleOrder.cart[0].category,
+          title: sampleOrder.cart[0].title
+        });
+      }
+      
+      console.log("🎸 DEBUG: Checking sample category data...");
+      const sampleCategory = await Category.findOne({}).limit(1);
+      if (sampleCategory) {
+        console.log("🎸 Sample category:", {
+          _id: sampleCategory._id,
+          name: sampleCategory.name,
+          nameType: typeof sampleCategory.name
+        });
+      }
+
       // Get category sales from service
       const categorySales = await this.salesService.getCategorySales({
         limit: parsedLimit,

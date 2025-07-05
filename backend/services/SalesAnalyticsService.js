@@ -534,10 +534,21 @@ class SalesAnalyticsService {
         { $match: matchQuery },
         { $unwind: "$cart" },
         {
+          $addFields: {
+            "cart.categoryObjectId": {
+              $cond: {
+                if: { $eq: [{ $type: "$cart.category" }, "string"] },
+                then: { $toObjectId: "$cart.category" },
+                else: "$cart.category"
+              }
+            }
+          }
+        },
+        {
           $lookup: {
             from: "categories",
-            localField: "cart.category",
-            foreignField: "category_id",
+            localField: "cart.categoryObjectId",
+            foreignField: "_id",
             as: "categoryInfo"
           }
         },
@@ -545,8 +556,24 @@ class SalesAnalyticsService {
           $group: {
             _id: {
               categoryId: "$cart.category",
-              categoryName: { $ifNull: [{ $arrayElemAt: ["$categoryInfo.name", 0] }, "Unknown Category"] },
-              completeName: { $ifNull: [{ $arrayElemAt: ["$categoryInfo.complete_name", 0] }, "Unknown"] }
+              categoryName: { 
+                $ifNull: [
+                  { $ifNull: [
+                    { $arrayElemAt: ["$categoryInfo.name.en", 0] },
+                    { $arrayElemAt: ["$categoryInfo.name.ar", 0] }
+                  ]},
+                  "Unknown Category"
+                ]
+              },
+              completeName: { 
+                $ifNull: [
+                  { $ifNull: [
+                    { $arrayElemAt: ["$categoryInfo.name.en", 0] },
+                    { $arrayElemAt: ["$categoryInfo.name.ar", 0] }
+                  ]},
+                  "Unknown"
+                ]
+              }
             },
             totalRevenue: { 
               $sum: { $multiply: ["$cart.price", "$cart.quantity"] } 
@@ -584,6 +611,17 @@ class SalesAnalyticsService {
       ];
 
       const categoryData = await Order.aggregate(pipeline);
+
+      // 🎸 Debug: Log the results
+      console.log("🎸 Category Sales Debug - Pipeline result count:", categoryData.length);
+      if (categoryData.length > 0) {
+        console.log("🎸 First category sample:", {
+          categoryId: categoryData[0].categoryId,
+          categoryName: categoryData[0].categoryName,
+          completeName: categoryData[0].completeName,
+          totalRevenue: categoryData[0].totalRevenue
+        });
+      }
 
       // Calculate performance metrics
       const totalRevenue = categoryData.reduce((sum, category) => sum + category.totalRevenue, 0);
