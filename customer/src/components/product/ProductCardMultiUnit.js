@@ -18,6 +18,7 @@ import useUtilsFunction from "@hooks/useUtilsFunction";
 import { notifyError, notifySuccess } from "@utils/toast";
 import ProductUnitServices from "@services/ProductUnitServices";
 import PromotionServices from "@services/PromotionServices";
+import { getUnitDisplayName as getLocalizedUnitName, getShortUnitName } from "@utils/unitUtils";
 
 const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -30,7 +31,7 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
   const [promotionalUnits, setPromotionalUnits] = useState(new Set()); // Store IDs of promotional units
 
   const { items, addItem, updateItemQuantity } = useCart();
-  const { showingTranslateValue, getNumberTwo } = useUtilsFunction();
+  const { showingTranslateValue, getNumberTwo, lang } = useUtilsFunction();
 
   // Fetch available units for the product
   useEffect(() => {
@@ -198,7 +199,7 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
       category: product.category,
       sku: selectedUnit.sku || product.sku || '',
       // Unit-specific information
-      unitName: selectedUnit.unit?.name || selectedUnit.unit?.shortCode || 'Unit',
+      unitName: getLocalizedUnitName(selectedUnit, lang),
       unitValue: selectedUnit.unitValue || 1,
       packQty: selectedUnit.packQty || 1,
       unitPrice: selectedUnit.price || 0,
@@ -214,7 +215,7 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
       addItem(cartItem, quantity);
     }
     
-    const unitDisplayName = selectedUnit.unit?.name || selectedUnit.unit?.shortCode || 'unit';
+    const unitDisplayName = getLocalizedUnitName(selectedUnit, lang);
     notifySuccess(`Added ${quantity} ${unitDisplayName}(s) to cart!`);
   };
 
@@ -272,11 +273,12 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
     return selectedUnit.price / selectedUnit.packQty;
   };
 
-  // Format unit display name
+  // Format unit display name with localization
   const getUnitDisplayName = (unit) => {
     if (!unit) return 'Unit';
     
-    const unitName = unit.unit?.name || unit.unit?.shortCode || 'Unit';
+    // Use localized unit name
+    const unitName = getLocalizedUnitName(unit, lang);
     const unitValue = unit.unitValue || 1;
     
     if (unitValue === 1) {
