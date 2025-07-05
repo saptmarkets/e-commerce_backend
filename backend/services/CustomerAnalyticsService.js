@@ -12,6 +12,84 @@ class CustomerAnalyticsService {
     console.log("🎸 Customer Analytics Service initialized - Ready to rock customer insights!");
   }
 
+  // 🎸 Sync Customer Purchase Statistics from Orders
+  // This method updates customer purchaseStats based on existing orders
+  async syncCustomerPurchaseStats() {
+    try {
+      console.log("🎸 Starting customer purchase stats synchronization...");
+
+      // Get all orders grouped by customer
+      const customerOrderStats = await Order.aggregate([
+        {
+          $match: {
+            user: { $exists: true, $ne: null },
+            status: { $in: ["Delivered", "Processing", "Pending"] } // Only count valid orders
+          }
+        },
+        {
+          $group: {
+            _id: "$user",
+            totalOrders: { $sum: 1 },
+            totalSpent: { $sum: "$total" },
+            lastOrderDate: { $max: "$createdAt" },
+            orders: { $push: { total: "$total", date: "$createdAt" } }
+          }
+        },
+        {
+          $addFields: {
+            averageOrderValue: { $divide: ["$totalSpent", "$totalOrders"] }
+          }
+        }
+      ]);
+
+      console.log(`🎸 Found order data for ${customerOrderStats.length} customers`);
+
+      // Update each customer's purchase statistics
+      let updatedCustomers = 0;
+      for (const stats of customerOrderStats) {
+        try {
+          const updateResult = await Customer.findByIdAndUpdate(
+            stats._id,
+            {
+              $set: {
+                "purchaseStats.totalOrders": stats.totalOrders,
+                "purchaseStats.totalSpent": Math.round(stats.totalSpent * 100) / 100, // Round to 2 decimals
+                "purchaseStats.averageOrderValue": Math.round(stats.averageOrderValue * 100) / 100,
+                "purchaseStats.lastOrderDate": stats.lastOrderDate
+              }
+            },
+            { new: true }
+          );
+
+          if (updateResult) {
+            updatedCustomers++;
+          }
+        } catch (error) {
+          console.error(`🎸 Error updating customer ${stats._id}:`, error.message);
+        }
+      }
+
+      console.log(`🎸 Successfully updated ${updatedCustomers} customers with purchase statistics`);
+
+      return {
+        success: true,
+        data: {
+          customersWithOrders: customerOrderStats.length,
+          customersUpdated: updatedCustomers,
+          message: "Customer purchase statistics synchronized successfully"
+        }
+      };
+
+    } catch (error) {
+      console.error("🎸 Sync Customer Purchase Stats Error:", error);
+      return {
+        success: false,
+        message: "Failed to sync customer purchase statistics",
+        error: error.message
+      };
+    }
+  }
+
   // 🎸 Customer Overview & KPIs
   async getCustomerOverview(options = {}) {
     try {

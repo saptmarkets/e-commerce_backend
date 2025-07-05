@@ -129,6 +129,28 @@ const CustomerInsights = () => {
     history.push(`/order/${order._id}`);
   };
 
+  // 🎸 Sync Customer Purchase Statistics
+  const syncCustomerStats = async () => {
+    try {
+      console.log("🎸 Starting customer stats sync...");
+      setIsLoading(true);
+      
+      const response = await httpService.post('/reports/customer/sync-stats');
+      
+      if (response && response.success) {
+        console.log("✅ Customer stats synced successfully:", response.data);
+        // Refresh dashboard data after sync
+        await fetchDashboardData();
+      } else {
+        console.error("❌ Failed to sync customer stats");
+      }
+    } catch (error) {
+      console.error("🎸 Sync error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // 🎸 Export Customer Data
   const exportToCSV = async (reportType) => {
     try {
@@ -303,7 +325,10 @@ const CustomerInsights = () => {
     const overviewData = dashboardData.customerOverview || {};
     const overview = overviewData.overview || {};
 
-    // Debug removed - data should now load properly with fixed routes
+    // Debug: Check if we have customer data
+    console.log("🎸 Customer Segments Data:", overviewData.customerSegments);
+    console.log("🎸 Data length:", overviewData.customerSegments?.length);
+    console.log("🎸 Each segment:", overviewData.customerSegments?.map(s => ({ id: s._id, count: s.count })));
 
     return (
       <div className="space-y-6">
@@ -375,45 +400,83 @@ const CustomerInsights = () => {
                 </Button>
               </div>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={overviewData.customerSegments || []}
-                    layout="horizontal"
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis 
-                      type="category" 
-                      dataKey="_id" 
-                      width={80}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip 
-                      formatter={(value, name) => [value.toLocaleString(), 'Customers']}
-                      labelFormatter={(label) => `${label} Segment`}
-                    />
-                    <Bar 
-                      dataKey="count" 
-                      fill="#8884d8"
-                      name="Customer Count"
-                      radius={[0, 4, 4, 0]}
-                    >
-                      {(overviewData.customerSegments || []).map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={
-                            entry._id === 'VIP' ? '#8b5cf6' :
-                            entry._id === 'Premium' ? '#3b82f6' :
-                            entry._id === 'Regular' ? '#10b981' :
-                            entry._id === 'New' ? '#f59e0b' :
-                            '#6b7280'
-                          } 
+                {(() => {
+                  const segments = overviewData.customerSegments || [];
+                  const totalCustomers = segments.reduce((sum, seg) => sum + (seg.count || 0), 0);
+                  
+                  if (totalCustomers === 0) {
+                    return (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <FiUsers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                          <p className="text-lg font-medium text-gray-600 mb-2">No Customer Segments Data</p>
+                          <p className="text-sm text-gray-500 mb-4">
+                            Customer purchase statistics need to be synchronized from orders
+                          </p>
+                          <Button
+                            onClick={syncCustomerStats}
+                            disabled={isLoading}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2"
+                          >
+                            {isLoading ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                Syncing...
+                              </>
+                            ) : (
+                              <>
+                                <FiTrendingUp className="w-4 h-4 mr-2" />
+                                Sync Customer Data
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={segments}
+                        layout="horizontal"
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis 
+                          type="category" 
+                          dataKey="_id" 
+                          width={80}
+                          tick={{ fontSize: 12 }}
                         />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                        <Tooltip 
+                          formatter={(value, name) => [value.toLocaleString(), 'Customers']}
+                          labelFormatter={(label) => `${label} Segment`}
+                        />
+                        <Bar 
+                          dataKey="count" 
+                          fill="#8884d8"
+                          name="Customer Count"
+                          radius={[0, 4, 4, 0]}
+                        >
+                          {segments.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={
+                                entry._id === 'VIP' ? '#8b5cf6' :
+                                entry._id === 'Premium' ? '#3b82f6' :
+                                entry._id === 'Regular' ? '#10b981' :
+                                entry._id === 'New' ? '#f59e0b' :
+                                '#6b7280'
+                              } 
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
               </div>
             </CardBody>
           </Card>
@@ -423,36 +486,57 @@ const CustomerInsights = () => {
             <CardBody>
               <h4 className="text-lg font-semibold mb-4">📊 Segment Details</h4>
               <div className="space-y-4">
-                {(overviewData.customerSegments || []).map((segment, index) => {
-                  const totalCustomers = overviewData.customerSegments.reduce((sum, s) => sum + s.count, 0);
-                  const percentage = totalCustomers > 0 ? ((segment.count / totalCustomers) * 100).toFixed(1) : 0;
+                {(() => {
+                  const segments = overviewData.customerSegments || [];
+                  const totalCustomers = segments.reduce((sum, seg) => sum + (seg.count || 0), 0);
                   
-                  return (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div 
-                          className="w-4 h-4 rounded mr-3"
-                          style={{ 
-                            backgroundColor: 
-                              segment._id === 'VIP' ? '#8b5cf6' :
-                              segment._id === 'Premium' ? '#3b82f6' :
-                              segment._id === 'Regular' ? '#10b981' :
-                              segment._id === 'New' ? '#f59e0b' :
-                              '#6b7280'
-                          }}
-                        ></div>
-                        <div>
-                          <p className="font-medium text-sm">{segment._id} Customers</p>
-                          <p className="text-xs text-gray-600">{percentage}% of total</p>
+                  if (totalCustomers === 0) {
+                    return (
+                      <div className="text-center py-8">
+                        <FiUsers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p className="text-sm text-gray-500 mb-3">No segment data available</p>
+                        <Button
+                          size="sm"
+                          onClick={syncCustomerStats}
+                          disabled={isLoading}
+                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          {isLoading ? 'Syncing...' : 'Sync Data'}
+                        </Button>
+                      </div>
+                    );
+                  }
+                  
+                  return segments.map((segment, index) => {
+                    const percentage = totalCustomers > 0 ? ((segment.count / totalCustomers) * 100).toFixed(1) : 0;
+                    
+                    return (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center">
+                          <div 
+                            className="w-4 h-4 rounded mr-3"
+                            style={{ 
+                              backgroundColor: 
+                                segment._id === 'VIP' ? '#8b5cf6' :
+                                segment._id === 'Premium' ? '#3b82f6' :
+                                segment._id === 'Regular' ? '#10b981' :
+                                segment._id === 'New' ? '#f59e0b' :
+                                '#6b7280'
+                            }}
+                          ></div>
+                          <div>
+                            <p className="font-medium text-sm">{segment._id} Customers</p>
+                            <p className="text-xs text-gray-600">{percentage}% of total</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-lg">{segment.count.toLocaleString()}</p>
+                          <p className="text-xs text-gray-600">customers</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg">{segment.count.toLocaleString()}</p>
-                        <p className="text-xs text-gray-600">customers</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </CardBody>
           </Card>

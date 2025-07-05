@@ -289,18 +289,48 @@ class CustomerAnalyticsController {
     try {
       const {
         period = 30,
-        city = null
+        city = null,
+        autoSync = 'true'
       } = req.query;
 
       console.log("🎸 Fetching customer dashboard with params:", {
         period,
-        city
+        city,
+        autoSync
       });
 
       const result = await this.customerAnalytics.getCustomerDashboard({
         period: parseInt(period),
         city
       });
+
+      // 🎸 If no customer segments found and autoSync is enabled, sync purchase stats
+      if (result.success && autoSync === 'true') {
+        const customerSegments = result.data?.customerOverview?.customerSegments || [];
+        const totalCustomers = customerSegments.reduce((sum, seg) => sum + seg.count, 0);
+        
+        if (totalCustomers === 0) {
+          console.log("🎸 No customer segments found, attempting to sync purchase statistics...");
+          const syncResult = await this.customerAnalytics.syncCustomerPurchaseStats();
+          
+          if (syncResult.success) {
+            console.log("🎸 Purchase stats synced, refetching dashboard data...");
+            const updatedResult = await this.customerAnalytics.getCustomerDashboard({
+              period: parseInt(period),
+              city
+            });
+            
+            if (updatedResult.success) {
+              return res.status(200).json({
+                success: true,
+                data: updatedResult.data,
+                message: "Customer dashboard retrieved successfully (with data sync)",
+                syncInfo: syncResult.data
+              });
+            }
+          }
+        }
+      }
 
       if (result.success) {
         res.status(200).json({
@@ -320,6 +350,37 @@ class CustomerAnalyticsController {
       res.status(500).json({
         success: false,
         message: "Failed to fetch customer dashboard",
+        error: error.message
+      });
+    }
+  }
+
+  // 🎸 POST /api/reports/customer/sync-stats
+  // Manual trigger to sync customer purchase statistics
+  async syncCustomerStats(req, res) {
+    try {
+      console.log("🎸 Manual customer stats sync triggered");
+
+      const result = await this.customerAnalytics.syncCustomerPurchaseStats();
+
+      if (result.success) {
+        res.status(200).json({
+          success: true,
+          data: result.data,
+          message: "Customer purchase statistics synchronized successfully"
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: result.message,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error("🎸 Customer Stats Sync Controller Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to sync customer statistics",
         error: error.message
       });
     }

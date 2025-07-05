@@ -122,6 +122,9 @@ router.get("/customer/dashboard", isAuth, isAdmin, (req, res) => {
 router.get("/customer/export", isAuth, isAdmin, (req, res) => {
   customerAnalyticsController.exportCustomerReport(req, res);
 });
+router.post("/customer/sync-stats", isAuth, isAdmin, (req, res) => {
+  customerAnalyticsController.syncCustomerStats(req, res);
+});
 
 // 🚚 Delivery Performance Routes - Task 1.2.2 Implementation
 router.get("/delivery", isAuth, isAdmin, getDeliveryPerformance);
