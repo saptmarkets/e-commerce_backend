@@ -33,6 +33,7 @@ import {
 } from 'react-icons/hi';
 import PageTitle from '@/components/Typography/PageTitle';
 import SectionTitle from '@/components/Typography/SectionTitle';
+import requests from '@/services/httpService';
 
 // Import reusable chart components - Task 2.2.2 Implementation
 import {
@@ -110,32 +111,7 @@ const SalesAnalytics = () => {
 
       console.log('📊 Fetching sales analytics data with params:', queryParams.toString());
 
-      // Fetch all required data in parallel for better performance
-      const [
-        overviewResponse,
-        trendsResponse,
-        productsResponse,
-        customersResponse,
-        geographicResponse,
-        paymentResponse
-      ] = await Promise.all([
-        fetch(`/api/reports/sales/overview?${queryParams}`),
-        fetch(`/api/reports/sales/trends?granularity=${filters.period}&${queryParams}`),
-        fetch(`/api/reports/sales/products?limit=20&${queryParams}`),
-        fetch(`/api/reports/sales/customers?${queryParams}`),
-        fetch(`/api/reports/sales/geographic?${queryParams}`),
-        fetch(`/api/reports/sales/payment-methods?${queryParams}`)
-      ]);
-
-      // Check if all requests were successful
-      if (!overviewResponse.ok) throw new Error('Failed to fetch sales overview');
-      if (!trendsResponse.ok) throw new Error('Failed to fetch sales trends');
-      if (!productsResponse.ok) throw new Error('Failed to fetch product performance');
-      if (!customersResponse.ok) throw new Error('Failed to fetch customer analytics');
-      if (!geographicResponse.ok) throw new Error('Failed to fetch geographic data');
-      if (!paymentResponse.ok) throw new Error('Failed to fetch payment methods');
-
-      // Parse all responses
+      // Fetch all required data in parallel for better performance using httpService
       const [
         overviewData,
         trendsData,
@@ -144,12 +120,12 @@ const SalesAnalytics = () => {
         geographicData,
         paymentData
       ] = await Promise.all([
-        overviewResponse.json(),
-        trendsResponse.json(),
-        productsResponse.json(),
-        customersResponse.json(),
-        geographicResponse.json(),
-        paymentResponse.json()
+        requests.get(`reports/sales/overview?${queryParams}`),
+        requests.get(`reports/sales/trends?granularity=${filters.period}&${queryParams}`),
+        requests.get(`reports/sales/products?limit=20&${queryParams}`),
+        requests.get(`reports/sales/customers?${queryParams}`),
+        requests.get(`reports/sales/geographic?${queryParams}`),
+        requests.get(`reports/sales/payment-methods?${queryParams}`)
       ]);
 
       // Update state with fetched data
@@ -197,13 +173,7 @@ const SalesAnalytics = () => {
         ...filters
       });
 
-      const response = await fetch(`/api/reports/sales/export?${queryParams}`, {
-        method: 'GET'
-      });
-
-      if (!response.ok) throw new Error('Export failed');
-
-      const data = await response.json();
+      const data = await requests.get(`reports/sales/export?${queryParams}`);
       
       // In a real implementation, this would trigger a file download
       console.log('📄 Export data:', data);
