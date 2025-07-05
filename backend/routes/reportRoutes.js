@@ -32,8 +32,7 @@ const InventoryAnalyticsController = require("../controller/inventoryAnalyticsCo
 const inventoryAnalyticsController = new InventoryAnalyticsController();
 
 // Import customer analytics controller - Task 4.1.2
-const CustomerAnalyticsController = require("../controller/customerAnalyticsController");
-const customerAnalyticsController = new CustomerAnalyticsController();
+const customerAnalyticsController = require("../controller/customerAnalyticsController");
 
 // 📊 Sales Analytics Routes - Task 2.1.2 Advanced Implementation
 // Legacy route for backward compatibility
@@ -121,9 +120,6 @@ router.get("/customer/dashboard", isAuth, isAdmin, (req, res) => {
 });
 router.get("/customer/export", isAuth, isAdmin, (req, res) => {
   customerAnalyticsController.exportCustomerReport(req, res);
-});
-router.post("/customer/sync-stats", isAuth, isAdmin, (req, res) => {
-  customerAnalyticsController.syncCustomerStats(req, res);
 });
 
 // 🚚 Delivery Performance Routes - Task 1.2.2 Implementation
