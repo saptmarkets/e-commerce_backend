@@ -49,9 +49,6 @@ const CustomerInsights = () => {
       if (response.success) {
         setDashboardData(response.data);
         console.log("✅ Customer dashboard loaded successfully");
-        console.log("🎸 Dashboard data structure:", response.data);
-        console.log("🎸 Customer overview:", response.data.customerOverview);
-        console.log("🎸 Customer segments:", response.data.customerOverview?.customerSegments);
       } else {
         console.error("❌ Failed to load customer dashboard");
       }
@@ -306,9 +303,7 @@ const CustomerInsights = () => {
     const overviewData = dashboardData.customerOverview || {};
     const overview = overviewData.overview || {};
 
-    console.log("🎸 Dashboard Data:", dashboardData);
-    console.log("🎸 Overview Data:", overviewData);
-    console.log("🎸 Customer Segments:", overviewData.customerSegments);
+    // Debug removed - data should now load properly with fixed routes
 
     return (
       <div className="space-y-6">
@@ -380,56 +375,45 @@ const CustomerInsights = () => {
                 </Button>
               </div>
               <div className="h-64">
-                {(!overviewData.customerSegments || overviewData.customerSegments.length === 0) ? (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    <div className="text-center">
-                      <FiUsers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p className="text-lg font-medium">No Customer Segments Data</p>
-                      <p className="text-sm">Customer segments will appear here once data is loaded</p>
-                      <p className="text-xs mt-2">Data Length: {overviewData.customerSegments?.length || 0}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={overviewData.customerSegments || []}
-                      layout="horizontal"
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={overviewData.customerSegments || []}
+                    layout="horizontal"
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis 
+                      type="category" 
+                      dataKey="_id" 
+                      width={80}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip 
+                      formatter={(value, name) => [value.toLocaleString(), 'Customers']}
+                      labelFormatter={(label) => `${label} Segment`}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      fill="#8884d8"
+                      name="Customer Count"
+                      radius={[0, 4, 4, 0]}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis 
-                        type="category" 
-                        dataKey="_id" 
-                        width={80}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip 
-                        formatter={(value, name) => [value.toLocaleString(), 'Customers']}
-                        labelFormatter={(label) => `${label} Segment`}
-                      />
-                      <Bar 
-                        dataKey="count" 
-                        fill="#8884d8"
-                        name="Customer Count"
-                        radius={[0, 4, 4, 0]}
-                      >
-                        {(overviewData.customerSegments || []).map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={
-                              entry._id === 'VIP' ? '#8b5cf6' :
-                              entry._id === 'Premium' ? '#3b82f6' :
-                              entry._id === 'Regular' ? '#10b981' :
-                              entry._id === 'New' ? '#f59e0b' :
-                              '#6b7280'
-                            } 
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
+                      {(overviewData.customerSegments || []).map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={
+                            entry._id === 'VIP' ? '#8b5cf6' :
+                            entry._id === 'Premium' ? '#3b82f6' :
+                            entry._id === 'Regular' ? '#10b981' :
+                            entry._id === 'New' ? '#f59e0b' :
+                            '#6b7280'
+                          } 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </CardBody>
           </Card>
@@ -439,43 +423,36 @@ const CustomerInsights = () => {
             <CardBody>
               <h4 className="text-lg font-semibold mb-4">📊 Segment Details</h4>
               <div className="space-y-4">
-                {(!overviewData.customerSegments || overviewData.customerSegments.length === 0) ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <FiUsers className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm">No segment data available</p>
-                  </div>
-                ) : (
-                  (overviewData.customerSegments || []).map((segment, index) => {
-                    const totalCustomers = overviewData.customerSegments.reduce((sum, s) => sum + s.count, 0);
-                    const percentage = totalCustomers > 0 ? ((segment.count / totalCustomers) * 100).toFixed(1) : 0;
-                    
-                    return (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                          <div 
-                            className="w-4 h-4 rounded mr-3"
-                            style={{ 
-                              backgroundColor: 
-                                segment._id === 'VIP' ? '#8b5cf6' :
-                                segment._id === 'Premium' ? '#3b82f6' :
-                                segment._id === 'Regular' ? '#10b981' :
-                                segment._id === 'New' ? '#f59e0b' :
-                                '#6b7280'
-                            }}
-                          ></div>
-                          <div>
-                            <p className="font-medium text-sm">{segment._id} Customers</p>
-                            <p className="text-xs text-gray-600">{percentage}% of total</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-lg">{segment.count.toLocaleString()}</p>
-                          <p className="text-xs text-gray-600">customers</p>
+                {(overviewData.customerSegments || []).map((segment, index) => {
+                  const totalCustomers = overviewData.customerSegments.reduce((sum, s) => sum + s.count, 0);
+                  const percentage = totalCustomers > 0 ? ((segment.count / totalCustomers) * 100).toFixed(1) : 0;
+                  
+                  return (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div 
+                          className="w-4 h-4 rounded mr-3"
+                          style={{ 
+                            backgroundColor: 
+                              segment._id === 'VIP' ? '#8b5cf6' :
+                              segment._id === 'Premium' ? '#3b82f6' :
+                              segment._id === 'Regular' ? '#10b981' :
+                              segment._id === 'New' ? '#f59e0b' :
+                              '#6b7280'
+                          }}
+                        ></div>
+                        <div>
+                          <p className="font-medium text-sm">{segment._id} Customers</p>
+                          <p className="text-xs text-gray-600">{percentage}% of total</p>
                         </div>
                       </div>
-                    );
-                  })
-                )}
+                      <div className="text-right">
+                        <p className="font-bold text-lg">{segment.count.toLocaleString()}</p>
+                        <p className="text-xs text-gray-600">customers</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardBody>
           </Card>
