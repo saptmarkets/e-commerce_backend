@@ -231,7 +231,6 @@ const MainCarousel = () => {
                   navigation={true}
                   modules={[Autoplay, Pagination, Navigation]}
                   className="mySwiper h-[300px]"
-                  dir={lang === 'ar' ? 'rtl' : 'ltr'}
                 >
                   {sliderData?.map((item, i) => (
                     <SwiperSlide
@@ -320,7 +319,6 @@ const MainCarousel = () => {
                   navigation={false}
                   modules={[Autoplay, Pagination]}
                   className="mySwiper h-full"
-                  dir={lang === 'ar' ? 'rtl' : 'ltr'}
                 >
                   {sliderData?.map((item, i) => (
                     <SwiperSlide
@@ -353,7 +351,6 @@ const MainCarousel = () => {
                 navigation={true}
                 modules={[Autoplay, Pagination, Navigation]}
                 className="mySwiper"
-                dir={lang === 'ar' ? 'rtl' : 'ltr'}
               >
                 {sliderData?.map((item, i) => (
                   <SwiperSlide
