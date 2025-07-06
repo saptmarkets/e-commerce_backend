@@ -298,13 +298,13 @@ const ProductDetailCardEnhanced = ({
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
                     <span className="font-medium text-gray-800">
-                      {unit.unitValue || 1} {unit.unit?.name || 'Unit'}
+                      {unit.unitValue || 1} {getUnitDisplayName(unit, lang)}
                     </span>
                     {isSelected && <IoCheckmarkCircle className="text-emerald-500" />}
                   </div>
                   {unit.packQty > 1 && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      Contains {unit.packQty} base units
+                    <div className="text-sm text-gray-500">
+                      {t('contains')} {unit.packQty} {t('baseUnits')}
                     </div>
                   )}
                 </div>
@@ -387,8 +387,8 @@ const ProductDetailCardEnhanced = ({
           <IoGiftOutline size={14} />
           <span className="text-xs font-bold">
             {activePromotion.type === 'bulk_purchase' 
-              ? `Buy ${activePromotion.requiredQty} Get ${activePromotion.freeQty} Free`
-              : 'Special Price'
+              ? `${t('buy')} ${activePromotion.requiredQty} ${t('get')} ${activePromotion.freeQty} ${t('free')}`
+              : t('specialPrice')
             }
           </span>
         </div>
@@ -471,7 +471,7 @@ const ProductDetailCardEnhanced = ({
                   <svg className="w-16 h-16 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                   </svg>
-                  <p className="text-sm">No image available</p>
+                  <p className="text-sm">{t('noImageAvailable')}</p>
                 </div>
               </div>
             )}
@@ -533,7 +533,7 @@ const ProductDetailCardEnhanced = ({
                   ))}
                 </div>
                 <span className="text-sm text-gray-600">
-                  ({product.reviewCount || 0} reviews)
+                  ({product.reviewCount || 0} {t('reviews')})
                 </span>
               </div>
             )}
@@ -551,7 +551,7 @@ const ProductDetailCardEnhanced = ({
           {/* Product Description */}
           {showFullDescription && product.description && (
             <div className="mb-6">
-              <h4 className="font-semibold text-gray-800 mb-2">Description</h4>
+              <h4 className="font-semibold text-gray-800 mb-2">{t('description')}</h4>
               <p className="text-gray-600 text-sm leading-relaxed">
                 {showingTranslateValue(product.description)}
               </p>

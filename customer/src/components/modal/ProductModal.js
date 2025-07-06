@@ -682,10 +682,10 @@ const ProductModal = ({
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <IoFlashOutline className="text-red-500" size={14} />
-                        <span className="text-xs font-medium text-red-600">Special Price</span>
+                        <span className="text-xs font-medium text-red-600">{t('specialPrice')}</span>
                         {activePromotion?.endDate && (
                           <span className="text-xs text-gray-500">
-                            • {Math.ceil((new Date(activePromotion.endDate) - new Date()) / (1000 * 60 * 60 * 24))} days left
+                            • {Math.ceil((new Date(activePromotion.endDate) - new Date()) / (1000 * 60 * 60 * 24))} {t('daysLeft')}
                           </span>
                         )}
                       </div>
@@ -697,7 +697,7 @@ const ProductModal = ({
                           {currency}{pricingInfo.basePrice.toFixed(2)}
                         </span>
                         <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
-                          Save {currency}{pricingInfo.savings.toFixed(2)}
+                          {t('save')} {currency}{pricingInfo.savings.toFixed(2)}
                         </span>
                       </div>
                       
@@ -711,9 +711,9 @@ const ProductModal = ({
                       {/* Min/Max Quantity Info */}
                       {activePromotion && (
                         <div className="text-xs text-gray-600">
-                          Min: {activePromotion.minQty || 1} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''}
+                          {t('min')}: {activePromotion.minQty || 1} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''}
                           {activePromotion.maxQty && (
-                            <span className="ml-2">Max: {activePromotion.maxQty} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''}</span>
+                            <span className="ml-2">{t('max')}: {activePromotion.maxQty} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''}</span>
                           )}
                         </div>
                       )}
@@ -722,13 +722,13 @@ const ProductModal = ({
                       {activePromotion && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
                           <div className="text-xs font-medium text-red-700">
-                            Get {activePromotion.minQty || 1} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''} for
+                            {t('get')} {activePromotion.minQty || 1} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''} {t('for')}
                           </div>
                           <div className="text-sm font-bold text-red-600">
                             {currency}{pricingInfo.finalPrice.toFixed(2)}
                           </div>
                           <div className="text-xs text-red-600">
-                            Instead of {currency}{pricingInfo.basePrice.toFixed(2)}
+                            {t('insteadOf')} {currency}{pricingInfo.basePrice.toFixed(2)}
                           </div>
                         </div>
                       )}
@@ -739,7 +739,7 @@ const ProductModal = ({
                         <span className="text-xl font-bold text-emerald-600">
                           {currency}{pricingInfo.finalPrice.toFixed(2)}
                         </span>
-                        <span className="text-xs text-gray-500">per package</span>
+                        <span className="text-xs text-gray-500">{t('perPackage')}</span>
                       </div>
                       
                       {/* Unit Information for regular products */}
@@ -753,7 +753,7 @@ const ProductModal = ({
                   
                   {selectedUnit?.packQty > 1 && (
                     <div className="text-xs text-gray-600 mt-1">
-                      {currency}{pricingInfo.pricePerBaseUnit.toFixed(2)} per base unit
+                      {currency}{pricingInfo.pricePerBaseUnit.toFixed(2)} {t('perBaseUnit')}
                     </div>
                   )}
                 </div>
@@ -764,7 +764,7 @@ const ProductModal = ({
                 {/* Quantity Selector */}
                   {(!activePromotion || activePromotion.minQty <= 1) && (
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-gray-700">Quantity</label>
+                    <label className="block text-xs font-medium text-gray-700">{t('quantity')}</label>
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center border border-gray-300 rounded-lg">
                       <button
@@ -796,7 +796,7 @@ const ProductModal = ({
                   {activePromotion && activePromotion.minQty > 1 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
                     <span className="text-xs font-medium text-yellow-800">
-                        Minimum Quantity: {activePromotion.minQty}
+                        {t('minimumQuantity')}: {activePromotion.minQty}
                       </span>
                   </div>
                 )}
@@ -804,14 +804,14 @@ const ProductModal = ({
                 {/* Total Price */}
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-700 text-sm">Total:</span>
+                    <span className="font-medium text-gray-700 text-sm">{t('total')}:</span>
                     <span className="text-lg font-bold text-emerald-600">
                       {currency}{(pricingInfo.finalPrice * item).toFixed(2)}
                     </span>
                   </div>
                   {pricingInfo.isPromotional && (
                     <div className="text-xs text-red-600 mt-1">
-                      Total savings: {currency}{(pricingInfo.savings * item).toFixed(2)}
+                      {t('totalSavings')}: {currency}{(pricingInfo.savings * item).toFixed(2)}
                     </div>
                   )}
                 </div>
@@ -825,7 +825,7 @@ const ProductModal = ({
                   } disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none`}
                   >
                   <FiShoppingCart size={16} />
-                  <span className="text-sm">Add to Cart</span>
+                  <span className="text-sm">{t('addToCart')}</span>
                   </button>
               </div>
 
@@ -833,7 +833,7 @@ const ProductModal = ({
               <div className="space-y-2 pt-3 border-t border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-gray-600">Category: </span>
+                    <span className="text-xs text-gray-600">{t('category')}: </span>
                       <Link
                         href={`/category/${product?.category?._id}`}
                       className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
@@ -845,7 +845,7 @@ const ProductModal = ({
                       onClick={() => handleMoreInfo(product.slug)}
                     className="text-xs font-medium text-blue-600 hover:text-blue-800"
                     >
-                    View Full Details →
+                    {t('viewFullDetails')} →
                     </button>
                 </div>
 
