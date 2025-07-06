@@ -164,7 +164,8 @@ const ProductDetailCardEnhanced = ({
     let savings = 0;
     let isPromotional = false;
 
-    if (activePromotion && quantity >= (activePromotion.minQty || 1)) {
+    // Always display promotional price for information purposes; quantity rules will be enforced during cart add
+    if (activePromotion) {
       const isUnitSpecificPromotion = activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id;
       const isGeneralPromotion = !activePromotion.productUnit || activePromotion.product === product._id;
 
