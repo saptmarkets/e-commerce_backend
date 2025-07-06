@@ -155,7 +155,7 @@ const ProductDetailCardEnhanced = ({
     if (quantity < minQty) {
       setQuantity(minQty);
     }
-  }, [activePromotion, selectedUnit]);
+  }, [activePromotion, selectedUnit, quantity]);
 
   // Calculations
   const currentCartItem = useMemo(() => {
@@ -180,7 +180,7 @@ const ProductDetailCardEnhanced = ({
     let isPromotional = false;
 
     // Apply promotion if available and meets quantity requirements (like the small product card)
-    if (activePromotion && quantity >= (activePromotion.minQty || 1)) {
+    if (activePromotion && quantity >= (activePromotion.minQty || activePromotion.requiredQty || 1)) {
       const isUnitSpecificPromotion = activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id;
       const isGeneralPromotion = !activePromotion.productUnit || activePromotion.product === product._id;
 
