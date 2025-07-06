@@ -29,6 +29,9 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
   const [isLoadingUnits, setIsLoadingUnits] = useState(false);
   const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
   const [promotionalUnits, setPromotionalUnits] = useState(new Set()); // Store IDs of promotional units
+  // Promotion handling state
+  const [activePromotion, setActivePromotion] = useState(null);
+  const [hasCheckedPromotions, setHasCheckedPromotions] = useState(false);
 
   const { items, addItem, updateItemQuantity } = useCart();
   const { showingTranslateValue, getNumberTwo, lang } = useUtilsFunction();
@@ -147,6 +150,80 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
     }
   }, [availableUnits]);
 
+  // Mark that units have been loaded so we can proceed to check promotions
+  useEffect(() => {
+    if (availableUnits.length && !hasCheckedPromotions) {
+      setHasCheckedPromotions(true);
+    }
+  }, [availableUnits, hasCheckedPromotions]);
+
+  // Fetch promotions specific to the currently selected unit
+  useEffect(() => {
+    if (!selectedUnit?._id) return;
+
+    // Skip system generated fallback/default units
+    if (selectedUnit._id.startsWith('fallback-') || selectedUnit._id.startsWith('default-')) {
+      setActivePromotion(null);
+      return;
+    }
+
+    const fetchUnitPromotions = async () => {
+      try {
+        const promos = await PromotionServices.getPromotionsByProductUnit(selectedUnit._id);
+        if (promos && promos.length > 0) {
+          setActivePromotion(promos[0]);
+        } else {
+          setActivePromotion(null);
+        }
+      } catch (error) {
+        console.error('Error fetching promotions for unit', selectedUnit._id, error);
+        setActivePromotion(null);
+      }
+    };
+
+    fetchUnitPromotions();
+  }, [selectedUnit]);
+
+  // Pricing calculation that takes promotions into account
+  const pricingInfo = useMemo(() => {
+    if (!selectedUnit) return { basePrice: 0, finalPrice: 0, savings: 0, isPromotional: false, pricePerBaseUnit: 0 };
+
+    const basePrice = selectedUnit.price || 0;
+    let finalPrice = basePrice;
+    let savings = 0;
+    let isPromotional = false;
+
+    if (activePromotion && quantity >= (activePromotion.minQty || 1)) {
+      const isUnitSpecificPromotion = activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id;
+      const isGeneralPromotion = !activePromotion.productUnit || activePromotion.product === product._id;
+
+      if (isUnitSpecificPromotion || isGeneralPromotion) {
+        if (activePromotion.type === 'fixed_price') {
+          const promoPrice = activePromotion.value || activePromotion.offerPrice || basePrice;
+          finalPrice = promoPrice;
+          const originalPrice = activePromotion.originalPrice || basePrice;
+          savings = Math.max(0, originalPrice - promoPrice);
+          isPromotional = true;
+        } else if (activePromotion.type === 'bulk_purchase') {
+          const totalRequired = activePromotion.requiredQty || activePromotion.minQty || 1;
+          const freeQty = activePromotion.freeQty || 0;
+          const effectivePrice = (basePrice * totalRequired) / (totalRequired + freeQty);
+          finalPrice = effectivePrice;
+          savings = Math.max(0, basePrice - effectivePrice);
+          isPromotional = true;
+        }
+      }
+    }
+
+    return {
+      basePrice: isPromotional ? (activePromotion?.originalPrice || basePrice) : basePrice,
+      finalPrice: Math.max(0, finalPrice),
+      savings,
+      isPromotional,
+      pricePerBaseUnit: selectedUnit.packQty ? finalPrice / selectedUnit.packQty : finalPrice
+    };
+  }, [selectedUnit, activePromotion, quantity, product._id]);
+
   // Calculate current cart item with selected unit
   const currentCartItem = useMemo(() => {
     if (!selectedUnit) return null;
@@ -194,7 +271,7 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
       selectedUnitId: selectedUnit._id,
       title: showingTranslateValue(product?.title),
       image: product.image?.[0] || '',
-      price: selectedUnit.price || 0,
+      price: pricingInfo.finalPrice,
       stock: availableStock,
       category: product.category,
       sku: selectedUnit.sku || product.sku || '',
@@ -202,8 +279,11 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
       unitName: getLocalizedUnitName(selectedUnit, lang),
       unitValue: selectedUnit.unitValue || 1,
       packQty: selectedUnit.packQty || 1,
-      unitPrice: selectedUnit.price || 0,
-      baseProductPrice: product.price || 0,
+      unitPrice: pricingInfo.finalPrice,
+      baseProductPrice: pricingInfo.basePrice,
+      promotion: activePromotion,
+      isPromotional: pricingInfo.isPromotional,
+      savings: pricingInfo.savings,
       // Additional metadata
       unitType: selectedUnit.unitType || 'multi',
       isMultiUnit: true
@@ -470,7 +550,7 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
             </div>
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span>Price per base unit:</span>
-              <span>${getNumberTwo(getUnitPricePerBase())}</span>
+              <span>${getNumberTwo(pricingInfo.pricePerBaseUnit)}</span>
             </div>
           </div>
         )}
@@ -479,17 +559,17 @@ const ProductCardMultiUnit = ({ product, attributes, className = "" }) => {
         <div className="mb-4">
           <div className="flex items-baseline space-x-3">
             <span className="text-2xl font-bold text-gray-900">
-              ${selectedUnit ? getNumberTwo(selectedUnit.price) : getNumberTwo(product?.price || 0)}
+              ${getNumberTwo(pricingInfo.finalPrice)}
             </span>
-            {selectedUnit && selectedUnit.price !== product?.price && (
+            {pricingInfo.isPromotional && (
               <span className="text-lg text-gray-500 line-through">
-                ${getNumberTwo(product?.price || 0)}
+                ${getNumberTwo(pricingInfo.basePrice)}
               </span>
             )}
           </div>
           {selectedUnit && (
             <div className="text-sm text-gray-600 mt-1">
-              ${getNumberTwo(getUnitPricePerBase())} per base unit
+              ${getNumberTwo(pricingInfo.pricePerBaseUnit)} per base unit
             </div>
           )}
         </div>

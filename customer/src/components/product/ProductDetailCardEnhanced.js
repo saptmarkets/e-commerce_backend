@@ -40,6 +40,8 @@ const ProductDetailCardEnhanced = ({
   const [isLoadingPromotion, setIsLoadingPromotion] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  // Track if promotions have been checked for the current unit
+  const [hasCheckedUnitPromotion, setHasCheckedUnitPromotion] = useState(false);
 
   const { items, addItem, updateItemQuantity } = useCart();
   const { showingTranslateValue, getNumberTwo, currency } = useUtilsFunction();
@@ -111,6 +113,35 @@ const ProductDetailCardEnhanced = ({
     }
   };
 
+  // Fetch promotions specific to the selected unit whenever it changes
+  useEffect(() => {
+    if (!selectedUnit?._id) return;
+
+    // Ignore system generated units
+    if (selectedUnit._id.startsWith('fallback-') || selectedUnit._id.startsWith('default-')) {
+      setActivePromotion(null);
+      return;
+    }
+
+    const fetchUnitPromotions = async () => {
+      try {
+        const unitPromos = await PromotionServices.getPromotionsByProductUnit(selectedUnit._id);
+        if (unitPromos && unitPromos.length > 0) {
+          setActivePromotion(unitPromos[0]);
+        } else {
+          // No unit promo — keep any product-level promo already fetched
+          if (activePromotion && activePromotion.productUnit && activePromotion.productUnit._id !== selectedUnit._id) {
+            setActivePromotion(null);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching unit promotions:', err);
+      }
+    };
+
+    fetchUnitPromotions();
+  }, [selectedUnit]);
+
   // Calculations
   const currentCartItem = useMemo(() => {
     if (!selectedUnit) return null;
@@ -126,38 +157,43 @@ const ProductDetailCardEnhanced = ({
   }, [selectedUnit, product?.stock]);
 
   const pricingInfo = useMemo(() => {
-    if (!selectedUnit) return { basePrice: 0, finalPrice: 0, savings: 0, isPromotional: false };
+    if (!selectedUnit) return { basePrice: 0, finalPrice: 0, savings: 0, isPromotional: false, pricePerBaseUnit: 0 };
 
     const basePrice = selectedUnit.price || 0;
     let finalPrice = basePrice;
     let savings = 0;
     let isPromotional = false;
 
-    // Apply promotion if available and valid
     if (activePromotion && quantity >= (activePromotion.minQty || 1)) {
-      if (activePromotion.type === 'fixed_price') {
-        finalPrice = activePromotion.value || basePrice;
-        savings = basePrice - finalPrice;
-        isPromotional = true;
-      } else if (activePromotion.type === 'bulk_purchase') {
-        // For bulk purchases, calculate effective price considering free items
-        const totalRequired = activePromotion.requiredQty || 1;
-        const freeQty = activePromotion.freeQty || 0;
-        const effectivePrice = (basePrice * totalRequired) / (totalRequired + freeQty);
-        finalPrice = effectivePrice;
-        savings = basePrice - effectivePrice;
-        isPromotional = true;
+      const isUnitSpecificPromotion = activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id;
+      const isGeneralPromotion = !activePromotion.productUnit || activePromotion.product === product._id;
+
+      if (isUnitSpecificPromotion || isGeneralPromotion) {
+        if (activePromotion.type === 'fixed_price') {
+          const promoPrice = activePromotion.value || activePromotion.offerPrice || basePrice;
+          finalPrice = promoPrice;
+          const originalPrice = activePromotion.originalPrice || basePrice;
+          savings = Math.max(0, originalPrice - promoPrice);
+          isPromotional = true;
+        } else if (activePromotion.type === 'bulk_purchase') {
+          const totalRequired = activePromotion.requiredQty || activePromotion.minQty || 1;
+          const freeQty = activePromotion.freeQty || 0;
+          const effectivePrice = (basePrice * totalRequired) / (totalRequired + freeQty);
+          finalPrice = effectivePrice;
+          savings = Math.max(0, basePrice - effectivePrice);
+          isPromotional = true;
+        }
       }
     }
 
-    return { 
-      basePrice, 
-      finalPrice: Math.max(0, finalPrice), 
-      savings: Math.max(0, savings), 
+    return {
+      basePrice: isPromotional ? (activePromotion?.originalPrice || basePrice) : basePrice,
+      finalPrice: Math.max(0, finalPrice),
+      savings,
       isPromotional,
       pricePerBaseUnit: selectedUnit.packQty ? finalPrice / selectedUnit.packQty : finalPrice
     };
-  }, [selectedUnit, activePromotion, quantity]);
+  }, [selectedUnit, activePromotion, quantity, product._id]);
 
   // Event handlers
   const handleUnitChange = (unit) => {
