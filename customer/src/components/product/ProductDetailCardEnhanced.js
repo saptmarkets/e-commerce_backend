@@ -13,6 +13,7 @@ import {
 } from "react-icons/io5";
 import { useCart } from "react-use-cart";
 import { motion, AnimatePresence } from "framer-motion";
+import useTranslation from 'next-translate/useTranslation';
 
 // Internal imports
 import ProductModal from "@components/modal/ProductModal";
@@ -21,6 +22,7 @@ import { notifyError, notifySuccess } from "@utils/toast";
 import ProductUnitServices from "@services/ProductUnitServices";
 import PromotionServices from "@services/PromotionServices";
 import NeonSpinner from "@components/preloader/NeonSpinner";
+import { getUnitDisplayName } from "@utils/unitUtils";
 
 const ProductDetailCardEnhanced = ({ 
   product, 
@@ -44,7 +46,8 @@ const ProductDetailCardEnhanced = ({
   const [hasCheckedUnitPromotion, setHasCheckedUnitPromotion] = useState(false);
 
   const { items, addItem, updateItemQuantity } = useCart();
-  const { showingTranslateValue, getNumberTwo, currency } = useUtilsFunction();
+  const { showingTranslateValue, getNumberTwo, currency, lang } = useUtilsFunction();
+  const { t } = useTranslation('common');
 
   // Fetch available units and promotions
   useEffect(() => {
@@ -246,7 +249,8 @@ const ProductDetailCardEnhanced = ({
       addItem(cartItem, quantity);
     }
     
-    notifySuccess(`Added ${quantity} ${selectedUnit.unit?.name || 'unit'}(s) to cart!`);
+    const unitDisplayName = getUnitDisplayName(selectedUnit, lang);
+    notifySuccess(`${t('added')} ${quantity} ${unitDisplayName} ${t('toCart')}!`);
   };
 
   const handleImageClick = (targetImageIndex = null) => {
@@ -264,7 +268,7 @@ const ProductDetailCardEnhanced = ({
   const renderUnitSelector = () => (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-semibold text-gray-800">Package Size</label>
+        <label className="text-sm font-semibold text-gray-800">{t('selectPackage')}</label>
         {isLoadingUnits && (
                                   <NeonSpinner size="xs" />
         )}
@@ -336,7 +340,7 @@ const ProductDetailCardEnhanced = ({
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <IoFlashOutline className="text-red-500" />
-                <span className="text-sm font-medium text-red-600">Special Offer</span>
+                <span className="text-sm font-medium text-red-600">{t('specialOffer')}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <span className="text-2xl font-bold text-red-600">
@@ -346,7 +350,7 @@ const ProductDetailCardEnhanced = ({
                   {currency}{pricingInfo.basePrice.toFixed(2)}
                 </span>
                 <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-sm font-medium">
-                  Save {currency}{pricingInfo.savings.toFixed(2)}
+                  {t('save')} {currency}{pricingInfo.savings.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -355,13 +359,13 @@ const ProductDetailCardEnhanced = ({
               <span className="text-2xl font-bold text-emerald-600">
                 {currency}{pricingInfo.finalPrice.toFixed(2)}
               </span>
-              <span className="text-sm text-gray-500">per package</span>
+              <span className="text-sm text-gray-500">{t('perPackage')}</span>
             </div>
           )}
           
           {selectedUnit?.packQty > 1 && (
             <div className="text-sm text-gray-600 mt-1">
-              {currency}{pricingInfo.pricePerBaseUnit.toFixed(2)} per base unit
+              {currency}{pricingInfo.pricePerBaseUnit.toFixed(2)} {t('perBaseUnit')}
             </div>
           )}
         </motion.div>
@@ -394,7 +398,7 @@ const ProductDetailCardEnhanced = ({
 
   const renderQuantitySelector = () => (
     <div className="mb-6">
-      <label className="block text-sm font-semibold text-gray-800 mb-3">Quantity</label>
+      <label className="block text-sm font-semibold text-gray-800 mb-3">{t('quantity')}</label>
       <div className="flex items-center space-x-3">
         <div className="flex items-center border border-gray-300 rounded-lg">
           <button
@@ -417,9 +421,9 @@ const ProductDetailCardEnhanced = ({
         </div>
         <div className="text-sm text-gray-500">
           {availableStock > 0 ? (
-            `${availableStock} available`
+            `${availableStock} ${t('available')}`
           ) : (
-            <span className="text-red-500">Out of stock</span>
+            <span className="text-red-500">{t('outOfStock')}</span>
           )}
         </div>
       </div>
@@ -565,7 +569,7 @@ const ProductDetailCardEnhanced = ({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              {availableStock === 0 ? 'Out of Stock' : `Add to Cart • ${currency}${(pricingInfo.finalPrice * quantity).toFixed(2)}`}
+              {availableStock === 0 ? t('outOfStock') : `${t('addToCart')} • ${currency}${(pricingInfo.finalPrice * quantity).toFixed(2)}`}
             </motion.button>
 
             <button
