@@ -16,6 +16,7 @@ import MainModal from "@components/modal/MainModal";
 import Discount from "@components/common/Discount";
 import VariantList from "@components/variants/VariantList";
 import { SidebarContext } from "@context/SidebarContext";
+import { getUnitDisplayName } from "@utils/unitUtils";
 import useUtilsFunction from "@hooks/useUtilsFunction";
 import useMultiUnits from "@hooks/useMultiUnits";
 import PromotionServices from "@services/PromotionServices";
@@ -69,6 +70,7 @@ const ProductModal = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [promotionalUnits, setPromotionalUnits] = useState(new Set()); // Store IDs of promotional units
+  const [unitPromotions, setUnitPromotions] = useState(new Map()); // Map unitId -> promotion object
   
   // Image carousel functionality
   const productImages = useMemo(() => {
@@ -102,6 +104,7 @@ const ProductModal = ({
     
     try {
       const promotionalUnitIds = new Set();
+      const promoMap = new Map();
       
       // Check each unit for promotions
       for (const unit of unitComparisonData) {
@@ -109,6 +112,7 @@ const ProductModal = ({
           const unitPromotions = await PromotionServices.getPromotionsByProductUnit(unit._id);
           if (unitPromotions && unitPromotions.length > 0) {
             promotionalUnitIds.add(unit._id);
+            promoMap.set(unit._id, unitPromotions[0]);
           }
         } catch (error) {
           console.warn(`Error fetching promotions for unit ${unit._id}:`, error);
@@ -116,6 +120,7 @@ const ProductModal = ({
       }
       
       setPromotionalUnits(promotionalUnitIds);
+      setUnitPromotions(promoMap);
       
       console.log('ProductModal: Promotional units found:', {
         promotionalUnitIds: Array.from(promotionalUnitIds),
@@ -643,12 +648,11 @@ const ProductModal = ({
                               {hasPromotion ? (
                                 (() => {
                                   // Try to locate the unit promotion data (either from activePromotion or by API call earlier)
-                                  const unitPromo = (activePromotion && activePromotion.productUnit && activePromotion.productUnit._id === unit._id)
-                                    ? activePromotion
-                                    : null; // We don't cache all promos in modal, but we still know it's promotional
+                                  const unitPromo = unitPromotions.get(unit._id) || (activePromotion && activePromotion.productUnit && activePromotion.productUnit._id === unit._id ? activePromotion : null);
 
                                   const promoPrice = unitPromo ? (unitPromo.value || unitPromo.offerPrice || unit.price) : unit.price;
                                   const minQtyPromo = unitPromo ? (unitPromo.minQty || unitPromo.requiredQty || 1) : 1;
+                                  const maxQtyPromo = unitPromo ? (unitPromo.maxQty || unitPromo.requiredQty || null) : null;
 
                                   return (
                                     <div className="space-y-0.5 text-right">
@@ -657,6 +661,9 @@ const ProductModal = ({
                                         <span className="text-xs line-through text-gray-400">{currency}{getNumberTwo(unit.price)}</span>
                                       </div>
                                       <div className="text-[10px] text-red-600">🔥 {t('min')} {minQtyPromo}</div>
+                                      {maxQtyPromo && (
+                                        <div className="text-[10px] text-red-600">🔥 {t('max')} {maxQtyPromo}</div>
+                                      )}
                                     </div>
                                   );
                                 })()
@@ -738,16 +745,16 @@ const ProductModal = ({
                       {/* Unit Information */}
                       {selectedUnit && (
                         <div className="text-xs text-gray-600">
-                          / {selectedUnit.unit?.shortCode || selectedUnit.unit?.name} {selectedUnit.unitValue}
+                          / {getUnitDisplayName(selectedUnit, lang)}{selectedUnit.unitValue > 1 ? ` ${selectedUnit.unitValue}` : ''}
                         </div>
                       )}
                       
                       {/* Min/Max Quantity Info */}
                       {activePromotion && (
                         <div className="text-xs text-gray-600">
-                          {t('min')}: {activePromotion.minQty || 1} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''}
+                          {t('min')}: {activePromotion.minQty || 1} {getUnitDisplayName(activePromotion.productUnit || selectedUnit, lang)}{(activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || 1) > 1 ? ` ${activePromotion.productUnit?.unitValue || selectedUnit?.unitValue}` : ''}
                           {activePromotion.maxQty && (
-                            <span className="ml-2">{t('max')}: {activePromotion.maxQty} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''}</span>
+                            <span className="ml-2">{t('max')}: {activePromotion.maxQty} {getUnitDisplayName(activePromotion.productUnit || selectedUnit, lang)}{(activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || 1) > 1 ? ` ${activePromotion.productUnit?.unitValue || selectedUnit?.unitValue}` : ''}</span>
                           )}
                         </div>
                       )}
@@ -779,7 +786,7 @@ const ProductModal = ({
                       {/* Unit Information for regular products */}
                       {selectedUnit && (
                         <div className="text-xs text-gray-600">
-                          / {selectedUnit.unit?.shortCode || selectedUnit.unit?.name} {selectedUnit.unitValue}
+                          / {getUnitDisplayName(selectedUnit, lang)}{selectedUnit.unitValue > 1 ? ` ${selectedUnit.unitValue}` : ''}
                         </div>
                       )}
                     </div>

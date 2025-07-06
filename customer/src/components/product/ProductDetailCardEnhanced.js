@@ -452,7 +452,7 @@ const ProductDetailCardEnhanced = ({
                 <div className="flex items-center space-x-2">
                   <IoFlashOutline className="text-yellow-600" />
                   <span className="text-sm text-yellow-800">
-                    {t('buy')} {activePromotion.minQty || 1} {t('or')} {t('more')} {t('for')} {currency}{(activePromotion.value || activePromotion.offerPrice || pricingInfo.basePrice).toFixed(2)} {t('each')}
+                    {t('buy')} {activePromotion.minQty || 1} {getUnitDisplayName(activePromotion.productUnit || selectedUnit, lang)} {t('or')} {t('more')} {t('for')} {currency}{(activePromotion.value || activePromotion.offerPrice || pricingInfo.basePrice).toFixed(2)} {t('each')}
                   </span>
                 </div>
               </div>
