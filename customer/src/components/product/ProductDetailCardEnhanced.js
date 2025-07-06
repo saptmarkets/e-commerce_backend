@@ -145,16 +145,17 @@ const ProductDetailCardEnhanced = ({
     fetchUnitPromotions();
   }, [selectedUnit]);
 
-  // Auto-adjust quantity to meet minimum promotion requirements (like the small product card)
+  // Auto-adjust quantity to meet minimum promotion requirements once promotion data is available
   useEffect(() => {
-    if (activePromotion && selectedUnit) {
-      const minQty = activePromotion.minQty || 1;
-      // If current quantity is less than minimum required and stock allows, auto-adjust
-      if (quantity < minQty && minQty <= availableStock) {
-        setQuantity(minQty);
-      }
+    if (!activePromotion) return;
+
+    const minQty = activePromotion.minQty || activePromotion.requiredQty || 1;
+
+    // If current quantity is less than the promotion's minimum requirement, bump it up automatically
+    if (quantity < minQty) {
+      setQuantity(minQty);
     }
-  }, [activePromotion, selectedUnit, availableStock]);
+  }, [activePromotion, selectedUnit]);
 
   // Calculations
   const currentCartItem = useMemo(() => {
