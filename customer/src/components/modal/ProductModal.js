@@ -16,7 +16,7 @@ import MainModal from "@components/modal/MainModal";
 import Discount from "@components/common/Discount";
 import VariantList from "@components/variants/VariantList";
 import { SidebarContext } from "@context/SidebarContext";
-import { getUnitDisplayName } from "@utils/unitUtils";
+import { getUnitDisplayName as getLocalizedUnitDisplayName } from "@utils/unitUtils";
 import useUtilsFunction from "@hooks/useUtilsFunction";
 import useMultiUnits from "@hooks/useMultiUnits";
 import PromotionServices from "@services/PromotionServices";
@@ -628,7 +628,7 @@ const ProductModal = ({
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="font-medium text-sm flex items-center space-x-2">
-                                <span>{unit.displayName || getUnitDisplayName(unit, lang)}</span>
+                                <span>{getLocalizedUnitDisplayName(unit, lang)}</span>
                                 {hasPromotion && (
                                   <span className="text-red-500 animate-pulse">🔥</span>
                                 )}
