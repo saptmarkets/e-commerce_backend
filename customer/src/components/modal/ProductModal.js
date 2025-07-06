@@ -523,7 +523,7 @@ const ProductModal = ({
                       ))}
                 </div>
                     <span className="text-xs text-gray-600">
-                      {product.rating.toFixed(1)} ({product.reviewCount || 0} reviews)
+                      {product.rating.toFixed(1)} ({product.reviewCount || 0} {t('reviews')})
                     </span>
                   </div>
                 )}
@@ -533,16 +533,16 @@ const ProductModal = ({
                   {(product.hasMultiUnits ? availableStock : stock) > 0 ? (
                     <span className="flex items-center text-green-600 font-medium">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                      {product.hasMultiUnits ? availableStock : stock} in stock
+                      {product.hasMultiUnits ? availableStock : stock} {t('inStock')}
                     </span>
                   ) : (
                     <span className="flex items-center text-red-600 font-medium">
                       <div className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></div>
-                      Out of stock
+                      {t('outOfStock')}
                     </span>
                   )}
                   {product.sku && (
-                    <span className="text-gray-500">SKU: {product.sku}</span>
+                    <span className="text-gray-500">{t('sku')}: {product.sku}</span>
                   )}
                 </div>
               </div>
@@ -550,7 +550,7 @@ const ProductModal = ({
               {/* Unit Selection */}
               {hasMultipleUnits && unitComparisonData?.length > 0 && (
                 <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-                  <h4 className="font-semibold text-gray-900 text-sm">Select Package:</h4>
+                  <h4 className="font-semibold text-gray-900 text-sm">{t('selectPackage')}</h4>
                   <div className="space-y-1">
                     {unitComparisonData.map((unit) => {
                       const isSelected = selectedUnit?._id === unit._id;
@@ -620,12 +620,12 @@ const ProductModal = ({
                               </div>
                               {unit.packQty > 1 && (
                               <div className="text-xs text-gray-500">
-                                Contains {unit.packQty} base units
+                                {t('contains')} {unit.packQty} {t('baseUnits')}
                               </div>
                               )}
                               {hasPromotion && (
                                 <div className="text-xs font-medium text-red-600 mt-1">
-                                  🔥 Special Offer Available!
+                                  🔥 {t('specialOfferAvailable')}
                                 </div>
                               )}
                             </div>
@@ -635,7 +635,7 @@ const ProductModal = ({
                               </div>
                               {unit.packQty > 1 && (
                                 <div className="text-xs text-gray-500">
-                                  {currency}{getNumberTwo(unit.pricePerBase || 0)}/unit
+                                  {currency}{getNumberTwo(unit.pricePerBase || 0)} / {t('unit')}
                                 </div>
                               )}
                             </div>
