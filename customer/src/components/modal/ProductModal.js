@@ -640,13 +640,37 @@ const ProductModal = ({
                               )}
                             </div>
                             <div className="text-right">
-                              <div className={`font-bold text-sm ${hasPromotion ? 'text-red-600' : 'text-blue-600'}`}>
-                                {currency}{getNumberTwo(unit.price)}
-                              </div>
-                              {unit.packQty > 1 && (
-                                <div className="text-xs text-gray-500">
-                                  {currency}{getNumberTwo(unit.pricePerBase || 0)} / {t('unit')}
-                                </div>
+                              {hasPromotion ? (
+                                (() => {
+                                  // Try to locate the unit promotion data (either from activePromotion or by API call earlier)
+                                  const unitPromo = (activePromotion && activePromotion.productUnit && activePromotion.productUnit._id === unit._id)
+                                    ? activePromotion
+                                    : null; // We don't cache all promos in modal, but we still know it's promotional
+
+                                  const promoPrice = unitPromo ? (unitPromo.value || unitPromo.offerPrice || unit.price) : unit.price;
+                                  const minQtyPromo = unitPromo ? (unitPromo.minQty || unitPromo.requiredQty || 1) : 1;
+
+                                  return (
+                                    <div className="space-y-0.5 text-right">
+                                      <div className="flex items-baseline justify-end space-x-1">
+                                        <span className="font-bold text-red-600">{currency}{getNumberTwo(promoPrice)}</span>
+                                        <span className="text-xs line-through text-gray-400">{currency}{getNumberTwo(unit.price)}</span>
+                                      </div>
+                                      <div className="text-[10px] text-red-600">🔥 {t('min')} {minQtyPromo}</div>
+                                    </div>
+                                  );
+                                })()
+                              ) : (
+                                <>
+                                  <div className="font-bold text-sm text-blue-600">
+                                    {currency}{getNumberTwo(unit.price)}
+                                  </div>
+                                  {unit.packQty > 1 && (
+                                    <div className="text-xs text-gray-500">
+                                      {currency}{getNumberTwo(unit.pricePerBase || 0)} / {t('unit')}
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                             {isSelected && (
