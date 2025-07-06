@@ -159,6 +159,16 @@ const ProductModal = ({
     }
   }, [selectedUnit]);
 
+  // Auto-adjust quantity (item) to meet promotion minimum requirements
+  useEffect(() => {
+    if (!activePromotion) return;
+
+    const minQty = activePromotion.minQty || activePromotion.requiredQty || 1;
+    if (item < minQty) {
+      setItem(minQty);
+    }
+  }, [activePromotion, item]);
+
   // Enhanced pricing calculation with unit-specific promotions
   const pricingInfo = useMemo(() => {
     let basePrice = 0;
@@ -761,8 +771,8 @@ const ProductModal = ({
 
               {/* Quantity and Add to Cart */}
               <div className="space-y-3">
-                {/* Quantity Selector */}
-                  {(!activePromotion || activePromotion.minQty <= 1) && (
+                {/* Quantity Selector – always visible, defaulting to promotion minQty if applicable */}
+                  {true && (
                   <div className="space-y-1">
                     <label className="block text-xs font-medium text-gray-700">{t('quantity')}</label>
                     <div className="flex items-center space-x-3">
