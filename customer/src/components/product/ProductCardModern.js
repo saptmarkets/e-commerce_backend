@@ -769,27 +769,29 @@ const ProductCardModern = ({
           )}
 
           {/* Pack & Promotion Information – unified two-column row */}
-          {packInfo && !compact && (
+          {(!compact && (packInfo || (pricingInfo.isPromotional && activePromotion))) && (
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Left – pack info */}
-              <div className="flex-1 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="text-xs text-blue-800 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span>{t('packSize')}:</span>
-                    <span className="font-semibold">{packInfo.packQty} {t('pieces')}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>{t('pricePerPiece')}:</span>
-                    <span className="font-semibold">{currency}{packInfo.pricePerPiece.toFixed(2)}</span>
-                  </div>
-                  {quantity > 1 && (
-                    <div className="flex justify-between items-center pt-1 border-t border-blue-200">
-                      <span>{t('totalPieces')}:</span>
-                      <span className="font-semibold text-blue-700">{packInfo.totalBaseUnits} {t('pieces')}</span>
+              {packInfo && (
+                <div className="flex-1 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-xs text-blue-800 space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span>{t('packSize')}:</span>
+                      <span className="font-semibold">{packInfo.packQty} {t('pieces')}</span>
                     </div>
-                  )}
+                    <div className="flex justify-between items-center">
+                      <span>{t('pricePerPiece')}:</span>
+                      <span className="font-semibold">{currency}{packInfo.pricePerPiece.toFixed(2)}</span>
+                    </div>
+                    {quantity > 1 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-blue-200">
+                        <span>{t('totalPieces')}:</span>
+                        <span className="font-semibold text-blue-700">{packInfo.totalBaseUnits} {t('pieces')}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Right – promotional info (only if there is an active promotion on the selected unit) */}
               {activePromotion && pricingInfo.isPromotional && (
@@ -819,6 +821,20 @@ const ProductCardModern = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          {/* Show promo panel even when packInfo is null (single unit) */}
+          {!packInfo && !compact && activePromotion && pricingInfo.isPromotional && (
+            <div className="p-2 bg-red-50 rounded-lg border border-red-200 mt-2">
+              <div className="space-y-1 text-center">
+                <div className="text-xs font-medium text-red-700">
+                  {t('min')} {activePromotion.minQty || 1} • {activePromotion.maxQty ? `${t('max')} ${activePromotion.maxQty}` : ''}
+                </div>
+                <div className="flex items-baseline justify-center space-x-1">
+                  <span className="text-xl font-extrabold text-red-600">{currency}{pricingInfo.finalPrice.toFixed(2)}</span>
+                  <span className="text-sm text-red-400 line-through">{currency}{pricingInfo.basePrice.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           )}
           </div>
