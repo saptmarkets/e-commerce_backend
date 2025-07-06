@@ -22,7 +22,7 @@ import { notifyError, notifySuccess } from "@utils/toast";
 import ProductUnitServices from "@services/ProductUnitServices";
 import PromotionServices from "@services/PromotionServices";
 import NeonSpinner from "@components/preloader/NeonSpinner";
-import { getUnitDisplayName } from "@utils/unitUtils";
+import { getUnitDisplayName, getShortUnitName } from "@utils/unitUtils";
 
 const ProductDetailCardEnhanced = ({ 
   product, 
@@ -337,6 +337,8 @@ const ProductDetailCardEnhanced = ({
           const isSelected = selectedUnit?._id === unit._id;
           const unitPrice = unit.price || 0;
           const pricePerBase = unit.packQty ? unitPrice / unit.packQty : unitPrice;
+          
+
           
           return (
             <motion.button

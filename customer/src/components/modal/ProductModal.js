@@ -765,15 +765,38 @@ const ProductModal = ({
                               'promotionUnit.unit.shortCode': promotionUnit?.unit?.shortCode,
                               'promotionUnit.unit.nameAr': promotionUnit?.unit?.nameAr,
                               'promotionUnit.unit.name': promotionUnit?.unit?.name,
+                              'promotionUnit.unitValue': promotionUnit?.unitValue,
                               'lang': lang,
                               'getLocalizedUnitDisplayName result': getLocalizedUnitDisplayName(promotionUnit, lang)
                             });
                             
+                            // Log the exact shortCode we're checking
+                            console.log('ProductModal: ShortCode check:', {
+                              'shortCode': promotionUnit?.unit?.shortCode,
+                              'shortCode type': typeof promotionUnit?.unit?.shortCode,
+                              'shortCode === CTN': promotionUnit?.unit?.shortCode === 'CTN',
+                              'shortCode === ctn': promotionUnit?.unit?.shortCode === 'ctn',
+                              'promotionUnit.shortCode': promotionUnit?.shortCode,
+                              'selectedUnit.unit.shortCode': selectedUnit?.unit?.shortCode,
+                              'selectedUnit.shortCode': selectedUnit?.shortCode
+                            });
+                            
+                            // Log full structures to understand the difference
+                            console.log('ProductModal: Full structures:', {
+                              'promotionUnit': JSON.stringify(promotionUnit, null, 2),
+                              'selectedUnit': JSON.stringify(selectedUnit, null, 2)
+                            });
+                            
                             // Try to get Arabic unit name with fallback
                             let unitDisplayName;
-                            if (promotionUnit?.unit?.nameAr && lang === 'ar') {
-                              unitDisplayName = promotionUnit.unit.nameAr;
-                            } else if (promotionUnit?.unit?.shortCode) {
+                            
+                            // Check multiple possible locations for unit info
+                            const shortCode = promotionUnit?.unit?.shortCode || promotionUnit?.shortCode || selectedUnit?.unit?.shortCode || selectedUnit?.shortCode;
+                            const nameAr = promotionUnit?.unit?.nameAr || promotionUnit?.nameAr || selectedUnit?.unit?.nameAr || selectedUnit?.nameAr;
+                            
+                            if (nameAr && lang === 'ar') {
+                              unitDisplayName = nameAr;
+                            } else if (shortCode) {
                               // Use the same fallback logic as in unitUtils
                               const shortCodeMap = {
                                 'pcs': lang === 'ar' ? 'قطعة' : 'pcs',
@@ -782,18 +805,19 @@ const ProductModal = ({
                                 'kg': lang === 'ar' ? 'كيلو' : 'kg',
                                 'g': lang === 'ar' ? 'جرام' : 'g'
                               };
-                              unitDisplayName = shortCodeMap[promotionUnit.unit.shortCode] || promotionUnit.unit.shortCode;
+                              unitDisplayName = shortCodeMap[shortCode] || shortCode;
                             } else {
-                              unitDisplayName = getLocalizedUnitDisplayName(promotionUnit, lang);
+                              // Final fallback to the utility function
+                              unitDisplayName = getLocalizedUnitDisplayName(selectedUnit, lang);
                             }
                             
                             const unitValue = promotionUnit?.unitValue || 1;
                             
                             return (
                               <>
-                                {t('min')}: {activePromotion.minQty || 1} {unitDisplayName}{unitValue > 1 ? ` ${unitValue}` : ''}
+                                {t('min')}: {activePromotion.minQty || 1} {unitDisplayName}
                                 {activePromotion.maxQty && (
-                                  <span className="ml-2">{t('max')}: {activePromotion.maxQty} {unitDisplayName}{unitValue > 1 ? ` ${unitValue}` : ''}</span>
+                                  <span className="ml-2">{t('max')}: {activePromotion.maxQty} {unitDisplayName}</span>
                                 )}
                               </>
                             );
@@ -810,9 +834,14 @@ const ProductModal = ({
                               
                               // Use the same fallback logic for promotional offer text
                               let unitDisplayName;
-                              if (promotionUnit?.unit?.nameAr && lang === 'ar') {
-                                unitDisplayName = promotionUnit.unit.nameAr;
-                              } else if (promotionUnit?.unit?.shortCode) {
+                              
+                              // Check multiple possible locations for unit info
+                              const shortCode = promotionUnit?.unit?.shortCode || promotionUnit?.shortCode || selectedUnit?.unit?.shortCode || selectedUnit?.shortCode;
+                              const nameAr = promotionUnit?.unit?.nameAr || promotionUnit?.nameAr || selectedUnit?.unit?.nameAr || selectedUnit?.nameAr;
+                              
+                              if (nameAr && lang === 'ar') {
+                                unitDisplayName = nameAr;
+                              } else if (shortCode) {
                                 const shortCodeMap = {
                                   'pcs': lang === 'ar' ? 'قطعة' : 'pcs',
                                   'CTN': lang === 'ar' ? 'كرتون' : 'CTN',
@@ -820,14 +849,15 @@ const ProductModal = ({
                                   'kg': lang === 'ar' ? 'كيلو' : 'kg',
                                   'g': lang === 'ar' ? 'جرام' : 'g'
                                 };
-                                unitDisplayName = shortCodeMap[promotionUnit.unit.shortCode] || promotionUnit.unit.shortCode;
+                                unitDisplayName = shortCodeMap[shortCode] || shortCode;
                               } else {
-                                unitDisplayName = getLocalizedUnitDisplayName(promotionUnit, lang);
+                                // Final fallback to the utility function
+                                unitDisplayName = getLocalizedUnitDisplayName(selectedUnit, lang);
                               }
                               
                               const unitValue = promotionUnit?.unitValue || 1;
                               
-                              return `${t('get')} ${activePromotion.minQty || 1} ${unitDisplayName}${unitValue > 1 ? ` ${unitValue}` : ''} ${t('for')}`;
+                              return `${t('get')} ${activePromotion.minQty || 1} ${unitDisplayName} ${t('for')}`;
                             })()}
                           </div>
                           <div className="text-sm font-bold text-red-600">

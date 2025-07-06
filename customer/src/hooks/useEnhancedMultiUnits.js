@@ -1,8 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import ProductUnitServices from '@services/ProductUnitServices';
 import PromotionServices from '@services/PromotionServices';
+import useUtilsFunction from '@hooks/useUtilsFunction';
+import { getUnitDisplayName as getLocalizedUnitDisplayName } from '@utils/unitUtils';
 
 const useEnhancedMultiUnits = (product) => {
+  // NEW: obtain language from util hook so we can localize unit names
+  const { lang } = useUtilsFunction();
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [availableUnits, setAvailableUnits] = useState([]);
   const [isLoadingUnits, setIsLoadingUnits] = useState(false);
@@ -45,7 +49,7 @@ const useEnhancedMultiUnits = (product) => {
             return {
               ...unit,
               pricePerBaseUnit,
-              displayName: `${unit.unitValue || 1} ${unit.unit?.name || 'Unit'}`,
+              displayName: getLocalizedUnitDisplayName(unit, lang),
               savings: 0 // Will be calculated relative to smallest unit
             };
           });
@@ -79,7 +83,7 @@ const useEnhancedMultiUnits = (product) => {
     };
 
     fetchProductUnits();
-  }, [product?._id, product?.hasMultiUnits]);
+  }, [product?._id, product?.hasMultiUnits, lang]);
 
   // Fetch promotions
   useEffect(() => {
@@ -185,10 +189,10 @@ const useEnhancedMultiUnits = (product) => {
   const unitComparisonData = useMemo(() => {
     return availableUnits.map(unit => ({
       ...unit,
-      displayName: `${unit.unitValue || 1} ${unit.unit?.name || 'Unit'}`,
+      displayName: getLocalizedUnitDisplayName(unit, lang),
       pricePerBaseUnit: unit.packQty ? unit.price / unit.packQty : unit.price
     }));
-  }, [availableUnits]);
+  }, [availableUnits, lang]);
 
   // Handle unit selection with animation trigger
   const handleUnitSelection = (unit) => {
@@ -199,7 +203,8 @@ const useEnhancedMultiUnits = (product) => {
   // Get unit display name helper
   const getUnitDisplayName = (unit) => {
     if (!unit) return 'Unit';
-    return `${unit.unitValue || 1} ${unit.unit?.name || unit.unit?.shortCode || 'Unit'}`;
+    // Use shared util for consistent localization
+    return getLocalizedUnitDisplayName(unit, lang);
   };
 
   // Check if product has multiple units

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useQuery } from "@tanstack/react-query";
 import BannerServices from "@services/BannerServices";
+import useUtilsFunction from "@hooks/useUtilsFunction";
 
 const BannerSection = ({ 
   title = "Banner Section Title", 
@@ -11,6 +12,9 @@ const BannerSection = ({
   buttonLink = "/contact-us",
   bannerImage = "/images/banner/banner-bg.jpg"
 }) => {
+  // Get language and translation utility
+  const { lang, showingTranslateValue } = useUtilsFunction();
+  
   // Fetch banner from API
   const { data: banners } = useQuery({
     queryKey: ["home-middle-banner"],
@@ -20,12 +24,21 @@ const BannerSection = ({
 
   // Use API data if available, otherwise use props
   const banner = banners?.banners?.[0];
-  const displayTitle = banner?.title || title;
-  const displayDescription = banner?.description || description;
-  const displayButtonText = banner?.linkText || buttonText;
+  const displayTitle = showingTranslateValue(banner?.title) || title;
+  const displayDescription = showingTranslateValue(banner?.description) || description;
+  const displayButtonText = showingTranslateValue(banner?.linkText) || buttonText;
   const displayButtonLink = banner?.linkUrl || buttonLink;
   const displayBannerImage = banner?.imageUrl || bannerImage;
   const openInNewTab = banner?.openInNewTab || false;
+
+  // Debug log for translations
+  console.log('BannerSection banner data:', {
+    banner,
+    displayTitle,
+    displayDescription,
+    displayButtonText,
+    lang
+  });
   
   return (
     <div className="bg-white py-8 md:py-16">
@@ -35,7 +48,7 @@ const BannerSection = ({
           <div className="absolute inset-0 z-0">
             <Image 
               src={displayBannerImage}
-              alt="Banner Background"
+              alt={lang === 'ar' ? 'خلفية الإعلان' : 'Banner Background'}
               fill
               className="object-cover"
               priority
@@ -43,10 +56,10 @@ const BannerSection = ({
           </div>
           
           {/* Responsive Overlay */}
-          <div className="absolute inset-0 bg-black bg-opacity-40 md:bg-gradient-to-r md:from-black/60 md:via-black/30 md:to-transparent z-[1]"></div>
+          <div className={`absolute inset-0 bg-black bg-opacity-40 md:bg-gradient-to-${lang === 'ar' ? 'l' : 'r'} md:from-black/60 md:via-black/30 md:to-transparent z-[1]`}></div>
           
-          {/* Content - Centered on mobile, left-aligned on desktop */}
-          <div className="relative z-10 text-center md:text-left max-w-2xl mx-auto md:mx-0 md:w-full">
+          {/* Content - Centered on mobile, direction-aware on desktop */}
+          <div className={`relative z-10 text-center md:text-${lang === 'ar' ? 'right' : 'left'} max-w-2xl mx-auto md:mx-0 md:w-full`}>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 md:mb-6 drop-shadow-lg leading-tight">
               {displayTitle}
             </h2>

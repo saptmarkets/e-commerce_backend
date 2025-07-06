@@ -10,8 +10,12 @@ import "swiper/css/navigation";
 
 //internal import
 import BannerServices from "@services/BannerServices";
+import useUtilsFunction from "@hooks/useUtilsFunction";
 
 const MainCarousel = () => {
+  // Get language and translation utility
+  const { lang, showingTranslateValue } = useUtilsFunction();
+  
   // Fetch banners from API
   const { data: banners, isLoading, error } = useQuery({
     queryKey: ["home-hero-banners"],
@@ -27,12 +31,12 @@ const MainCarousel = () => {
   // Debug log
   console.log('MainCarousel banners:', banners?.banners);
 
-  // Convert API banners to slider format
+  // Convert API banners to slider format with proper translations
   const sliderData = banners.banners.map((banner, index) => ({
     id: banner._id,
-    title: banner.title,
-    info: banner.description,
-    buttonName: banner.linkText || "Shop Now",
+    title: showingTranslateValue(banner.title),
+    info: showingTranslateValue(banner.description),
+    buttonName: showingTranslateValue(banner.linkText) || (lang === 'ar' ? 'تسوق الآن' : 'Shop Now'),
     url: banner.linkUrl || "/products",
     image: banner.imageUrl,
     leftImage: banner.leftImageUrl,
@@ -48,7 +52,7 @@ const MainCarousel = () => {
     openInNewTab: banner.openInNewTab
   }));
 
-  console.log('Processed sliderData:', sliderData);
+  console.log('Processed sliderData with translations:', sliderData);
 
   // Check if we have any triple layout banners (support both old and new fields)
   const hasTripleLayout = sliderData.some(item => 
@@ -80,7 +84,7 @@ const MainCarousel = () => {
       />
       <div className="absolute inset-0 bg-black bg-opacity-30">
         <div className="flex flex-col justify-center h-full max-w-screen-xl mx-auto px-6 md:px-10">
-          <div className="max-w-lg">
+          <div className={`max-w-lg ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 drop-shadow-md">
               {item.title}
             </h1>
@@ -117,7 +121,7 @@ const MainCarousel = () => {
       />
       <div className="absolute inset-0 bg-black bg-opacity-30">
         <div className="flex flex-col justify-center h-full px-4 md:px-8">
-          <div className="max-w-lg">
+          <div className={`max-w-lg ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 drop-shadow-md">
               {item.title}
             </h1>
@@ -147,30 +151,60 @@ const MainCarousel = () => {
           // Triple Layout: Center carousel with static side images
           <>
             {/* Desktop Layout */}
-            <div className="hidden md:flex items-center gap-2 h-[300px] px-4">
-              {/* Static Left Side Images (15%) - 2 images stacked */}
+            <div className={`hidden md:flex items-center gap-2 h-[300px] px-4 ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
+              {/* Left Side Images (15%) - RTL aware positioning */}
               <div className="flex flex-col gap-2 w-[15%] h-full">
-                {staticSideImages?.leftImage1 && (
-                  <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
-                    <Image 
-                      src={staticSideImages.leftImage1}
-                      alt="Side Banner 1"
-                      fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                      sizes="15vw"
-                    />
-                  </div>
-                )}
-                {staticSideImages?.leftImage2 && (
-                  <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
-                    <Image 
-                      src={staticSideImages.leftImage2}
-                      alt="Side Banner 2"
-                      fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                      sizes="15vw"
-                    />
-                  </div>
+                {/* For RTL, we show right images on the left side */}
+                {lang === 'ar' ? (
+                  <>
+                    {staticSideImages?.rightImage1 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.rightImage1}
+                          alt={lang === 'ar' ? 'إعلان جانبي ١' : 'Side Banner 1'}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                    {staticSideImages?.rightImage2 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.rightImage2}
+                          alt={lang === 'ar' ? 'إعلان جانبي ٢' : 'Side Banner 2'}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {staticSideImages?.leftImage1 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.leftImage1}
+                          alt="Side Banner 1"
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                    {staticSideImages?.leftImage2 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.leftImage2}
+                          alt="Side Banner 2"
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -191,6 +225,7 @@ const MainCarousel = () => {
                   navigation={true}
                   modules={[Autoplay, Pagination, Navigation]}
                   className="mySwiper h-[300px]"
+                  dir={lang === 'ar' ? 'rtl' : 'ltr'}
                 >
                   {sliderData?.map((item, i) => (
                     <SwiperSlide
@@ -203,29 +238,59 @@ const MainCarousel = () => {
                 </Swiper>
               </div>
 
-              {/* Static Right Side Images (15%) - 2 images stacked */}
+              {/* Right Side Images (15%) - RTL aware positioning */}
               <div className="flex flex-col gap-2 w-[15%] h-full">
-                {staticSideImages?.rightImage1 && (
-                  <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
-                    <Image 
-                      src={staticSideImages.rightImage1}
-                      alt="Side Banner 3"
-                      fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                      sizes="15vw"
-                    />
-                  </div>
-                )}
-                {staticSideImages?.rightImage2 && (
-                  <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
-                    <Image 
-                      src={staticSideImages.rightImage2}
-                      alt="Side Banner 4"
-                      fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                      sizes="15vw"
-                    />
-                  </div>
+                {/* For RTL, we show left images on the right side */}
+                {lang === 'ar' ? (
+                  <>
+                    {staticSideImages?.leftImage1 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.leftImage1}
+                          alt={lang === 'ar' ? 'إعلان جانبي ٣' : 'Side Banner 3'}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                    {staticSideImages?.leftImage2 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.leftImage2}
+                          alt={lang === 'ar' ? 'إعلان جانبي ٤' : 'Side Banner 4'}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {staticSideImages?.rightImage1 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.rightImage1}
+                          alt="Side Banner 3"
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                    {staticSideImages?.rightImage2 && (
+                      <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
+                        <Image 
+                          src={staticSideImages.rightImage2}
+                          alt="Side Banner 4"
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="15vw"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -249,6 +314,7 @@ const MainCarousel = () => {
                   navigation={false}
                   modules={[Autoplay, Pagination]}
                   className="mySwiper h-full"
+                  dir={lang === 'ar' ? 'rtl' : 'ltr'}
                 >
                   {sliderData?.map((item, i) => (
                     <SwiperSlide
@@ -281,6 +347,7 @@ const MainCarousel = () => {
                 navigation={true}
                 modules={[Autoplay, Pagination, Navigation]}
                 className="mySwiper"
+                dir={lang === 'ar' ? 'rtl' : 'ltr'}
               >
                 {sliderData?.map((item, i) => (
                   <SwiperSlide
