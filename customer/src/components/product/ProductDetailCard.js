@@ -157,6 +157,8 @@ const ProductDetailCard = ({
   }, [selectedUnit, product?.stock]);
 
   const pricingInfo = useMemo(() => {
+    console.log('ProductDetailCard: Calculating pricing for unit:', selectedUnit?._id, 'with promotion:', activePromotion?.type);
+    
     if (!selectedUnit) return { basePrice: 0, finalPrice: 0, savings: 0, isPromotional: false };
 
     const basePrice = selectedUnit.price || 0;
@@ -164,44 +166,112 @@ const ProductDetailCard = ({
     let savings = 0;
     let isPromotional = false;
 
+    console.log('ProductDetailCard: Base price:', basePrice, 'for unit:', selectedUnit._id);
+
     // Apply promotion if available and valid
     if (activePromotion) {
+      console.log('ProductDetailCard: Active promotion:', {
+        type: activePromotion.type,
+        value: activePromotion.value,
+        productUnitId: activePromotion.productUnit?._id,
+        selectedUnitId: selectedUnit._id,
+        minQty: activePromotion.minQty,
+        currentQuantity: quantity
+      });
+
       // Check if promotion applies to this specific unit or is a general product promotion
-      const promotionApplies = !activePromotion.productUnit || 
-                              activePromotion.productUnit._id === selectedUnit._id ||
-                              activePromotion.productUnits?.some(pu => pu._id === selectedUnit._id);
+      const isUnitSpecificPromotion = activePromotion.productUnit && 
+                                     activePromotion.productUnit._id === selectedUnit._id;
+      
+      const isGeneralPromotion = !activePromotion.productUnit ||
+                                activePromotion.productUnits?.some(pu => pu._id === selectedUnit._id);
+      
+      // Additional check for unit matching by properties
+      const isUnitMatchByProperties = activePromotion.productUnit && 
+                                     selectedUnit.unit && 
+                                     activePromotion.productUnit.unit && 
+                                     selectedUnit.unit.shortCode === activePromotion.productUnit.unit.shortCode &&
+                                     selectedUnit.unitValue === activePromotion.productUnit.unitValue;
+      
+      const promotionApplies = isUnitSpecificPromotion || isGeneralPromotion || isUnitMatchByProperties;
+      
+      console.log('ProductDetailCard: Promotion application check:', {
+        isUnitSpecificPromotion,
+        isGeneralPromotion,
+        isUnitMatchByProperties,
+        promotionApplies,
+        quantityMet: quantity >= (activePromotion.minQty || 1)
+      });
       
       if (promotionApplies && quantity >= (activePromotion.minQty || 1)) {
         if (activePromotion.type === 'fixed_price') {
-          finalPrice = activePromotion.value || basePrice;
-          savings = basePrice - finalPrice;
-          isPromotional = finalPrice < basePrice;
+          const promoPrice = activePromotion.value || activePromotion.offerPrice || 0;
+          console.log('ProductDetailCard: Applying fixed price promotion:', promoPrice);
+          
+          if (promoPrice > 0) {
+            finalPrice = promoPrice;
+            savings = Math.max(0, basePrice - finalPrice);
+            isPromotional = finalPrice < basePrice;
+            
+            console.log('ProductDetailCard: Fixed price promotion applied:', {
+              basePrice,
+              finalPrice,
+              savings,
+              isPromotional
+            });
+          } else {
+            console.warn('ProductDetailCard: Invalid promotion price:', promoPrice);
+          }
         } else if (activePromotion.type === 'bulk_purchase') {
           // For bulk purchases, calculate effective price considering free items
           const totalRequired = activePromotion.requiredQty || 1;
           const freeQty = activePromotion.freeQty || 0;
-          if (quantity >= totalRequired) {
+          if (quantity >= totalRequired && totalRequired > 0 && (totalRequired + freeQty) > 0) {
             const effectivePrice = (basePrice * totalRequired) / (totalRequired + freeQty);
             finalPrice = effectivePrice;
-            savings = basePrice - effectivePrice;
+            savings = Math.max(0, basePrice - effectivePrice);
             isPromotional = true;
+            
+            console.log('ProductDetailCard: Bulk purchase promotion applied:', {
+              totalRequired,
+              freeQty,
+              basePrice,
+              effectivePrice,
+              savings
+            });
           }
         } else if (activePromotion.type === 'percentage_discount') {
           const discountPercent = activePromotion.value || 0;
-          finalPrice = basePrice * (1 - discountPercent / 100);
-          savings = basePrice - finalPrice;
-          isPromotional = savings > 0;
+          if (discountPercent > 0 && discountPercent <= 100) {
+            finalPrice = basePrice * (1 - discountPercent / 100);
+            savings = Math.max(0, basePrice - finalPrice);
+            isPromotional = savings > 0;
+            
+            console.log('ProductDetailCard: Percentage discount promotion applied:', {
+              discountPercent,
+              basePrice,
+              finalPrice,
+              savings
+            });
+          }
         }
+      } else {
+        console.log('ProductDetailCard: Promotion does not apply or quantity requirement not met');
       }
+    } else {
+      console.log('ProductDetailCard: No active promotion');
     }
 
-    return { 
+    const result = { 
       basePrice, 
       finalPrice: Math.max(0, finalPrice), 
       savings: Math.max(0, savings), 
       isPromotional,
       pricePerBaseUnit: selectedUnit.packQty ? finalPrice / selectedUnit.packQty : finalPrice
     };
+
+    console.log('ProductDetailCard: Final pricing result:', result);
+    return result;
   }, [selectedUnit, activePromotion, quantity]);
 
   // Event handlers
@@ -356,7 +426,7 @@ const ProductDetailCard = ({
               </div>
               <div className="flex items-center space-x-3">
                 <span className="text-2xl font-bold text-red-600">
-                  {currency}{pricingInfo.finalPrice.toFixed(2)}
+                  {pricingInfo.finalPrice > 0 ? `${currency}${pricingInfo.finalPrice.toFixed(2)}` : 'Price not available'}
                 </span>
                 <span className="text-lg text-gray-500 line-through">
                   {currency}{pricingInfo.basePrice.toFixed(2)}
@@ -369,7 +439,7 @@ const ProductDetailCard = ({
           ) : (
             <div className="flex items-center space-x-2">
               <span className="text-2xl font-bold text-emerald-600">
-                {currency}{pricingInfo.finalPrice.toFixed(2)}
+                {pricingInfo.finalPrice > 0 ? `${currency}${pricingInfo.finalPrice.toFixed(2)}` : 'Price not available'}
               </span>
               <span className="text-sm text-gray-500">per package</span>
             </div>
