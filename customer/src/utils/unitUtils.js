@@ -16,6 +16,20 @@ export const getLocalizedUnitName = (unit, language = 'en') => {
   if (language === 'ar' && unit.nameAr && unit.nameAr.trim() !== '') {
     return unit.nameAr;
   }
+
+  // Fallback map for common shortCodes to Arabic names
+  if (language === 'ar') {
+    const shortCodeMap = {
+      pcs: 'قطعة',
+      CTN: 'كرتون',
+      ctn: 'كرتون',
+      kg: 'كيلو',
+      g: 'جرام'
+    };
+    if (unit.shortCode && shortCodeMap[unit.shortCode]) {
+      return shortCodeMap[unit.shortCode] + (unit.unitValue && unit.unitValue > 1 ? ` ${unit.unitValue}` : '');
+    }
+  }
   
   // Fallback to English name or shortCode
   return unit.name || unit.shortCode || 'Unit';
