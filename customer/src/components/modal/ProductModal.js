@@ -31,7 +31,7 @@ const ProductModal = ({
 }) => {
   const router = useRouter();
   const { setIsLoading, isLoading } = useContext(SidebarContext);
-  const { t } = useTranslation("ns1");
+  const { t } = useTranslation("common");
 
   const { handleAddItem, setItem, item } = useAddToCart();
   const { lang, showingTranslateValue, getNumber, getNumberTwo } = useUtilsFunction();

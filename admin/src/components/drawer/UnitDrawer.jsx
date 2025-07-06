@@ -53,7 +53,7 @@ const UnitDrawer = ({
                   <Error errorName={errors.name} />
                 </div>
               </div>
-
+              
               {/* Arabic Name Field - New! */}
               <div className="grid grid-cols-6 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
                 <LabelArea label={t('Unit Name (Arabic)')} />

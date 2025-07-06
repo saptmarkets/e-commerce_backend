@@ -145,6 +145,17 @@ const ProductDetailCardEnhanced = ({
     fetchUnitPromotions();
   }, [selectedUnit]);
 
+  // Auto-adjust quantity to meet minimum promotion requirements (like the small product card)
+  useEffect(() => {
+    if (activePromotion && selectedUnit) {
+      const minQty = activePromotion.minQty || 1;
+      // If current quantity is less than minimum required and stock allows, auto-adjust
+      if (quantity < minQty && minQty <= availableStock) {
+        setQuantity(minQty);
+      }
+    }
+  }, [activePromotion, selectedUnit, availableStock]);
+
   // Calculations
   const currentCartItem = useMemo(() => {
     if (!selectedUnit) return null;
@@ -167,24 +178,37 @@ const ProductDetailCardEnhanced = ({
     let savings = 0;
     let isPromotional = false;
 
-    // Always display promotional price for information purposes; quantity rules will be enforced during cart add
-    if (activePromotion) {
+    // Apply promotion if available and meets quantity requirements (like the small product card)
+    if (activePromotion && quantity >= (activePromotion.minQty || 1)) {
       const isUnitSpecificPromotion = activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id;
       const isGeneralPromotion = !activePromotion.productUnit || activePromotion.product === product._id;
 
       if (isUnitSpecificPromotion || isGeneralPromotion) {
         if (activePromotion.type === 'fixed_price') {
           const promoPrice = activePromotion.value || activePromotion.offerPrice || basePrice;
-          finalPrice = promoPrice;
-          const originalPrice = activePromotion.originalPrice || basePrice;
+          const maxQty = activePromotion.maxQty || null;
+
+          if (maxQty && quantity > maxQty) {
+            // Beyond maxQty we revert to regular price for the excess
+            const promoPortion = promoPrice * maxQty;
+            const regularPortion = basePrice * (quantity - maxQty);
+            finalPrice = (promoPortion + regularPortion) / quantity;
+          } else {
+            finalPrice = promoPrice;
+          }
+
+          const originalPrice = activePromotion.originalPrice || activePromotion.productUnit?.price || basePrice;
           savings = Math.max(0, originalPrice - promoPrice);
           isPromotional = true;
         } else if (activePromotion.type === 'bulk_purchase') {
           const totalRequired = activePromotion.requiredQty || activePromotion.minQty || 1;
           const freeQty = activePromotion.freeQty || 0;
-          const effectivePrice = (basePrice * totalRequired) / (totalRequired + freeQty);
+          const originalPrice = activePromotion.originalPrice || 
+                               activePromotion.productUnit?.price || 
+                               basePrice;
+          const effectivePrice = (originalPrice * totalRequired) / (totalRequired + freeQty);
           finalPrice = effectivePrice;
-          savings = Math.max(0, basePrice - effectivePrice);
+          savings = Math.max(0, originalPrice - effectivePrice);
           isPromotional = true;
         }
       }
@@ -352,6 +376,23 @@ const ProductDetailCardEnhanced = ({
                 <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-sm font-medium">
                   {t('save')} {currency}{pricingInfo.savings.toFixed(2)}
                 </span>
+              </div>
+            </div>
+          ) : activePromotion && quantity < (activePromotion.minQty || 1) ? (
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-bold text-emerald-600">
+                  {currency}{pricingInfo.finalPrice.toFixed(2)}
+                </span>
+                <span className="text-sm text-gray-500">{t('perPackage')}</span>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="flex items-center space-x-2">
+                  <IoFlashOutline className="text-yellow-600" />
+                  <span className="text-sm text-yellow-800">
+                    {t('buy')} {activePromotion.minQty || 1} {t('or')} {t('more')} {t('for')} {currency}{(activePromotion.value || activePromotion.offerPrice || pricingInfo.basePrice).toFixed(2)} {t('each')}
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
