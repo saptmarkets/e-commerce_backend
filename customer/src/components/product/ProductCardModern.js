@@ -826,14 +826,13 @@ const ProductCardModern = ({
           {/* Show promo panel even when packInfo is null (single unit) */}
           {!packInfo && !compact && activePromotion && pricingInfo.isPromotional && (
             <div className="p-2 bg-red-50 rounded-lg border border-red-200 mt-2">
-              <div className="space-y-1 text-center">
-                <div className="text-xs font-medium text-red-700">
-                  {t('min')} {activePromotion.minQty || 1} • {activePromotion.maxQty ? `${t('max')} ${activePromotion.maxQty}` : ''}
-                </div>
-                <div className="flex items-baseline justify-center space-x-1">
-                  <span className="text-xl font-extrabold text-red-600">{currency}{pricingInfo.finalPrice.toFixed(2)}</span>
-                  <span className="text-sm text-red-400 line-through">{currency}{pricingInfo.basePrice.toFixed(2)}</span>
-                </div>
+              <div className="text-xs font-medium text-red-700 text-center">
+                {t('min')} {activePromotion.minQty || 1}
+                {activePromotion.maxQty && (
+                  <>
+                    {' • '}{t('max')} {activePromotion.maxQty}
+                  </>
+                )}
               </div>
             </div>
           )}
