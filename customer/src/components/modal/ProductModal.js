@@ -359,7 +359,7 @@ const ProductModal = ({
         baseProductPrice: product?.price || pricingInfo.basePrice,
         originalPrice: selectedUnit?.originalPrice || pricingInfo.basePrice,
         // Multi-unit information
-        unitName: selectedUnit?.unit?.name || selectedUnit?.unit?.shortCode || 'Unit',
+        unitName: getUnitDisplayName(selectedUnit, lang) || 'Unit',
         unitValue: selectedUnit?.unitValue || 1,
         packQty: selectedUnit?.packQty || 1,
         unitType: selectedUnit?.unitType || 'multi',
@@ -628,7 +628,7 @@ const ProductModal = ({
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="font-medium text-sm flex items-center space-x-2">
-                                <span>{unit.displayName || getUnitDisplayName(unit)}</span>
+                                <span>{unit.displayName || getUnitDisplayName(unit, lang)}</span>
                                 {hasPromotion && (
                                   <span className="text-red-500 animate-pulse">🔥</span>
                                 )}
@@ -763,7 +763,7 @@ const ProductModal = ({
                       {activePromotion && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
                           <div className="text-xs font-medium text-red-700">
-                            {t('get')} {activePromotion.minQty || 1} {activePromotion.productUnit?.unit?.shortCode || selectedUnit?.unit?.shortCode || 'CTN'} {activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || ''} {t('for')}
+                            {t('get')} {activePromotion.minQty || 1} {getUnitDisplayName(activePromotion.productUnit || selectedUnit, lang)} {t('for')}
                           </div>
                           <div className="text-sm font-bold text-red-600">
                             {currency}{pricingInfo.finalPrice.toFixed(2)}
