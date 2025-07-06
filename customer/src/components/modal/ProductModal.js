@@ -752,10 +752,29 @@ const ProductModal = ({
                       {/* Min/Max Quantity Info */}
                       {activePromotion && (
                         <div className="text-xs text-gray-600">
-                          {t('min')}: {activePromotion.minQty || 1} {getLocalizedUnitDisplayName(activePromotion.productUnit || selectedUnit, lang)}{(activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || 1) > 1 ? ` ${activePromotion.productUnit?.unitValue || selectedUnit?.unitValue}` : ''}
-                          {activePromotion.maxQty && (
-                            <span className="ml-2">{t('max')}: {activePromotion.maxQty} {getLocalizedUnitDisplayName(activePromotion.productUnit || selectedUnit, lang)}{(activePromotion.productUnit?.unitValue || selectedUnit?.unitValue || 1) > 1 ? ` ${activePromotion.productUnit?.unitValue || selectedUnit?.unitValue}` : ''}</span>
-                          )}
+                          {(() => {
+                            // Debug promotion unit structure
+                            console.log('ProductModal: activePromotion.productUnit structure:', {
+                              activePromotion: activePromotion,
+                              productUnit: activePromotion.productUnit,
+                              selectedUnit: selectedUnit,
+                              promotionUnitName: getLocalizedUnitDisplayName(activePromotion.productUnit || selectedUnit, lang),
+                              selectedUnitName: getLocalizedUnitDisplayName(selectedUnit, lang)
+                            });
+                            
+                            const promotionUnit = activePromotion.productUnit || selectedUnit;
+                            const unitDisplayName = getLocalizedUnitDisplayName(promotionUnit, lang);
+                            const unitValue = promotionUnit?.unitValue || 1;
+                            
+                            return (
+                              <>
+                                {t('min')}: {activePromotion.minQty || 1} {unitDisplayName}{unitValue > 1 ? ` ${unitValue}` : ''}
+                                {activePromotion.maxQty && (
+                                  <span className="ml-2">{t('max')}: {activePromotion.maxQty} {unitDisplayName}{unitValue > 1 ? ` ${unitValue}` : ''}</span>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                       
@@ -763,7 +782,13 @@ const ProductModal = ({
                       {activePromotion && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
                           <div className="text-xs font-medium text-red-700">
-                            {t('get')} {activePromotion.minQty || 1} {getLocalizedUnitDisplayName(activePromotion.productUnit || selectedUnit, lang)} {t('for')}
+                            {(() => {
+                              const promotionUnit = activePromotion.productUnit || selectedUnit;
+                              const unitDisplayName = getLocalizedUnitDisplayName(promotionUnit, lang);
+                              const unitValue = promotionUnit?.unitValue || 1;
+                              
+                              return `${t('get')} ${activePromotion.minQty || 1} ${unitDisplayName}${unitValue > 1 ? ` ${unitValue}` : ''} ${t('for')}`;
+                            })()}
                           </div>
                           <div className="text-sm font-bold text-red-600">
                             {currency}{pricingInfo.finalPrice.toFixed(2)}
