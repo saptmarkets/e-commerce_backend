@@ -769,7 +769,7 @@ const ProductCardModern = ({
           )}
 
           {/* Pack & Promotion Information – unified two-column row */}
-          {(!compact && (packInfo || (pricingInfo.isPromotional && activePromotion))) && (
+          {(!compact && packInfo) && (
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Left – pack info */}
               {packInfo && (
@@ -797,9 +797,17 @@ const ProductCardModern = ({
               {activePromotion && pricingInfo.isPromotional && (
                 <div className="relative flex-1 p-2 bg-red-50 rounded-lg border border-red-200">
                   <div className="space-y-1">
-                    <div className="text-xs font-medium text-red-700">
-                      {t('pleaseSelect')} {activePromotion.minQty || 1} {getLocalizedShortUnitName(activePromotion.productUnit || selectedUnit)}{(activePromotion.productUnit?.unitValue || selectedUnit?.unitValue) > 1 ? ` ${activePromotion.productUnit?.unitValue || selectedUnit?.unitValue}` : ''} {t('getFor','',{fallback:'for'})}
-                    </div>
+                    {(() => {
+                      const isPromoUnitSelected = activePromotion && activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id;
+                      if (!isPromoUnitSelected) {
+                        return (
+                          <div className="text-xs font-medium text-red-700">
+                            {t('pleaseSelect')} {getLocalizedShortUnitName(activePromotion.productUnit)}{(activePromotion.productUnit?.unitValue > 1) ? ` ${activePromotion.productUnit.unitValue}` : ''}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div className="text-xl font-extrabold text-red-600">
                       {currency}{pricingInfo.finalPrice.toFixed(2)}
                     </div>
