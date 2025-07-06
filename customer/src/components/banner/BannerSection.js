@@ -13,7 +13,7 @@ const BannerSection = ({
   bannerImage = "/images/banner/banner-bg.jpg"
 }) => {
   // Get language and translation utility
-  const { lang, showingTranslateValue } = useUtilsFunction();
+  const { lang } = useUtilsFunction();
   
   // Fetch banner from API
   const { data: banners } = useQuery({
@@ -24,9 +24,9 @@ const BannerSection = ({
 
   // Use API data if available, otherwise use props
   const banner = banners?.banners?.[0];
-  const displayTitle = showingTranslateValue(banner?.title) || title;
-  const displayDescription = showingTranslateValue(banner?.description) || description;
-  const displayButtonText = showingTranslateValue(banner?.linkText) || buttonText;
+  const displayTitle = banner ? (lang === 'ar' ? banner.titleAr || banner.title : banner.title) : title;
+  const displayDescription = banner ? (lang === 'ar' ? banner.descriptionAr || banner.description : banner.description) : description;
+  const displayButtonText = banner ? (lang === 'ar' ? banner.linkTextAr || banner.linkText || 'تسوق الآن' : (banner.linkText || buttonText)) : buttonText;
   const displayButtonLink = banner?.linkUrl || buttonLink;
   const displayBannerImage = banner?.imageUrl || bannerImage;
   const openInNewTab = banner?.openInNewTab || false;

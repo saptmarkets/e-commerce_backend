@@ -14,7 +14,7 @@ import useUtilsFunction from "@hooks/useUtilsFunction";
 
 const MainCarousel = () => {
   // Get language and translation utility
-  const { lang, showingTranslateValue } = useUtilsFunction();
+  const { lang } = useUtilsFunction();
   
   // Fetch banners from API
   const { data: banners, isLoading, error } = useQuery({
@@ -34,9 +34,9 @@ const MainCarousel = () => {
   // Convert API banners to slider format with proper translations
   const sliderData = banners.banners.map((banner, index) => ({
     id: banner._id,
-    title: showingTranslateValue(banner.title),
-    info: showingTranslateValue(banner.description),
-    buttonName: showingTranslateValue(banner.linkText) || (lang === 'ar' ? 'تسوق الآن' : 'Shop Now'),
+    title: lang === 'ar' ? banner.titleAr || banner.title : banner.title,
+    info: lang === 'ar' ? banner.descriptionAr || banner.description : banner.description,
+    buttonName: lang === 'ar' ? banner.linkTextAr || banner.linkText || 'تسوق الآن' : (banner.linkText || 'Shop Now'),
     url: banner.linkUrl || "/products",
     image: banner.imageUrl,
     leftImage: banner.leftImageUrl,
@@ -69,6 +69,12 @@ const MainCarousel = () => {
       (item.leftImage1 && item.rightImage1)
     )
   ) : null;
+
+  // Prepare side images with legacy fallback
+  const leftSideImage1 = staticSideImages?.leftImage1 || staticSideImages?.leftImage;
+  const leftSideImage2 = staticSideImages?.leftImage2;
+  const rightSideImage1 = staticSideImages?.rightImage1 || staticSideImages?.rightImage;
+  const rightSideImage2 = staticSideImages?.rightImage2;
 
   // Single image layout component
   const SingleImageSlide = ({ item, i }) => (
@@ -157,10 +163,10 @@ const MainCarousel = () => {
                 {/* For RTL, we show right images on the left side */}
                 {lang === 'ar' ? (
                   <>
-                    {staticSideImages?.rightImage1 && (
+                    {rightSideImage1 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.rightImage1}
+                          src={rightSideImage1}
                           alt={lang === 'ar' ? 'إعلان جانبي ١' : 'Side Banner 1'}
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
@@ -168,10 +174,10 @@ const MainCarousel = () => {
                         />
                       </div>
                     )}
-                    {staticSideImages?.rightImage2 && (
+                    {rightSideImage2 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.rightImage2}
+                          src={rightSideImage2}
                           alt={lang === 'ar' ? 'إعلان جانبي ٢' : 'Side Banner 2'}
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
@@ -182,10 +188,10 @@ const MainCarousel = () => {
                   </>
                 ) : (
                   <>
-                    {staticSideImages?.leftImage1 && (
+                    {leftSideImage1 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.leftImage1}
+                          src={leftSideImage1}
                           alt="Side Banner 1"
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
@@ -193,10 +199,10 @@ const MainCarousel = () => {
                         />
                       </div>
                     )}
-                    {staticSideImages?.leftImage2 && (
+                    {leftSideImage2 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.leftImage2}
+                          src={leftSideImage2}
                           alt="Side Banner 2"
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
@@ -243,10 +249,10 @@ const MainCarousel = () => {
                 {/* For RTL, we show left images on the right side */}
                 {lang === 'ar' ? (
                   <>
-                    {staticSideImages?.leftImage1 && (
+                    {leftSideImage1 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.leftImage1}
+                          src={leftSideImage1}
                           alt={lang === 'ar' ? 'إعلان جانبي ٣' : 'Side Banner 3'}
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
@@ -254,10 +260,10 @@ const MainCarousel = () => {
                         />
                       </div>
                     )}
-                    {staticSideImages?.leftImage2 && (
+                    {leftSideImage2 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.leftImage2}
+                          src={leftSideImage2}
                           alt={lang === 'ar' ? 'إعلان جانبي ٤' : 'Side Banner 4'}
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
@@ -268,10 +274,10 @@ const MainCarousel = () => {
                   </>
                 ) : (
                   <>
-                    {staticSideImages?.rightImage1 && (
+                    {rightSideImage1 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.rightImage1}
+                          src={rightSideImage1}
                           alt="Side Banner 3"
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
@@ -279,10 +285,10 @@ const MainCarousel = () => {
                         />
                       </div>
                     )}
-                    {staticSideImages?.rightImage2 && (
+                    {rightSideImage2 && (
                       <div className="relative flex-1 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-200">
                         <Image 
-                          src={staticSideImages.rightImage2}
+                          src={rightSideImage2}
                           alt="Side Banner 4"
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
