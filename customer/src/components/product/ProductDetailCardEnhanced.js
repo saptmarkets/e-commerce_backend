@@ -45,6 +45,39 @@ const ProductDetailCardEnhanced = ({
   // Track if promotions have been checked for the current unit
   const [hasCheckedUnitPromotion, setHasCheckedUnitPromotion] = useState(false);
 
+  // 🔥 Promo tracking for all units
+  const [promotionalUnits, setPromotionalUnits] = useState(new Set());
+  const [allPromotions, setAllPromotions] = useState([]);
+
+  // Scan every available unit for promotions so we can decorate buttons
+  useEffect(() => {
+    const scanUnitsForPromos = async () => {
+      if (!availableUnits.length) return;
+
+      const promoIds = new Set();
+      const promoData = [];
+
+      for (const unit of availableUnits) {
+        if (unit._id.startsWith('fallback-') || unit._id.startsWith('default-')) continue;
+
+        try {
+          const unitPromos = await PromotionServices.getPromotionsByProductUnit(unit._id);
+          if (unitPromos && unitPromos.length) {
+            promoIds.add(unit._id);
+            promoData.push(...unitPromos.map(p => ({ ...p, unitId: unit._id })));
+          }
+        } catch (err) {
+          console.warn('Unit promo scan error', unit._id, err);
+        }
+      }
+
+      setPromotionalUnits(promoIds);
+      setAllPromotions(promoData);
+    };
+
+    scanUnitsForPromos();
+  }, [availableUnits]);
+
   const { items, addItem, updateItemQuantity } = useCart();
   const { showingTranslateValue, getNumberTwo, currency, lang } = useUtilsFunction();
   const { t } = useTranslation('common');
@@ -333,15 +366,43 @@ const ProductDetailCardEnhanced = ({
                     </div>
                   )}
                 </div>
+                {/* Price block */}
                 <div className="text-right">
-                  <div className="font-bold text-emerald-600">
-                    {currency}{unitPrice.toFixed(2)}
-                  </div>
-                  {unit.packQty > 1 && (
-                    <div className="text-xs text-gray-500">
-                      {currency}{pricePerBase.toFixed(2)}/unit
-                    </div>
-                  )}
+                  {(() => {
+                    // Try to find a promotion for this unit first in activePromotion, then in cached list
+                    const unitPromo = (activePromotion && activePromotion.productUnit && activePromotion.productUnit._id === unit._id)
+                      ? activePromotion
+                      : allPromotions.find(p => p.unitId === unit._id);
+
+                    if (unitPromo) {
+                      const promoPrice = unitPromo.value || unitPromo.offerPrice || unitPrice;
+                      const minQtyPromo = unitPromo.minQty || unitPromo.requiredQty || 1;
+
+                      return (
+                        <div className="space-y-0.5 text-right">
+                          <div className="flex items-baseline justify-end space-x-1">
+                            <span className="font-bold text-red-600">{currency}{promoPrice.toFixed(2)}</span>
+                            <span className="text-xs line-through text-gray-400">{currency}{unitPrice.toFixed(2)}</span>
+                          </div>
+                          <div className="text-[10px] text-red-600">🔥 {t('min')} {minQtyPromo}</div>
+                        </div>
+                      );
+                    }
+
+                    // No promotion – regular price
+                    return (
+                      <>
+                        <div className="font-bold text-emerald-600">
+                          {currency}{unitPrice.toFixed(2)}
+                        </div>
+                        {unit.packQty > 1 && (
+                          <div className="text-xs text-gray-500">
+                            {currency}{pricePerBase.toFixed(2)}/unit
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </motion.button>
