@@ -228,7 +228,7 @@ const ComboOfferCard = ({ promotion }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <IoFlashOutline className="text-yellow-300 mr-1.5 text-sm" />
-            <span className="font-bold text-sm sm:text-base">COMBO DEAL</span>
+            <span className="font-bold text-sm sm:text-base">{tr('COMBO DEAL','عرض باقة')}</span>
           </div>
           <div className="flex items-center text-xs sm:text-sm">
             <IoTimeOutline className="mr-1" />
@@ -239,7 +239,7 @@ const ComboOfferCard = ({ promotion }) => {
         <div className="mt-1.5">
           <h3 className="text-base sm:text-lg font-bold">{promotion.name}</h3>
           <p className="text-purple-100 text-xs sm:text-sm">
-            Get any {requiredQty} items for <span className="font-saudi_riyal">{currency}</span>{getNumberTwo(promotion.value)}
+            {tr('Get any','احصل على')} {requiredQty} {tr('items for','عناصر مقابل')} <span className="font-saudi_riyal">{currency}</span>{getNumberTwo(promotion.value)}
           </p>
         </div>
       </div>

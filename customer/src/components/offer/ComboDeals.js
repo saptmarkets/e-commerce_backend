@@ -16,7 +16,7 @@ const ComboDeals = ({
   maxItems = 3 
 }) => {
   const router = useRouter();
-  const { showingTranslateValue, getNumberTwo } = useUtilsFunction();
+  const { showingTranslateValue, getNumberTwo, tr } = useUtilsFunction();
 
   const { data: comboPromotions, error, isLoading } = useQuery({
     queryKey: ["assorted-promotions-with-products"],
@@ -33,6 +33,8 @@ const ComboDeals = ({
     return null;
   }
 
+  const pillText = `${displayPromotions.length} ${tr('combo deals available','عروض باقات متاحة')}`;
+
   return (
     <div className="bg-gradient-to-br from-purple-50 to-pink-50 py-12 md:py-16">
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-10">
@@ -46,7 +48,7 @@ const ComboDeals = ({
           {/* Show total combo deals if available */}
           {displayPromotions.length > 0 && (
             <div className="mt-4 inline-block bg-purple-100 text-purple-800 px-4 py-2 rounded-full text-sm font-medium">
-              {displayPromotions.length} combo deals available
+              {pillText}
             </div>
           )}
         </div>
@@ -71,15 +73,15 @@ const ComboDeals = ({
                 href="/promotions?tab=combo-deals"
                 className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-md hover:from-purple-700 hover:to-pink-700 transition duration-200 shadow-md"
               >
-                View All Combo Deals
+                {tr('View All Combo Deals','عرض جميع عروض الباقات')}
                 <IoArrowForward className="ml-2" />
               </Link>
             </div>
           </>
         ) : (
           <div className="text-center py-10">
-            <div className="text-gray-500 text-lg mb-4">No combo deals available at the moment</div>
-            <p className="text-gray-400">Check back soon for amazing mix and match offers!</p>
+            <div className="text-gray-500 text-lg mb-4">{tr('No combo deals available at the moment','لا توجد عروض باقات متاحة في الوقت الحالي')}</div>
+            <p className="text-gray-400">{tr('Check back soon for amazing mix and match offers!','عد قريبًا للحصول على عروض خلط ومطابقة مذهلة!')}</p>
           </div>
         )}
       </div>

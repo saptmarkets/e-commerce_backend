@@ -18,7 +18,7 @@ const SpecialPrices = ({
   attributes
 }) => {
   const router = useRouter();
-  const { showingTranslateValue, getNumberTwo } = useUtilsFunction();
+  const { showingTranslateValue, getNumberTwo, tr } = useUtilsFunction();
 
   // Fetch active promotions instead of general products
   const { data: activePromotions, error, isLoading } = useQuery({
@@ -129,6 +129,8 @@ const SpecialPrices = ({
     return null;
   }
 
+  const pillText = `${displayProducts.length} ${tr('products with special prices','منتجات بسعر خاص')}`;
+
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-12 md:py-16">
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-10">
@@ -142,7 +144,7 @@ const SpecialPrices = ({
           {/* Show total savings if products available */}
           {displayProducts.length > 0 && (
             <div className="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
-              {displayProducts.length} products with special prices
+              {pillText}
             </div>
           )}
         </div>
@@ -179,15 +181,15 @@ const SpecialPrices = ({
                 href="/promotions?tab=special-prices"
                 className="inline-flex items-center px-8 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition duration-200 shadow-md"
               >
-                View All Special Prices
+                {tr('View All Special Prices','عرض جميع الأسعار الخاصة')}
                 <IoArrowForward className="ml-2" />
               </Link>
             </div>
           </>
         ) : (
           <div className="text-center py-10">
-            <div className="text-gray-500 text-lg mb-4">No special price offers at the moment</div>
-            <p className="text-gray-400">Check back soon for amazing fixed price deals!</p>
+            <div className="text-gray-500 text-lg mb-4">{tr('No special price offers at the moment','لا توجد عروض أسعار خاصة في الوقت الحالي')}</div>
+            <p className="text-gray-400">{tr('Check back soon for amazing fixed price deals!','عد قريبًا للحصول على عروض أسعار ثابتة مذهلة!')}</p>
           </div>
         )}
       </div>
