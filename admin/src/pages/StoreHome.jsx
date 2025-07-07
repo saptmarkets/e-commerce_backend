@@ -242,18 +242,9 @@ const HomepageSections = () => {
         },
         description: editingSection.tempDescription,
         content: {
-          title: {
-            en: editingSection.tempTitle,
-            ar: editingSection.tempTitleAr
-          },
-          description: {
-            en: editingSection.tempContentDescription,
-            ar: editingSection.tempContentDescriptionAr
-          },
-          subtitle: {
-            en: editingSection.tempSubtitle,
-            ar: editingSection.tempSubtitleAr
-          },
+          title: { en: editingSection.tempTitle, ar: editingSection.tempTitleAr },
+          description: { en: editingSection.tempContentDescription, ar: editingSection.tempContentDescriptionAr },
+          subtitle: { en: editingSection.tempSubtitle, ar: editingSection.tempSubtitleAr },
           buttonText: {
             en: editingSection.tempButtonText,
             ar: editingSection.tempButtonTextAr
@@ -265,7 +256,6 @@ const HomepageSections = () => {
             ar: editingSection.tempPlaceholderTextAr
           },
           ...(editingSection.sectionId === 'why_choose_us' && {
-            subtitle: editingSection.content?.subtitle || {},
             stats: editingSection.content?.stats || []
           }),
           ...(editingSection.sectionId === 'trust_features' && {

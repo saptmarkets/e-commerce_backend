@@ -60,6 +60,11 @@ const TrustFeatures = ({ title, description, features: propFeatures }) => {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
             {typeof title === 'string' ? title : showingTranslateValue(title) || 'The SAPT Markets Advantage'}
           </h2>
+          {typeof subtitle !== 'undefined' && (
+            <div className="text-xl font-semibold text-gray-700 mb-2">
+              {typeof subtitle === 'string' ? subtitle : showingTranslateValue(subtitle)}
+            </div>
+          )}
           <p className="text-gray-600 text-center max-w-xl mx-auto">
             {typeof description === 'string' ? description : showingTranslateValue(description) || 'Experience the difference with our premium service standards'}
           </p>

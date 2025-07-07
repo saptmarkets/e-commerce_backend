@@ -38,6 +38,7 @@ const DynamicSupermarketStats = () => {
   const title = getSectionContent('why_choose_us', 'title');
   const subtitle = getSectionContent('why_choose_us', 'subtitle');
   const description = getSectionContent('why_choose_us', 'description');
+  const buttonText = sectionData?.content?.buttonText || {};
 
   // Get stats from content
   const sectionData = sections?.find(s => s.sectionId === 'why_choose_us');
@@ -54,10 +55,8 @@ const DynamicSupermarketStats = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
           <div>
             <div className="mb-8">
-              <h2 className="font-bold mb-2">
-                <span className="text-4xl md:text-5xl" style={{ color: "#76bd44" }}>Why Choose</span><br />
-                <span className="text-4xl md:text-5xl text-gray-800">SAPT</span><br />
-                <span className="text-4xl md:text-5xl" style={{ color: "#74338c" }}>Markets?</span>
+              <h2 className="font-bold mb-2 text-4xl md:text-5xl break-words leading-snug">
+                {showingTranslateValue(title) || 'Why Choose SAPT Markets?'}
               </h2>
               <h3 className="text-2xl text-gray-800 font-semibold mt-4">
                 {showingTranslateValue(subtitle) || "Saudi Arabia's Leading Online Supermarket"}
@@ -73,13 +72,13 @@ const DynamicSupermarketStats = () => {
                   href="/products" 
                   className="px-8 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition duration-200"
                 >
-                  Start Shopping
+                  {showingTranslateValue(buttonText?.primary) || 'Start Shopping'}
                 </Link>
                 <Link 
                   href="/about-us" 
                   className="px-8 py-3 border border-purple-700 text-purple-700 font-medium rounded-md hover:bg-purple-50 transition duration-200"
                 >
-                  Learn Our Story
+                  {showingTranslateValue(buttonText?.secondary) || 'Learn Our Story'}
                 </Link>
               </div>
             )}
