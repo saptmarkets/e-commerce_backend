@@ -13,6 +13,7 @@ import useUtilsFunction from "@hooks/useUtilsFunction";
 
 const Footer = () => {
   const { t } = useTranslation();
+  const { tr } = useUtilsFunction();
   const userInfo = getUserSession();
 
   const { showingTranslateValue } = useUtilsFunction();
@@ -29,7 +30,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-7 xl:grid-cols-12 gap-5 sm:gap-9 lg:gap-11 xl:gap-7 py-10 lg:py-16 justify-between">
           <div className="pb-3.5 sm:pb-0 col-span-2 md:col-span-3 lg:col-span-3">
             <Link href="/" className="mr-3 lg:mr-12 xl:mr-12" rel="noreferrer">
-              <div className="relative w-20 h-6">
+              <div className="relative w-20 h-12 mb-2">
                 <Image
                   width="0"
                   height="0"
@@ -40,8 +41,8 @@ const Footer = () => {
                 />
               </div>
             </Link>
-            <p className="leading-7 font-sans text-sm mt-6">
-              {t('companyDescription')}
+            <p className="leading-7 font-sans text-sm mt-4">
+              {tr('Your go-to supermarket in Qassim for fresh deals every day.','متجرك المفضل في القصيم لصفقات طازجة كل يوم.')}
             </p>
             <div className="mt-6">
               <SocialLinks />
@@ -54,7 +55,7 @@ const Footer = () => {
                 count={1}
                 height={20}
                 loading={loading}
-                data={storeCustomizationSetting?.footer?.block1_title || "Company"}
+                data={storeCustomizationSetting?.footer?.block1_title || tr('Company','الشركة')}
               />
             </h3>
             <ul className="text-sm flex flex-col space-y-3">
@@ -63,7 +64,7 @@ const Footer = () => {
                   href="/about-us"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('aboutUs')}
+                  {tr('About Us','من نحن')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -71,7 +72,7 @@ const Footer = () => {
                   href="/contact-us"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('contactUs')}
+                  {tr('Contact Us','تواصل معنا')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -79,7 +80,7 @@ const Footer = () => {
                   href="/careers"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('careers')}
+                  {tr('Careers','الوظائف')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -87,7 +88,7 @@ const Footer = () => {
                   href="/blog"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('blog')}
+                  {tr('Blog','المدونة')}
                 </Link>
               </li>
             </ul>
@@ -99,7 +100,7 @@ const Footer = () => {
                 count={1}
                 height={20}
                 loading={loading}
-                data={storeCustomizationSetting?.footer?.block2_title || "Customer Service"}
+                data={storeCustomizationSetting?.footer?.block2_title || tr('Customer Service','خدمة العملاء')}
               />
             </h3>
             <ul className="text-sm lg:text-15px flex flex-col space-y-3">
@@ -108,7 +109,7 @@ const Footer = () => {
                   href="/help"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('helpCenter')}
+                  {tr('Help Center','مركز المساعدة')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -116,7 +117,7 @@ const Footer = () => {
                   href="/faq"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('faq')}
+                  {tr('FAQ','الأسئلة الشائعة')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -124,7 +125,7 @@ const Footer = () => {
                   href="/terms-and-conditions"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('termsAndConditions')}
+                  {tr('Terms & Conditions','الشروط والأحكام')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -132,7 +133,7 @@ const Footer = () => {
                   href="/privacy-policy"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('privacyPolicy')}
+                  {tr('Privacy Policy','سياسة الخصوصية')}
                 </Link>
               </li>
             </ul>
@@ -144,7 +145,7 @@ const Footer = () => {
                 count={1}
                 height={20}
                 loading={loading}
-                data={storeCustomizationSetting?.footer?.block3_title || "Quick Links"}
+                data={storeCustomizationSetting?.footer?.block3_title || tr('Quick Links','روابط سريعة')}
               />
             </h3>
             <ul className="text-sm lg:text-15px flex flex-col space-y-3">
@@ -153,7 +154,7 @@ const Footer = () => {
                   href="/user/dashboard"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('myAccount')}
+                  {tr('My Account','حسابي')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -161,7 +162,7 @@ const Footer = () => {
                   href="/order/order-history"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('orderHistory')}
+                  {tr('Order History','تاريخ الطلبات')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -169,7 +170,7 @@ const Footer = () => {
                   href="/user/my-wishlist"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('wishlist')}
+                  {tr('Wishlist','قائمة الأمنيات')}
                 </Link>
               </li>
               <li className="flex items-baseline">
@@ -177,7 +178,7 @@ const Footer = () => {
                   href="/checkout"
                   className="text-gray-300 inline-block w-full hover:text-primary transition duration-200"
                 >
-                  {t('checkout')}
+                  {tr('Checkout','الدفع')}
                 </Link>
               </li>
             </ul>
@@ -185,13 +186,13 @@ const Footer = () => {
 
           <div className="pb-3.5 sm:pb-0 col-span-2 md:col-span-2 lg:col-span-3">
             <h3 className="text-md lg:leading-7 font-medium mb-4 sm:mb-5 lg:mb-6 pb-0.5">
-              {t('storeInformation')}
+              {tr('Store Information','معلومات المتجر')}
             </h3>
             <ul className="text-sm lg:text-15px flex flex-col space-y-3 text-gray-300">
-              {contact.address?.en && <li>{t('address')}: {contact.address.en}</li>}
-              {contact.phone && <li>{t('phone')}: {contact.phone}</li>}
-              {contact.email && <li>{t('email')}: {contact.email}</li>}
-              {contact.hours && <li>{t('hours')}: {contact.hours}</li>}
+              {contact.address?.en && <li>{tr('Address','العنوان')}: {contact.address.en}</li>}
+              {contact.phone && <li>{tr('Phone','الهاتف')}: {contact.phone}</li>}
+              {contact.email && <li>{tr('Email','البريد الإلكتروني')}: {contact.email}</li>}
+              {contact.hours && <li>{tr('Hours','ساعات العمل')}: {contact.hours}</li>}
             </ul>
           </div>
         </div>

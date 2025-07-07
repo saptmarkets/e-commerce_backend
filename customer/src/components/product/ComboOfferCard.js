@@ -424,7 +424,7 @@ const ComboOfferCard = ({ promotion }) => {
                     {showingTranslateValue(availableProducts[currentImageIndex].title)}
                   </h5>
                   <p className="text-sm text-purple-600 font-medium">
-                    Unit: {availableProducts[currentImageIndex].unit?.unit?.shortCode || 
+                    {tr('Unit', 'الوحدة')}: {availableProducts[currentImageIndex].unit?.unit?.shortCode || 
                            availableProducts[currentImageIndex].unit?.unit?.name || 'pcs'}
                   </p>
                   
@@ -455,11 +455,11 @@ const ComboOfferCard = ({ promotion }) => {
         <div className="mb-3">
           <div className="flex items-center justify-between text-xs sm:text-sm">
             <span className="text-gray-600">
-              {t('selected')}: {totalSelectedQty} {t('items')}
+              {tr('selected', 'المحدد')}: {totalSelectedQty} {tr('items', 'العناصر')}
             </span>
             {remainingQty > 0 && (
               <span className="text-purple-600 font-medium">
-                {t('choose')} {remainingQty} {t('more')}
+                {tr('choose', 'اختر')} {remainingQty} {tr('more', 'المزيد')}
               </span>
             )}
           </div>
@@ -478,7 +478,7 @@ const ComboOfferCard = ({ promotion }) => {
           {totalSelectedQty === 0 ? (
             <div className="text-center text-gray-500">
               <p className="text-base sm:text-lg font-bold"><span className="font-saudi_riyal">{currency}</span>{getNumberTwo(promotion.value)}</p>
-              <p className="text-xs sm:text-sm">{t('forAny')} {requiredQty} {t('items')}</p>
+              <p className="text-xs sm:text-sm">{tr('forAny', 'لأي')} {requiredQty} {tr('items', 'العناصر')}</p>
             </div>
           ) : pricing.showMessage ? (
             <div className="text-center">
@@ -486,7 +486,7 @@ const ComboOfferCard = ({ promotion }) => {
                 {pricing.message}
               </p>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                {t('selected')}: {totalSelectedQty} {t('items')}
+                {tr('selected', 'المحدد')}: {totalSelectedQty} {tr('items', 'العناصر')}
               </p>
             </div>
           ) : (
@@ -496,14 +496,14 @@ const ComboOfferCard = ({ promotion }) => {
               </p>
               {pricing.isComboPrice ? (
                 <p className="text-xs sm:text-sm text-green-600">
-                  {t('comboPrice')} {totalSelectedQty} {t('items')}
+                  {tr('comboPrice', 'سعر الباقة')} {totalSelectedQty} {tr('items', 'العناصر')}
                 </p>
               ) : (
                 <div className="text-xs sm:text-sm text-gray-600">
-                  <p>{t('combo')}: <span className="font-saudi_riyal">{currency}</span>{getNumberTwo(pricing.comboPrice)}</p>
-                  <p>{t('extra')} {pricing.extraItems} {t('items')}: <span className="font-saudi_riyal">{currency}</span>{getNumberTwo(pricing.extraPrice)}</p>
+                  <p>{tr('combo', 'الباقة')}: <span className="font-saudi_riyal">{currency}</span>{getNumberTwo(pricing.comboPrice)}</p>
+                  <p>{tr('extra', 'إضافي')} {pricing.extraItems} {tr('items', 'العناصر')}: <span className="font-saudi_riyal">{currency}</span>{getNumberTwo(pricing.extraPrice)}</p>
                   <p className="text-xs text-purple-600 mt-1">
-                    (<span className="font-saudi_riyal">{currency}</span>{getNumberTwo(pricing.pricePerItem)} {t('perExtraItem')})
+                    (<span className="font-saudi_riyal">{currency}</span>{getNumberTwo(pricing.pricePerItem)} {tr('perExtraItem', 'لكل عنصر إضافي')})
                   </p>
                 </div>
               )}
@@ -524,18 +524,18 @@ const ComboOfferCard = ({ promotion }) => {
           <IoBagAddSharp className="mr-1.5 text-sm" />
           <span className="hidden sm:inline">
           {totalSelectedQty === 0 
-            ? t('selectItemsToAdd')
+            ? tr('selectItemsToAdd', 'حدد العناصر للإضافة')
             : totalSelectedQty < requiredQty
-            ? `${t('choose')} ${requiredQty - totalSelectedQty} ${t('more')} ${t('items')}`
-            : `${t('addItems').replace('{count}', totalSelectedQty)} ${t('toCart')}`
+            ? `${tr('choose', 'اختر')} ${requiredQty - totalSelectedQty} ${tr('more', 'المزيد')} ${tr('items', 'العناصر')}`
+            : `${tr('addItems', 'إضافة العناصر')} ${tr('toCart', 'للسلة')}`
           }
           </span>
           <span className="sm:hidden">
             {totalSelectedQty === 0 
-              ? t('selectItems')
+              ? tr('selectItems', 'حدد العناصر')
               : totalSelectedQty < requiredQty
-              ? `${t('choose')} ${requiredQty - totalSelectedQty} ${t('more')}`
-              : `${t('addItems').replace('{count}', totalSelectedQty)}`
+              ? `${tr('choose', 'اختر')} ${requiredQty - totalSelectedQty} ${tr('more', 'المزيد')}`
+              : `${tr('addItems', 'إضافة العناصر')}`
             }
           </span>
         </button>

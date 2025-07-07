@@ -1,36 +1,48 @@
 import React, { useState } from 'react';
 import { FaStar, FaQuoteLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import Image from 'next/image';
+import useUtilsFunction from '@hooks/useUtilsFunction';
 
-const TestimonialsSection = ({ title, description }) => {
+const TestimonialsSection = ({ title, description, testimonials: propTestimonials }) => {
+  const { showingTranslateValue } = useUtilsFunction();
   const [activeIndex, setActiveIndex] = useState(0);
   
-  const testimonials = [
+  const defaultTestimonials = [
     {
       id: 1,
-      name: "Sarah Al-Mahmoud",
-      location: "Riyadh",
+      name: { en: "Sarah Al-Mahmoud", ar: "سارة المحمود" },
+      location: { en: "Riyadh", ar: "الرياض" },
       rating: 5,
-      text: "Outstanding quality and lightning-fast delivery! SAPT Markets has completely changed how I shop for groceries. The produce is always fresh, and the convenience is unmatched.",
+      message: {
+        en: "Outstanding quality and lightning-fast delivery! SAPT Markets has completely changed how I shop for groceries. The produce is always fresh, and the convenience is unmatched.",
+        ar: "جودة رائعة وتوصيل سريع جدًا! أسواق سبت غيرت تمامًا طريقة تسوقي للبقالة. المنتجات دائمًا طازجة والراحة لا مثيل لها."
+      },
       image: "https://randomuser.me/api/portraits/women/1.jpg"
     },
     {
       id: 2,
-      name: "Ahmed Al-Rashid",
-      location: "Jeddah",
+      name: { en: "Ahmed Al-Rashid", ar: "أحمد الراشد" },
+      location: { en: "Jeddah", ar: "جدة" },
       rating: 5,
-      text: "Been using SAPT Markets for over a year now. The customer service is exceptional, and I love the variety of products available. Highly recommend to everyone!",
+      message: {
+        en: "Been using SAPT Markets for over a year now. The customer service is exceptional, and I love the variety of products available. Highly recommend to everyone!",
+        ar: "أستخدم أسواق سبت منذ أكثر من عام. خدمة العملاء ممتازة وأحب تنوع المنتجات المتاحة. أنصح الجميع بها!"
+      },
       image: "https://randomuser.me/api/portraits/men/1.jpg"
     },
     {
       id: 3,
-      name: "Fatima Al-Zahra",
-      location: "Dammam",
+      name: { en: "Fatima Al-Zahra", ar: "فاطمة الزهراء" },
+      location: { en: "Dammam", ar: "الدمام" },
       rating: 5,
-      text: "The mobile app is so user-friendly, and the delivery team is always professional. SAPT Markets has made grocery shopping stress-free for our entire family.",
+      message: {
+        en: "The mobile app is so user-friendly, and the delivery team is always professional. SAPT Markets has made grocery shopping stress-free for our entire family.",
+        ar: "تطبيق الجوال سهل الاستخدام جدًا وفريق التوصيل دائمًا محترف. أسواق سبت جعلت التسوق للبقالة خاليًا من التوتر لعائلتنا بأكملها."
+      },
       image: "https://randomuser.me/api/portraits/women/2.jpg"
     }
   ];
+  const testimonials = propTestimonials && propTestimonials.length > 0 ? propTestimonials : defaultTestimonials;
   
   const handlePrev = () => {
     setActiveIndex((prevIndex) => 
@@ -86,11 +98,11 @@ const TestimonialsSection = ({ title, description }) => {
                   ))}
                 </div>
                 
-                <p className="text-gray-700 text-lg mb-4 italic">"{testimonials[activeIndex].text}"</p>
+                <p className="text-gray-700 text-lg mb-4 italic">"{showingTranslateValue(testimonials[activeIndex].message)}"</p>
                 
                 <div>
-                  <h4 className="font-semibold text-gray-800">— {testimonials[activeIndex].name}</h4>
-                  <p className="text-gray-600">{testimonials[activeIndex].location}</p>
+                  <h4 className="font-semibold text-gray-800">— {showingTranslateValue(testimonials[activeIndex].name)}</h4>
+                  <p className="text-gray-600">{showingTranslateValue(testimonials[activeIndex].location)}</p>
                 </div>
               </div>
             </div>

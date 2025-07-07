@@ -773,24 +773,24 @@ const ProductCardModern = ({
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Left – pack info */}
               {packInfo && (
-                <div className="flex-1 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="text-xs text-blue-800 space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span>{t('packSize')}:</span>
-                      <span className="font-semibold">{packInfo.packQty} {t('pieces')}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>{t('pricePerPiece')}:</span>
-                      <span className="font-semibold">{currency}{packInfo.pricePerPiece.toFixed(2)}</span>
-                    </div>
-                    {quantity > 1 && (
-                      <div className="flex justify-between items-center pt-1 border-t border-blue-200">
-                        <span>{t('totalPieces')}:</span>
-                        <span className="font-semibold text-blue-700">{packInfo.totalBaseUnits} {t('pieces')}</span>
-                      </div>
-                    )}
+              <div className="flex-1 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="text-xs text-blue-800 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span>{t('packSize')}:</span>
+                    <span className="font-semibold">{packInfo.packQty} {t('pieces')}</span>
                   </div>
+                  <div className="flex justify-between items-center">
+                    <span>{t('pricePerPiece')}:</span>
+                    <span className="font-semibold">{currency}{packInfo.pricePerPiece.toFixed(2)}</span>
+                  </div>
+                  {quantity > 1 && (
+                    <div className="flex justify-between items-center pt-1 border-t border-blue-200">
+                      <span>{t('totalPieces')}:</span>
+                      <span className="font-semibold text-blue-700">{packInfo.totalBaseUnits} {t('pieces')}</span>
+                    </div>
+                  )}
                 </div>
+              </div>
               )}
 
               {/* Right – promotional info (only if there is an active promotion on the selected unit) */}
@@ -801,9 +801,9 @@ const ProductCardModern = ({
                       const isPromoUnitSelected = activePromotion && activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id;
                       if (!isPromoUnitSelected) {
                         return (
-                          <div className="text-xs font-medium text-red-700">
+                    <div className="text-xs font-medium text-red-700">
                             {t('pleaseSelect')} {getLocalizedShortUnitName(activePromotion.productUnit)}{(activePromotion.productUnit?.unitValue > 1) ? ` ${activePromotion.productUnit.unitValue}` : ''}
-                          </div>
+                    </div>
                         );
                       }
                       return null;

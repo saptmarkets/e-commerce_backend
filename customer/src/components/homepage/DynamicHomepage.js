@@ -177,6 +177,7 @@ const DynamicHomepage = () => {
             key={sectionId}
             title={showingTranslateValue(content?.title) || 'What Our Customers Say'}
             description={showingTranslateValue(content?.description) || 'Real reviews from satisfied shoppers across Saudi Arabia'}
+            testimonials={content?.testimonials || []}
           />
         );
 

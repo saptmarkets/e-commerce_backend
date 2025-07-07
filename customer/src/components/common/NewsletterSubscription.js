@@ -3,7 +3,7 @@ import { FaRegEnvelope, FaCheckCircle, FaTag, FaRegClock, FaBell, FaUserCheck } 
 import useUtilsFunction from '@hooks/useUtilsFunction';
 
 const NewsletterSubscription = ({ title, description, buttonText, placeholderText, benefits: propBenefits }) => {
-  const { showingTranslateValue } = useUtilsFunction();
+  const { showingTranslateValue, tr } = useUtilsFunction();
   const [email, setEmail] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -12,11 +12,11 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!email) {
-      setError('Please enter your email address');
+      setError(tr('Please enter your email address', 'يرجى إدخال بريدك الإلكتروني'));
       return;
     }
     if (!agreed) {
-      setError('Please agree to receive promotional emails');
+      setError(tr('Please agree to receive promotional emails', 'يرجى الموافقة على استلام الرسائل الترويجية'));
       return;
     }
     
@@ -74,10 +74,10 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                {title || 'Stay Connected with SAPT Markets'}
+                {title || tr('Stay Connected with SAPT Markets', 'ابقَ على اتصال مع أسواق سبت')}
               </h2>
               <p className="text-gray-600 mb-6">
-                {description || 'Join over 50,000 satisfied customers who receive exclusive deals, seasonal offers, and insider updates'}
+                {description || tr('Join over 50,000 satisfied customers who receive exclusive deals, seasonal offers, and insider updates', 'انضم إلى أكثر من 50,000 عميل راضٍ يتلقون عروضًا حصرية وتحديثات موسمية')}
               </p>
               
               <ul className="space-y-3 mb-6">
@@ -98,15 +98,15 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
               {submitted ? (
                 <div className="text-center py-8">
                   <FaCheckCircle className="text-green-500 text-5xl mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Successfully Subscribed!</h3>
-                  <p className="text-gray-600">Thank you for subscribing. Check your inbox for a confirmation email.</p>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{tr('Successfully Subscribed!', 'تم الاشتراك بنجاح!')}</h3>
+                  <p className="text-gray-600">{tr('Thank you for subscribing. Check your inbox for a confirmation email.', 'شكرًا لاشتراكك. تحقق من بريدك الإلكتروني لتأكيد الاشتراك.')}</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit}>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Subscribe to Our Newsletter</h3>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">{tr('Subscribe to Our Newsletter', 'اشترك في نشرتنا الإخبارية')}</h3>
                   
                   <div className="mb-4">
-                    <label htmlFor="email" className="block text-gray-700 mb-2">Email Address</label>
+                    <label htmlFor="email" className="block text-gray-700 mb-2">{tr('Email Address', 'عنوان البريد الإلكتروني')}</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FaRegEnvelope className="text-gray-400" />
@@ -115,7 +115,7 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
                         type="email"
                         id="email"
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
-                        placeholder={placeholderText || "your@email.com"}
+                        placeholder={placeholderText || tr('Enter your email address', 'أدخل عنوان بريدك الإلكتروني')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
@@ -134,7 +134,7 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
                         />
                       </div>
                       <label htmlFor="agreement" className="ml-2 text-sm text-gray-600">
-                        I agree to receive promotional emails
+                        {tr('I agree to receive promotional emails', 'أوافق على استلام الرسائل الترويجية')}
                       </label>
                     </div>
                   </div>
@@ -145,11 +145,11 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
                     type="submit"
                     className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition duration-200"
                   >
-{buttonText || 'Subscribe & Save'}
+{buttonText || tr('Subscribe & Save', 'اشترك ووفّر')}
                   </button>
                   
                   <p className="text-xs text-gray-500 mt-4 text-center">
-                    We respect your privacy. Unsubscribe anytime.
+                    {tr('We respect your privacy. Unsubscribe anytime.', 'نحترم خصوصيتك. يمكنك إلغاء الاشتراك في أي وقت.')}
                   </p>
                 </form>
               )}
