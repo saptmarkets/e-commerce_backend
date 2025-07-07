@@ -165,9 +165,9 @@ const DynamicHomepage = () => {
         return (
           <TrustFeatures 
             key={sectionId}
-            title={showingTranslateValue(content?.title) || 'The SAPT Markets Advantage'}
+            title={content?.title}
             subtitle={content?.subtitle}
-            description={showingTranslateValue(content?.description) || 'Experience the difference with our premium service standards'}
+            description={content?.description}
             features={content?.features || []}
           />
         );

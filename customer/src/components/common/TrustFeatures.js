@@ -2,7 +2,7 @@ import React from 'react';
 import { FaTruck, FaShieldAlt, FaHeadset, FaCheckCircle, FaTrophy, FaMobile } from 'react-icons/fa';
 import useUtilsFunction from '@hooks/useUtilsFunction';
 
-const TrustFeatures = ({ title, description, features: propFeatures }) => {
+const TrustFeatures = ({ title, subtitle, description, features: propFeatures }) => {
   const { showingTranslateValue } = useUtilsFunction();
 
   const defaultFeatures = [
@@ -60,7 +60,7 @@ const TrustFeatures = ({ title, description, features: propFeatures }) => {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
             {typeof title === 'string' ? title : showingTranslateValue(title) || 'The SAPT Markets Advantage'}
           </h2>
-          {typeof subtitle !== 'undefined' && (
+          {subtitle && (
             <div className="text-xl font-semibold text-gray-700 mb-2">
               {typeof subtitle === 'string' ? subtitle : showingTranslateValue(subtitle)}
             </div>
