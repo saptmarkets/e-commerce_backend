@@ -28,7 +28,7 @@ const toPlainString = (input) => {
 
 const DynamicSupermarketStats = () => {
   const { sections, getSectionContent, getSectionSettings, isSectionActive } = useHomepageSections();
-  const { showingTranslateValue, lang } = useUtilsFunction();
+  const { showingTranslateValue, lang, tr } = useUtilsFunction();
 
   if (!isSectionActive('why_choose_us')) {
     return null;
@@ -38,7 +38,6 @@ const DynamicSupermarketStats = () => {
   const title = getSectionContent('why_choose_us', 'title');
   const subtitle = getSectionContent('why_choose_us', 'subtitle');
   const description = getSectionContent('why_choose_us', 'description');
-  const buttonText = sectionData?.content?.buttonText || {};
 
   // Get stats from content
   const sectionData = sections?.find(s => s.sectionId === 'why_choose_us');
@@ -55,14 +54,14 @@ const DynamicSupermarketStats = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
           <div>
             <div className="mb-8">
-              <h2 className="font-bold mb-2 text-4xl md:text-5xl break-words leading-snug">
-                {showingTranslateValue(title) || 'Why Choose SAPT Markets?'}
+              <h2 className="text-4xl md:text-5xl font-bold mb-2">
+                {showingTranslateValue(title) || tr('Why Choose SAPT Markets?', 'لماذا تختار أسواق سابت؟')}
               </h2>
               <h3 className="text-2xl text-gray-800 font-semibold mt-4">
-                {showingTranslateValue(subtitle) || "Saudi Arabia's Leading Online Supermarket"}
+                {showingTranslateValue(subtitle) || tr("Saudi Arabia's Leading Online Supermarket", "السوق الإلكتروني الرائد في المملكة العربية السعودية")}
               </h3>
               <p className="text-gray-600 mt-6 mb-8 max-w-md text-lg">
-                {showingTranslateValue(description) || "Discover thousands of premium products across all categories — from fresh produce to household essentials — all at competitive prices with unmatched convenience."}
+                {showingTranslateValue(description) || tr("Discover thousands of premium products across all categories — from fresh produce to household essentials — all at competitive prices with unmatched convenience.", "اكتشف آلاف المنتجات المميزة عبر جميع الفئات - من المنتجات الطازجة إلى الأساسيات المنزلية - كلها بأسعار تنافسية مع راحة لا مثيل لها.")}
               </p>
             </div>
             
@@ -72,13 +71,13 @@ const DynamicSupermarketStats = () => {
                   href="/products" 
                   className="px-8 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition duration-200"
                 >
-                  {showingTranslateValue(buttonText?.primary) || 'Start Shopping'}
+                  {tr('Start Shopping', 'ابدأ التسوق')}
                 </Link>
                 <Link 
                   href="/about-us" 
                   className="px-8 py-3 border border-purple-700 text-purple-700 font-medium rounded-md hover:bg-purple-50 transition duration-200"
                 >
-                  {showingTranslateValue(buttonText?.secondary) || 'Learn Our Story'}
+                  {tr('Learn Our Story', 'تعرف على قصتنا')}
                 </Link>
               </div>
             )}
