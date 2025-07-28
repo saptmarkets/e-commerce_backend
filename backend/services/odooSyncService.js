@@ -17,7 +17,7 @@ const Promotion = require('../models/Promotion');
 
 class OdooSyncService {
   constructor() {
-    this.batchSize = parseInt(process.env.ODOO_BATCH_SIZE) || 100;
+    this.batchSize = parseInt(process.env.ODOO_BATCH_SIZE) || 200; // Increased from 100 to 200
     this.maxRetries = parseInt(process.env.ODOO_MAX_RETRIES) || 3;
   }
 
@@ -60,7 +60,7 @@ class OdooSyncService {
       }
       
       if (dataTypes.includes('all') || dataTypes.includes('products')) {
-        results.products = await this.fetchProducts(config.incremental);
+        results.products = await this.fetchProducts(config.incremental, config);
       }
       
       if (dataTypes.includes('all') || dataTypes.includes('barcode_units')) {
@@ -232,84 +232,175 @@ class OdooSyncService {
   /**
    * Fetch products from Odoo
    */
-  async fetchProducts(incremental = false) {
-    console.log('📦 Fetching products from Odoo...');
+  async fetchProducts(incremental = false, options = {}) {
+    console.log('\n📦 Starting product sync from Odoo...');
+    const { activeOnly = false, types = null } = options;
+
+    // Build dynamic domain
+    let domain = [];
     
-    let domain = [['type', 'in', ['product', 'consu']], ['active', '=', true]];
+    // Add filters if specified
+    if (activeOnly) {
+      console.log('🔍 Filtering for active products only');
+      domain.push(['active', '=', true]);
+    }
+    if (types && Array.isArray(types) && types.length) {
+      console.log('🔍 Filtering for product types:', types);
+      domain.push(['type', 'in', types]);
+    }
     if (incremental) {
       const lastSync = await OdooProduct.findOne().sort({ write_date: -1 });
       if (lastSync) {
+        console.log('🔄 Incremental sync from:', lastSync.write_date.toISOString());
         domain.push(['write_date', '>', lastSync.write_date.toISOString()]);
       }
     }
 
-    let offset = 0;
-    let totalProcessed = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const products = await odooService.fetchProducts(domain, this.batchSize, offset);
-      
-      if (!products || products.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      const operations = products.map(product => ({
-        updateOne: {
-          filter: { id: product.id },
-          update: {
-            $set: {
-              id: product.id,
-              // Ensure numeric template ID (Odoo returns [id, name])
-              product_tmpl_id: Array.isArray(product.product_tmpl_id) ? product.product_tmpl_id[0] : product.product_tmpl_id,
-              product_id: product.id,
-              name: product.name,
-              default_code: product.default_code,
-              barcode: product.barcode,
-              list_price: product.list_price || 0,
-              standard_price: product.standard_price || 0,
-              qty_available: product.qty_available || 0,
-              virtual_available: product.virtual_available || 0,
-              category_id: product.categ_id ? product.categ_id[0] : null,
-              uom_id: product.uom_id ? product.uom_id[0] : null,
-              uom_po_id: product.uom_po_id ? product.uom_po_id[0] : null,
-              type: product.type,
-              sale_ok: product.sale_ok,
-              purchase_ok: product.purchase_ok,
-              active: product.active,
-              barcode_unit_ids: product.barcode_unit_ids || [],
-              barcode_unit_count: product.barcode_unit_count || 0,
-              attributes: product.attributes || [],
-              description_sale: product.description_sale,
-              weight: product.weight,
-              volume: product.volume,
-              create_date: product.create_date ? new Date(product.create_date) : new Date(),
-              write_date: product.write_date ? new Date(product.write_date) : new Date(),
-              _sync_status: 'pending',
-              is_active: true,
-            }
-          },
-          upsert: true
-        }
-      }));
-
-      if (operations.length > 0) {
-        await OdooProduct.bulkWrite(operations, { ordered: false });
-      }
-
-      totalProcessed += products.length;
-      offset += this.batchSize;
-      
-      if (products.length < this.batchSize) {
-        hasMore = false;
-      }
-
-      console.log(`📦 Processed ${totalProcessed} products...`);
+    // Get total count for progress tracking
+    console.log('\n🔍 Getting total product count from Odoo...');
+    const totalCount = await odooService.searchCount('product.product', domain);
+    console.log(`📊 Total products in Odoo matching criteria: ${totalCount}`);
+    
+    if (totalCount === 0) {
+      console.log('ℹ️ No products found matching criteria');
+      return 0;
     }
 
-    console.log(`✅ Fetched ${totalProcessed} products from Odoo`);
-    return totalProcessed;
+    // Verify count with a small test fetch
+    console.log('\n🔍 Verifying search_read access...');
+    const testBatch = await odooService.fetchProducts(domain, 1, 0);
+    if (!testBatch || !testBatch.length) {
+      throw new Error('Failed to fetch test batch - check Odoo permissions and filters');
+    }
+    console.log('✅ Search_read test successful');
+
+    let offset = 0;
+    let processedCount = 0;
+    const batchSize = 50000;
+    let failedAttempts = 0;
+    const maxRetries = 3;
+    
+    while (processedCount < totalCount) {
+      try {
+        console.log(`\n🔄 Fetching batch ${Math.floor(processedCount/batchSize) + 1}`);
+        console.log(`   Progress: ${processedCount} / ${totalCount} (${((processedCount/totalCount)*100).toFixed(1)}%)`);
+        console.log(`   Offset: ${offset}, Batch size: ${batchSize}`);
+        
+        const products = await odooService.fetchProducts(domain, batchSize, offset);
+        
+        if (!products) {
+          throw new Error('Received null response from Odoo');
+        }
+        
+        if (products.length === 0) {
+          console.warn('⚠️ Received empty batch despite expecting more records');
+          failedAttempts++;
+          
+          if (failedAttempts >= maxRetries) {
+            console.error('❌ Max retries reached - stopping sync');
+            break;
+          }
+          
+          console.log('🔄 Retrying with smaller batch size...');
+          const newBatchSize = Math.floor(batchSize / 2);
+          if (newBatchSize < 1000) {
+            throw new Error('Batch size too small - possible permission or filter issue');
+          }
+          continue;
+        }
+
+        // Reset failed attempts on successful fetch
+        failedAttempts = 0;
+
+        console.log(`\n📝 Processing ${products.length} products...`);
+
+        // Process the batch
+        const operations = products.map(product => {
+          // --- Field Extraction and Validation ---
+          // Always extract categ_id and uom_id
+          const categ_id = Array.isArray(product.categ_id) ? product.categ_id[0] : product.categ_id;
+          const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
+
+          // Clean up default_code (SKU)
+          let default_code = product.default_code;
+          if (default_code === false || default_code === 'false' || default_code === undefined) {
+            default_code = null;
+          }
+
+          // Log and skip if missing critical info
+          if (!categ_id) {
+            console.warn(`[OdooSync] Product ${product.id} missing categ_id (category). Skipping.`);
+            return null;
+          }
+          if (!uom_id) {
+            console.warn(`[OdooSync] Product ${product.id} missing uom_id. Skipping.`);
+            return null;
+          }
+
+          // --- Build the processed product ---
+          const processedProduct = {
+            ...product,
+            product_tmpl_id: Array.isArray(product.product_tmpl_id) ? product.product_tmpl_id[0] : product.product_tmpl_id,
+            uom_id,
+            uom_po_id: Array.isArray(product.uom_po_id) ? product.uom_po_id[0] : product.uom_po_id,
+            categ_id,
+            default_code,
+            list_price: Number(product.list_price || 0),
+            standard_price: Number(product.standard_price || 0),
+            qty_available: Number(product.qty_available || 0),
+            virtual_available: Number(product.virtual_available || 0),
+            barcode_unit_ids: Array.isArray(product.barcode_unit_ids) ? product.barcode_unit_ids : [],
+            attributes: product.attributes || [],
+            create_date: product.create_date ? new Date(product.create_date) : new Date(),
+            write_date: product.write_date ? new Date(product.write_date) : new Date(),
+            _sync_status: 'pending',
+            is_active: true
+          };
+
+          return {
+            updateOne: {
+              filter: { id: product.id },
+              update: { $set: processedProduct },
+              upsert: true
+            }
+          };
+        }).filter(Boolean); // Remove nulls (skipped products)
+
+        try {
+          console.log('💾 Writing batch to database...');
+          const result = await OdooProduct.bulkWrite(operations, { ordered: false });
+          console.log(`✅ Batch processed: ${result.upsertedCount} inserted, ${result.modifiedCount} updated`);
+        } catch (bulkError) {
+          if (bulkError.code === 11000) {
+            console.warn('⚠️ Some duplicate key errors occurred, continuing...');
+          } else {
+            throw bulkError;
+          }
+        }
+
+        processedCount += products.length;
+        offset += products.length; // Use actual batch size for offset
+
+        // Progress update
+        const progress = ((processedCount / totalCount) * 100).toFixed(1);
+        console.log(`\n📈 Overall Progress: ${progress}% (${processedCount}/${totalCount})`);
+
+      } catch (error) {
+        console.error(`\n❌ Error processing batch at offset ${offset}:`, error);
+        failedAttempts++;
+        
+        if (failedAttempts >= maxRetries) {
+          console.error('❌ Max retries reached - stopping sync');
+          throw error;
+        }
+        
+        console.log(`🔄 Retry attempt ${failedAttempts}/${maxRetries}...`);
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s between retries
+      }
+    }
+
+    console.log(`\n✨ Product sync complete! Processed ${processedCount} products`);
+    return processedCount;
   }
 
   /**
@@ -338,41 +429,53 @@ class OdooSyncService {
         break;
       }
 
-      const operations = units.map(unit => ({
-        updateOne: {
-          filter: { id: unit.id },
-          update: {
-            $set: {
-              id: unit.id,
-              name: unit.name,
-              sequence: unit.sequence || 10,
-              product_id: unit.product_id ? (Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id) : null,
-              product_tmpl_id: unit.product_tmpl_id ? (Array.isArray(unit.product_tmpl_id) ? unit.product_tmpl_id[0] : unit.product_tmpl_id) : null,
-              product_name: unit.product_id ? (Array.isArray(unit.product_id) ? unit.product_id[1] : null) : null,
-              barcode: unit.barcode,
-              quantity: unit.quantity || 1.0,
-              unit: unit.unit ? (Array.isArray(unit.unit) ? unit.unit[1] : unit.unit) : null,
-              price: unit.price || 0,
-              av_cost: unit.av_cost || 0,
-              purchase_qty: unit.purchase_qty || 0,
-              purchase_cost: unit.purchase_cost || 0,
-              sales_vat: unit.sales_vat || 0,
-              sale_qty: unit.sale_qty || 0,
-              company_id: unit.company_id ? (Array.isArray(unit.company_id) ? unit.company_id[0] : unit.company_id) : null,
-              currency_id: unit.currency_id ? (Array.isArray(unit.currency_id) ? unit.currency_id[0] : unit.currency_id) : null,
-              active: unit.active !== false,
-              create_date: unit.create_date ? new Date(unit.create_date) : new Date(),
-              write_date: unit.write_date ? new Date(unit.write_date) : new Date(),
-              _sync_status: 'pending',
-              is_active: true,
-            }
-          },
-          upsert: true
-        }
-      }));
+      const operations = units.map(unit => {
+        // Use barcode as unique key when available to prevent duplicate-barcode errors.
+        const filter = unit.barcode ? { barcode: unit.barcode } : { id: unit.id };
+        return {
+          updateOne: {
+            filter,
+            update: {
+              $set: {
+                id: unit.id,
+                name: unit.name,
+                sequence: unit.sequence || 10,
+                product_id: unit.product_id ? (Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id) : null,
+                product_tmpl_id: unit.product_tmpl_id ? (Array.isArray(unit.product_tmpl_id) ? unit.product_tmpl_id[0] : unit.product_tmpl_id) : null,
+                product_name: unit.product_id ? (Array.isArray(unit.product_id) ? unit.product_id[1] : null) : null,
+                barcode: unit.barcode,
+                quantity: unit.quantity || 1.0,
+                unit: unit.unit ? (Array.isArray(unit.unit) ? unit.unit[1] : unit.unit) : null,
+                price: unit.price || 0,
+                av_cost: unit.av_cost || 0,
+                purchase_qty: unit.purchase_qty || 0,
+                purchase_cost: unit.purchase_cost || 0,
+                sales_vat: unit.sales_vat || 0,
+                sale_qty: unit.sale_qty || 0,
+                company_id: unit.company_id ? (Array.isArray(unit.company_id) ? unit.company_id[0] : unit.company_id) : null,
+                currency_id: unit.currency_id ? (Array.isArray(unit.currency_id) ? unit.currency_id[0] : unit.currency_id) : null,
+                active: unit.active !== false,
+                create_date: unit.create_date ? new Date(unit.create_date) : new Date(),
+                write_date: unit.write_date ? new Date(unit.write_date) : new Date(),
+                _sync_status: 'pending',
+                is_active: true,
+              }
+            },
+            upsert: true
+          }
+        };
+      });
 
       if (operations.length > 0) {
-        await OdooBarcodeUnit.bulkWrite(operations, { ordered: false });
+        try {
+          await OdooBarcodeUnit.bulkWrite(operations, { ordered: false });
+        } catch (bulkErr) {
+          // Ignore duplicate key errors and continue processing the remaining batches.
+          if (bulkErr?.code !== 11000 && bulkErr?.name !== 'BulkWriteError') {
+            throw bulkErr; // re-throw unexpected errors
+          }
+          console.warn('Duplicate barcode encountered – existing records updated where possible.');
+        }
       }
 
       totalProcessed += units.length;

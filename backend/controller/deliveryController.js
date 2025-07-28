@@ -312,15 +312,36 @@ const completeDelivery = async (req, res) => {
     
     // Reduce product stock
     if (order.cart && order.cart.length > 0) {
-      console.log(`📦 DELIVERY: Reducing stock for ${order.cart.length} items`);
       await handleProductQuantity(order.cart);
     }
     
     // Award loyalty points to customer
     if (order.user) {
       const orderAmountForPoints = order.subTotal + (order.shippingCost || 0) - (order.discount || 0);
-      console.log(`💎 DELIVERY: Awarding loyalty points for order ${order.invoice}, amount: ${orderAmountForPoints}`);
       await handleLoyaltyPoints(order.user, order._id, orderAmountForPoints);
+    }
+    
+    // Update product sales for popular products calculation (if not already updated)
+    try {
+      const cartItems = order.cart || [];
+      for (const item of cartItems) {
+        const productId = item.productId || item.id;
+        if (productId) {
+          const quantity = item.quantity || 1;
+          const packQty = item.packQty || 1;
+          const totalQuantity = quantity * packQty;
+          
+          // Update product sales (increment by quantity sold)
+          await Product.findByIdAndUpdate(
+            productId,
+            { $inc: { sales: totalQuantity } },
+            { new: true }
+          );
+        }
+      }
+    } catch (salesUpdateErr) {
+      console.error('Failed to update product sales on delivery:', salesUpdateErr);
+      // Don't fail the delivery if sales update fails
     }
     
     console.log(`✅ Order ${order.invoice} delivered successfully with verification code`);

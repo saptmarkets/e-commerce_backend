@@ -47,19 +47,49 @@ try {
 
 const app = express();
 
+// Set server timeout to handle long-running requests
+app.use((req, res, next) => {
+  // Set timeout to 10 minutes for all requests
+  req.setTimeout(600000); // 10 minutes
+  res.setTimeout(600000); // 10 minutes
+  next();
+});
+
 // Middleware
 app.use(express.json({ limit: "4mb" }));
 app.use(helmet());
 
 // CORS Configuration
 const corsOptions = {
-  origin: '*', // Allow all origins for testing
+  origin: [
+    'http://localhost:4100',
+    'http://127.0.0.1:4100',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'company'],
   credentials: true,
   optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
+
+// Additional CORS headers for preflight requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  res.header('Access-Control-Allow-Credentials', true);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, company');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
 // Serve static files
 app.use(express.static(path.join(__dirname, "public")));
@@ -257,7 +287,7 @@ app.use(function(req, res, next) {
 
 // Start the server
 const PORT = process.env.PORT || 5055;
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://127.0.0.1:${PORT}`);
   const { networkInterfaces } = require('os');
   const nets = networkInterfaces();
@@ -299,36 +329,25 @@ db.once('open', function() {
   console.log('mongodb connection success!');
 });
 
-// Print all registered routes for debugging
-console.log('\n=== REGISTERED ROUTES ===');
-app._router.stack.forEach((middleware) => {
-  if (middleware.route) {
-    // Routes registered directly on the app
-    console.log(`${Object.keys(middleware.route.methods)[0].toUpperCase()} ${middleware.route.path}`);
-  } else if (middleware.name === 'router') {
-    // Router middleware
-    const path = middleware.regexp.toString()
-      .replace('\\/?(?=\\/|$)', '')
-      .replace('^\\/\\', '/')
-      .replace('\\\\', '\\')
-      .replace('(?:^|/?', '')
-      .replace('(?=\\/|$)', '')
-      .replace('/^', '')
-      .replace('$/', '')
-      .replace('/^/', '/')
-      .replace('\\/?$/', '');
-      
-    console.log(`\nRouter at: ${path}`);
-    
-    try {
-      middleware.handle.stack.forEach((handler) => {
-        if (handler.route) {
-          const method = Object.keys(handler.route.methods)[0].toUpperCase();
-          console.log(`  ${method} ${path}${handler.route.path}`);
-        }
+// === DEBUG: Print all registered endpoints ===
+try {
+  const listEndpoints = require('express-list-endpoints');
+  const endpoints = listEndpoints(app);
+  console.log('=== ALL REGISTERED ENDPOINTS ===');
+  endpoints.forEach(route => {
+    route.methods.forEach(method => {
+      console.log(`${method} ${route.path}`);
+    });
+  });
+} catch (e) {
+  // Fallback to manual method if express-list-endpoints is not installed
+  if (app._router && app._router.stack) {
+    console.log('=== ALL REGISTERED ENDPOINTS (manual) ===');
+    app._router.stack
+      .filter(r => r.route)
+      .forEach(r => {
+        const methods = Object.keys(r.route.methods).join(', ').toUpperCase();
+        console.log(`${methods} ${r.route.path}`);
       });
-    } catch (error) {
-      console.log(`  Error listing routes for this router: ${error.message}`);
-    }
   }
-}); 
+} 

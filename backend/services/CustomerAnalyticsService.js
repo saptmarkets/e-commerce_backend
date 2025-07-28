@@ -9,7 +9,7 @@ const mongoose = require("mongoose");
 class CustomerAnalyticsService {
   constructor() {
     this.name = "CustomerAnalyticsService";
-    console.log("🎸 Customer Analytics Service initialized - Ready to rock customer insights!");
+    
   }
 
   // 🎸 Customer Overview & KPIs
@@ -761,7 +761,7 @@ class CustomerAnalyticsService {
         { $limit: limit }
       ]);
 
-      console.log("🎸 Purchase Behavior: Processing category analysis...");
+  
       
       // Get most popular categories with proper name lookup
       const categoryAnalysis = await Order.aggregate([
@@ -826,13 +826,7 @@ class CustomerAnalyticsService {
         { $limit: 20 }
       ]);
 
-      console.log("🎸 Category Analysis Results:", {
-        count: categoryAnalysis.length,
-        sampleCategories: categoryAnalysis.slice(0, 3).map(c => ({ 
-          name: c.category, 
-          revenue: c.totalRevenue 
-        }))
-      });
+
 
       // Get purchase time analysis
       const timeAnalysis = await Order.aggregate([
@@ -901,7 +895,7 @@ class CustomerAnalyticsService {
         minCustomers = 1
       } = options;
 
-      console.log("🎸 Geographic Distribution: Processing areas for single-city delivery...");
+
 
       // Use comprehensive address data to extract areas
       const geographicData = await Customer.aggregate([

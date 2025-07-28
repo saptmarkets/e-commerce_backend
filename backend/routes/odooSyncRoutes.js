@@ -20,21 +20,24 @@ const {
   importPromotions,
   getOdooBranches,
   pushBackStock,
+  importAllOdooCategories, // Add the new import
 } = require('../controller/odooSyncController');
 
 // Connection management
 router.get('/connection/test', testConnection);
 router.get('/connection/status', getConnectionStatus);
 
-// Data synchronization
+// Data operations
 router.post('/fetch', fetchFromOdoo);
 router.post('/import', importToStore);
-router.post('/import/preview', getImportPreview);
+router.post('/import-categories', importAllOdooCategories);
+
+
+router.get('/import/preview', getImportPreview);
 router.get('/statistics', getSyncStatistics);
 router.get('/logs', getSyncLogs);
-router.post('/sync', syncToStore);
 
-// Odoo data viewing
+// Data access
 router.get('/products', getOdooProducts);
 router.get('/categories', getOdooCategories);
 router.get('/uom', getOdooUom);
@@ -42,18 +45,13 @@ router.get('/stock', getOdooStock);
 router.get('/barcode-units', getOdooBarcodeUnits);
 router.get('/pricelists', getOdooPricelists);
 router.get('/pricelist-items', getOdooPricelistItems);
+router.get('/branches', getOdooBranches);
 
 // Data management
 router.delete('/clear', clearOdooData);
-
-// Test route
-router.get('/test', (req, res) => {
-  res.json({ message: 'Odoo sync routes working' });
-});
+router.post('/sync', syncToStore);
 
 router.post('/import-promotions', importPromotions);
-
-router.get('/branches', getOdooBranches);
 router.post('/push-back/stock', pushBackStock);
 
 module.exports = router; 

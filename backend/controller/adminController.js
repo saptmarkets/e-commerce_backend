@@ -282,6 +282,11 @@ const updateStaff = async (req, res) => {
       admin.access_list = req.body.access_list;
       admin.joiningData = req.body.joiningDate;
       admin.image = req.body.image;
+      
+      // Handle password update if provided
+      if (req.body.password && req.body.password.trim() !== '') {
+        admin.password = bcrypt.hashSync(req.body.password, 10);
+      }
 
       // Handle driver-specific fields if role is Driver
       if (req.body.role === "Driver") {

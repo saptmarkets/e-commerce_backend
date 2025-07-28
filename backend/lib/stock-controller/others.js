@@ -12,43 +12,24 @@ const LoyaltyService = require("../loyalty-system/loyaltyService");
 // 🔄 ENHANCED MULTI-UNIT STOCK REDUCTION SYSTEM
 const handleProductQuantity = async (cart) => {
   try {
-    console.log(`🔍 STOCK REDUCTION: Processing ${cart.length} cart items`);
-    console.log(`📋 FULL CART DATA:`, JSON.stringify(cart, null, 2));
+    console.log(`🚀 handleProductQuantity called with ${cart.length} cart items`);
+    console.log('📋 Cart items:', cart.map(item => ({
+      productId: item.productId || item._id || item.id,
+      quantity: item.quantity,
+      selectedUnitId: item.selectedUnitId,
+      unitId: item.unitId,
+      unit: item.unit,
+      packQty: item.packQty
+    })));
     
     for (const p of cart) {
-      console.log(`\n📦 PROCESSING ITEM:`, {
-        id: p._id || p.id,
-        productId: p.productId,
-        title: p.title,
-        quantity: p.quantity,
-        packQty: p.packQty,
-        unitId: p.unitId,
-        selectedUnitId: p.selectedUnitId,
-        unit: p.unit,
-        unitName: p.unitName,
-        isCombo: p.isCombo,
-        isCombination: p.isCombination,
-        totalBaseUnits: p.totalBaseUnits
-      });
       
       // Handle Mega Combo Deals
       if (p.isCombo && p.selectedProducts) {
-        console.log(`🎯 Processing Mega Combo Deal: ${p.title || p.id}`, {
-          comboQuantity: p.quantity,
-          selectedProducts: p.selectedProducts,
-          comboPrice: p.comboPrice
-        });
-
         // Process each product in the combo
         for (const [productId, productQuantity] of Object.entries(p.selectedProducts)) {
           if (productQuantity > 0) {
             const actualComboStockReduction = p.quantity * productQuantity;
-            
-            console.log(`📦 Combo product stock reduction for ${productId}:`, {
-              comboOrderQuantity: p.quantity,
-              productQuantityInCombo: productQuantity,
-              actualStockReduction: actualComboStockReduction
-            });
 
             try {
               const result = await Product.findOneAndUpdate(
@@ -62,10 +43,8 @@ const handleProductQuantity = async (cart) => {
                 { new: true }
               );
               
-              if (result) {
-                console.log(`✅ Combo stock updated for ${productId}: ${result.stock} remaining`);
-              } else {
-                console.log(`⚠️ Product ${productId} not found for combo stock reduction`);
+              if (!result) {
+                console.error(`Product ${productId} not found for combo stock reduction`);
               }
             } catch (productUpdateErr) {
               console.error(`❌ Error updating stock for combo product ${productId}:`, productUpdateErr.message);
@@ -106,18 +85,14 @@ const handleProductQuantity = async (cart) => {
       
       // For multi-unit products, try to find the correct packQty from ProductUnit
       if (unitId) {
-        console.log(`🔍 MULTI-UNIT: Looking up pack quantity for unit ID: ${unitId}`);
         try {
           const productUnit = await ProductUnit.findById(unitId);
           if (productUnit) {
             packQty = productUnit.packQty || 1;
             unitName = productUnit.unit?.name || productUnit.unit?.shortCode || unitName;
-            console.log(`✅ MULTI-UNIT: Found pack quantity from ProductUnit: ${packQty} (${unitName})`);
-          } else {
-            console.log(`⚠️ MULTI-UNIT: ProductUnit not found for ID: ${unitId}`);
           }
         } catch (error) {
-          console.error(`❌ MULTI-UNIT: Error looking up ProductUnit:`, error.message);
+          console.error(`Error looking up ProductUnit:`, error.message);
         }
       }
       
@@ -127,35 +102,21 @@ const handleProductQuantity = async (cart) => {
       // For multi-unit products, prioritize productId over composite id
       const actualProductId = p.productId || p._id || p.id;
       
-      console.log(`📊 ENHANCED STOCK CALCULATION:`, {
-        productId: actualProductId,
-        orderQuantity: p.quantity,
-        packQty: packQty,
-        actualStockReduction: actualStockReduction,
-        unitName: unitName,
-        unitId: unitId,
-        cartItemId: p.id,
-        stockReductionRatio: `${p.quantity} × ${packQty} = ${actualStockReduction}`,
-        rawProductId: p.productId,
-        rawId: p._id || p.id
-      });
-
       // Validate stock reduction makes sense
       if (actualStockReduction <= 0) {
-        console.log(`⚠️ Invalid stock reduction (${actualStockReduction}), skipping product ${actualProductId}`);
         continue;
       }
 
       // Check if product exists before updating
       const existingProduct = await Product.findById(actualProductId);
       if (!existingProduct) {
-        console.log(`❌ Product ${actualProductId} not found, skipping stock reduction`);
+        console.error(`Product ${actualProductId} not found, skipping stock reduction`);
         continue;
       }
 
       // Validate sufficient stock
       if (existingProduct.stock < actualStockReduction) {
-        console.log(`⚠️ Insufficient stock for ${actualProductId}: need ${actualStockReduction}, have ${existingProduct.stock}`);
+        console.warn(`Insufficient stock for ${actualProductId}: need ${actualStockReduction}, have ${existingProduct.stock}`);
         // Still proceed but log the issue
       }
 
@@ -176,44 +137,36 @@ const handleProductQuantity = async (cart) => {
           // Accumulate quantity to push back to Odoo (negative because it was sold)
           if (unitId) {
             try {
+              console.log(`📦 UPDATING pendingOdooQty: unitId=${unitId}, actualStockReduction=${actualStockReduction}, current pendingOdooQty will be decremented by ${actualStockReduction}`);
               await ProductUnit.findByIdAndUpdate(unitId, {
                 $inc: { pendingOdooQty: -actualStockReduction }
               });
+              console.log(`✅ Successfully updated pendingOdooQty for unit ${unitId}`);
             } catch (qe) {
               console.warn(`⚠️ Could not update pendingOdooQty for unit ${unitId}:`, qe.message);
             }
+          } else {
+            console.warn(`⚠️ No unitId found for product ${actualProductId}, skipping pendingOdooQty update`);
           }
 
-          console.log(`✅ STOCK UPDATED for ${actualProductId}:`, {
-            productTitle: result.title?.en || result.title || 'Unknown',
-            previousStock: existingProduct.stock,
-            reduction: actualStockReduction,
-            newStock: result.stock,
-            unitsSold: p.quantity,
-            unitName: unitName,
-            packQty: packQty
-          });
-          
           // Check for low stock warning
           if (result.stock <= 10) {
-            console.log(`⚠️ LOW STOCK WARNING: ${result.title?.en || result.title} has only ${result.stock} units remaining`);
+            console.warn(`Low stock warning: ${result.title?.en || result.title} has only ${result.stock} units remaining`);
           }
           
           // Check for out of stock
           if (result.stock <= 0) {
-            console.log(`🚨 OUT OF STOCK: ${result.title?.en || result.title} is now out of stock`);
+            console.warn(`Out of stock: ${result.title?.en || result.title} is now out of stock`);
           }
         } else {
-          console.log(`❌ Failed to update stock for product ${actualProductId}`);
+          console.error(`Failed to update stock for product ${actualProductId}`);
         }
       } catch (err) {
-        console.error(`❌ Error updating stock for product ${actualProductId}:`, err.message);
+        console.error(`Error updating stock for product ${actualProductId}:`, err.message);
       }
     }
-    
-    console.log(`✅ STOCK REDUCTION COMPLETE: Processed ${cart.length} items`);
   } catch (error) {
-    console.error(`🚨 STOCK REDUCTION ERROR:`, error);
+    console.error(`Stock reduction error:`, error);
     throw error;
   }
 };
@@ -258,17 +211,11 @@ const handleProductAttribute = async (key, value, multi) => {
 const handleLoyaltyPoints = async (customerId, orderId, orderTotal) => {
   try {
     if (!customerId || !orderId || !orderTotal) {
-      console.log('Missing required data for loyalty points:', { customerId, orderId, orderTotal });
+      console.error('Missing required data for loyalty points:', { customerId, orderId, orderTotal });
       return;
     }
-
-    console.log(`Processing loyalty points for customer ${customerId}, order ${orderId}, total ${orderTotal}`);
     
     const result = await LoyaltyService.awardPoints(customerId, orderId, orderTotal);
-    
-    if (result.success) {
-      console.log(`Successfully awarded ${result.pointsAwarded} loyalty points to customer ${customerId}`);
-    }
     
     return result;
   } catch (error) {
@@ -280,31 +227,23 @@ const handleLoyaltyPoints = async (customerId, orderId, orderTotal) => {
 // Restore loyalty points when order is cancelled
 const restoreLoyaltyPoints = async (customerId, orderId, loyaltyPointsUsed) => {
   try {
-    console.log(`🔄 RESTORING POINTS: Starting restoration for customer ${customerId}, order ${orderId}, points: ${loyaltyPointsUsed}`);
-    
     if (!customerId || !loyaltyPointsUsed || loyaltyPointsUsed <= 0) {
-      console.log('❌ RESTORING POINTS: No loyalty points to restore for order:', orderId, { customerId, loyaltyPointsUsed });
       return { success: true, pointsRestored: 0, message: 'No points to restore' };
     }
-
-    console.log(`✅ RESTORING POINTS: Processing ${loyaltyPointsUsed} loyalty points for customer ${customerId}, cancelled order ${orderId}`);
     
     const result = await LoyaltyService.restorePointsFromCancelledOrder(customerId, orderId, loyaltyPointsUsed);
     
-    if (result.success) {
-      console.log(`🎉 RESTORING POINTS: Successfully restored ${loyaltyPointsUsed} loyalty points to customer ${customerId}. New balance: ${result.newBalance}`);
-    } else {
-      console.error(`❌ RESTORING POINTS: Failed to restore points:`, result);
+    if (!result.success) {
+      console.error(`Failed to restore loyalty points:`, result);
     }
     
     return result;
   } catch (error) {
-    console.error('💥 RESTORING POINTS: Critical error restoring loyalty points:', {
+    console.error('Critical error restoring loyalty points:', {
       error: error.message,
       customerId,
       orderId,
-      loyaltyPointsUsed,
-      stack: error.stack
+      loyaltyPointsUsed
     });
     // Don't throw error to prevent cancellation failure, but return error info
     return { success: false, error: error.message, pointsRestored: 0 };

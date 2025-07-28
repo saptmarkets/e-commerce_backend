@@ -23,7 +23,7 @@ const ensureDeliveryInfoStructure = async (order) => {
   }
   
   if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
-    console.log('🔧 Initializing product checklist for order:', order._id);
+
     
     // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];

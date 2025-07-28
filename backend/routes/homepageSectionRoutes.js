@@ -10,7 +10,7 @@ const {
   updateSectionsOrder,
   cleanupDuplicates,
   getActiveSections
-} = require('../controllers/homepageSectionController');
+} = require('../controller/homepageSectionController');
 
 // Get all sections for admin
 router.get('/admin/all', getAllSections);

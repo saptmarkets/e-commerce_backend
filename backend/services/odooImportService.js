@@ -22,7 +22,7 @@ const BRANCH_LOCATION_IDS = (process.env.BRANCH_LOCATION_IDS || '')
 
 class OdooImportService {
   constructor() {
-    this.batchSize = 50;
+    this.batchSize = 100; // Increased from 50 to 100 for faster processing
   }
 
   /**
@@ -270,115 +270,237 @@ class OdooImportService {
    * Import products
    */
   async importProducts(productIds) {
+
     const errors = [];
     let imported = 0;
     let units = 0;
 
     try {
-      const odooProducts = await OdooProduct.find({ product_id: { $in: productIds.map(Number) } });
-      console.log(`Found ${odooProducts.length} products to import`);
+  
+      const odooProducts = await OdooProduct.find({ id: { $in: productIds.map(Number) } });
+      console.log(`📦 Found ${odooProducts.length} products to import from Odoo`);
+      console.log('📋 Product IDs found:', odooProducts.map(p => p.id));
+      
+      // Debug: Check if any products were not found
+      const foundIds = odooProducts.map(p => p.id);
+      const missingIds = productIds.filter(id => !foundIds.includes(Number(id)));
+      if (missingIds.length > 0) {
+        console.warn('⚠️ Products not found in OdooProduct collection:', missingIds);
+        
+        // Check what's actually in the collection
+        const sampleProducts = await OdooProduct.find().limit(5);
+        console.log('📋 Sample products in collection:', sampleProducts.map(p => ({ id: p.id, name: p.name })));
+      }
+
+      // Auto-import categories for these products first
+      console.log('🌳 Auto-importing categories for products...');
+      const categoryIds = [...new Set(odooProducts.map(p => p.categ_id).filter(Boolean))];
+      console.log('📋 Category IDs to import:', categoryIds);
+      
+      if (categoryIds.length > 0) {
+        try {
+          const categoryResult = await this.importCategories(categoryIds);
+          console.log(`✅ Auto-imported ${categoryResult.imported} categories`);
+          if (categoryResult.errors.length > 0) {
+            console.warn('⚠️ Category import warnings:', categoryResult.errors);
+          }
+        } catch (catErr) {
+          console.warn('⚠️ Auto-category import failed:', catErr.message);
+        }
+      } else {
+        console.warn('⚠️ No category IDs found in products');
+      }
 
       for (const p of odooProducts) {
         try {
+          console.log(`🔄 Processing product ${p.id}: ${p.name}`);
+
           // Check if product already exists
           const existing = await Product.findOne({
             $or: [
               { sku: p.default_code },
               { barcode: p.barcode }
-            ].filter(condition => Object.values(condition)[0]) // Filter out null/undefined values
+            ].filter(condition => Object.values(condition)[0])
           });
 
           if (existing) {
-            // Update existing product mapping
+            console.log(`⚠️  Product already exists: ${p.name} (ID: ${existing._id})`);
             p.store_product_id = existing._id;
             p._sync_status = 'imported';
             await p.save();
-            console.log(`Product already exists: ${p.name}`);
+            console.log(`✅ Updated existing product mapping: ${p.name}`);
             continue;
           }
 
-          // Resolve category reference or create default category
+          // --- FLEXIBLE CATEGORY PATH HANDLING ---
           let storeCategoryId = null;
-          if (p.category_id) {
-            const catMap = await OdooCategory.findOne({ id: p.category_id });
-            if (catMap && catMap.store_category_id) {
-              storeCategoryId = catMap.store_category_id;
+          let categoryPathSegments = [];
+
+          // Try to get the full bilingual path from OdooCategory.complete_name
+          if (p.categ_id) {
+    
+            const odooCat = await OdooCategory.findOne({ id: p.categ_id });
+            console.log(`📋 Found Odoo category:`, odooCat ? { id: odooCat.id, name: odooCat.name, complete_name: odooCat.complete_name } : 'NOT FOUND');
+            
+            if (odooCat && odooCat.complete_name) {
+              // Split by / and trim
+              categoryPathSegments = odooCat.complete_name.split('/').map(s => s.trim()).filter(Boolean);
+              console.log(`📋 Category path segments:`, categoryPathSegments);
+            } else if (odooCat && odooCat.name) {
+              categoryPathSegments = [odooCat.name.trim()];
+              console.log(`📋 Using category name as single segment:`, categoryPathSegments);
             }
           }
 
-          if (!storeCategoryId && p.category_id) {
-            // Attempt on-demand category import
-            try {
-              const catResult = await this.importCategories([p.category_id]);
-              if (catResult && catResult.imported >= 0) {
-                const catMapAfter = await OdooCategory.findOne({ id: p.category_id });
-                if (catMapAfter && catMapAfter.store_category_id) {
-                  storeCategoryId = catMapAfter.store_category_id;
-                }
+          // If no path, error
+          if (!categoryPathSegments.length) {
+            errors.push(`Product ${p.id}: No category path found for category ID ${p.categ_id}`);
+            console.error(`❌ Product ${p.id}: No category path found for category ID ${p.categ_id}`);
+            continue;
+          }
+
+          // Walk the path and create missing categories automatically
+          let parentId = null;
+  
+          
+          for (const seg of categoryPathSegments) {
+            
+            
+            // Try to find by both English and Arabic name
+            const nameObj = this.splitBilingualName(seg);
+            console.log(`📋 Looking for category with names:`, { en: nameObj.en, ar: nameObj.ar, original: seg });
+            
+            let cat = await Category.findOne({
+              $or: [
+                { 'name.en': nameObj.en },
+                { 'name.ar': nameObj.ar },
+                { 'name.en': seg },
+                { 'name.ar': seg }
+              ],
+              ...(parentId ? { parentId: String(parentId) } : {})
+            });
+            
+            if (!cat) {
+              console.log(`⚠️ Category segment "${seg}" not found, creating it automatically`);
+              
+              // Create the missing category
+              const slugBase = (nameObj.en || Object.values(nameObj)[0] || seg).trim();
+              let slug = this.createSlug(slugBase);
+              
+              // Ensure slug uniqueness
+              let counter = 1;
+              while (await Category.findOne({ slug })) {
+                slug = `${this.createSlug(slugBase)}-${counter}`;
+                counter++;
               }
-            } catch (catImpErr) {
-              console.warn(`Category auto-import failed for ID ${p.category_id}:`, catImpErr.message);
-            }
-          }
-
-          // If no category found, create or find a default category
-          if (!storeCategoryId) {
-            let defaultCategory = await Category.findOne({ 'name.en': 'Imported Products' });
-            if (!defaultCategory) {
-              defaultCategory = await Category.create({
-                name: { en: 'Imported Products', ar: 'المنتجات المستوردة' },
-                slug: 'imported-products',
+              
+              const categoryPayload = {
+                name: nameObj,
+                slug,
                 status: 'show',
                 icon: '',
-                type: 'parent'
-              });
-              console.log('Created default category: Imported Products');
+              };
+              if (parentId) categoryPayload.parentId = String(parentId);
+              
+              cat = await Category.create(categoryPayload);
+              console.log(`✅ Created missing category: ${nameObj.en || seg} (ID: ${cat._id})`);
+            } else {
+              console.log(`✅ Found existing category: ${cat.name?.en || cat.name} (ID: ${cat._id})`);
             }
-            storeCategoryId = defaultCategory._id;
+            
+            parentId = cat._id;
           }
 
-          // Create basic unit if needed
-          let basicUnit = await Unit.findOne({ shortCode: 'pcs' });
+          storeCategoryId = parentId;
+
+          // --- END STRICT CATEGORY CHECK ---
+
+          // Resolve basic unit or create default
+          let basicUnit = null;
+  
+          
+          if (p.uom_id) {
+            const unitMap = await OdooUom.findOne({ id: p.uom_id });
+            console.log(`📋 Found OdooUom mapping:`, unitMap ? { id: unitMap.id, store_unit_id: unitMap.store_unit_id } : 'NOT FOUND');
+            
+            if (unitMap && unitMap.store_unit_id) {
+              basicUnit = await Unit.findById(unitMap.store_unit_id);
+              console.log(`📋 Found mapped unit:`, basicUnit ? { name: basicUnit.name, shortCode: basicUnit.shortCode } : 'NOT FOUND');
+            }
+          }
+          
           if (!basicUnit) {
-            basicUnit = await Unit.create({
-              name: 'Pieces',
-              shortCode: 'pcs',
-              type: 'piece',
-              isBase: true
-            });
+
+            
+            // First try to find by name
+            basicUnit = await Unit.findOne({ name: 'Piece' });
+            
+            if (!basicUnit) {
+              // Try to find by shortCode
+              basicUnit = await Unit.findOne({ shortCode: 'pcs' });
+            }
+            
+            if (!basicUnit) {
+
+              try {
+                basicUnit = await Unit.create({
+                  name: 'Piece',
+                  shortCode: 'pcs',
+                  type: 'base',
+                  isBase: true,
+                  status: 'show'
+                });
+                console.log(`✅ Created new basic unit:`, { name: basicUnit.name, shortCode: basicUnit.shortCode, id: basicUnit._id });
+              } catch (createErr) {
+                if (createErr.code === 11000 && createErr.keyPattern?.shortCode) {
+                  // Duplicate shortCode error - try to find the existing unit
+                  console.log(`⚠️ Duplicate shortCode error, finding existing unit`);
+                  basicUnit = await Unit.findOne({ shortCode: 'pcs' });
+                  if (basicUnit) {
+                    console.log(`✅ Found existing unit with shortCode 'pcs':`, { name: basicUnit.name, id: basicUnit._id });
+                  } else {
+                    throw new Error(`Failed to create or find unit with shortCode 'pcs'`);
+                  }
+                } else {
+                  throw createErr;
+                }
+              }
+            } else {
+              console.log(`✅ Found existing basic unit:`, { name: basicUnit.name, shortCode: basicUnit.shortCode, id: basicUnit._id });
+            }
           }
 
-          // Split bilingual name into EN/AR fields
+          // Split bilingual name
           const titleObj = this.splitBilingualName(p.name);
 
-          // -----------------------------------------------------------------
-          // STOCK BY LOCATION AGGREGATION
-          // -----------------------------------------------------------------
+          // Aggregate stock from multiple locations
           let locationStocks = [];
           try {
-            const stockRecords = await OdooStock.find({ product_id: p.product_id, is_active: true });
+            const stockRecords = await OdooStock.find({ product_id: p.id, is_active: true });
             locationStocks = stockRecords.map(sr => ({
               locationId: sr.location_id,
               name: sr.location_name,
               qty: sr.available_quantity ?? sr.quantity ?? 0,
             }));
-
-            // If branch filter is configured, keep only relevant locations
             if (BRANCH_LOCATION_IDS.length > 0) {
               locationStocks = locationStocks.filter(ls => BRANCH_LOCATION_IDS.includes(ls.locationId));
             }
-          } catch (lsErr) {
-            console.warn('Failed to aggregate location stock for product', p.product_id, lsErr.message);
-          }
-
+          } catch (lsErr) {}
           const totalQty = locationStocks.reduce((acc, ls) => acc + (ls.qty || 0), 0);
-
           const slugSource = titleObj.en || Object.values(titleObj)[0] || p.name;
           const slug = this.createSlug(slugSource);
 
           // Create product in store
+          console.log(`🔨 Creating product in store:`, {
+            sku: p.default_code || `ODOO-${p.id}`,
+            name: p.name,
+            category: storeCategoryId,
+            price: p.list_price || 0,
+            basicUnit: basicUnit._id
+          });
+          
           const newProd = await Product.create({
-            sku: p.default_code || `ODOO-${p.product_id}`,
+            sku: p.default_code || `ODOO-${p.id}`,
             barcode: p.barcode,
             title: titleObj,
             slug: slug,
@@ -394,82 +516,78 @@ class OdooImportService {
             status: 'show',
             type: 'simple',
             hasMultiUnits: false,
-            availableUnits: [basicUnit._id]
+            availableUnits: [basicUnit._id],
+            odooProductId: p.id
           });
+          
+          console.log(`✅ Product created successfully: ${newProd._id}`);
 
-          // -----------------------------------------------------------------
-          // Ensure a ProductUnit entry exists for the basic unit (packQty = 1)
-          // -----------------------------------------------------------------
-          try {
-            let basePU = await ProductUnit.findOne({
+          // Create ProductUnit for the basic unit (so it appears in More Units tab)
+          const basicProductUnit = await ProductUnit.create({
               product: newProd._id,
               unit: basicUnit._id,
-              packQty: 1,
-            });
-
-            if (!basePU) {
-              basePU = await ProductUnit.create({
-                product: newProd._id,
-                unit: basicUnit._id,
-                unitType: 'base',
+            unitType: 'basic',
                 unitValue: 1,
                 packQty: 1,
                 price: newProd.price,
                 sku: newProd.sku,
                 barcode: newProd.barcode,
+            name: basicUnit.name,
                 isDefault: true,
                 isActive: true,
                 isAvailable: true,
                 stock: totalQty,
-                locationStocks,
+            locationStocks
               });
-            }
 
-            // Keep ID at the front of the availableUnits array for easier sorting
+          console.log(`✅ Created basic ProductUnit ${basicProductUnit._id} for product ${newProd._id}`);
+
+          // Update product to include the basic unit in availableUnits
             await Product.findByIdAndUpdate(newProd._id, {
-              availableUnits: [basicUnit._id],
+            availableUnits: [basicProductUnit._id]
+          });
+
+          // Import additional units from Odoo barcode units
+          try {
+            const unitResult = await this.importProductUnits(p, newProd, { 
+              stock: totalQty, 
+              locationStocks 
             });
-          } catch (puErr) {
-            console.error('⚠️  Failed creating basic ProductUnit:', puErr.message);
+            units += unitResult.units;
+            console.log(`✅ Imported ${unitResult.units} additional units for product ${newProd._id}`);
+          } catch (unitErr) {
+            console.error(`⚠️  Error importing units for product ${p.id}:`, unitErr.message);
+            errors.push(`Product ${p.id}: Unit import failed - ${unitErr.message}`);
           }
 
-          // Mark imported in Odoo collection
           p.store_product_id = newProd._id;
           p._sync_status = 'imported';
           await p.save();
-
           imported++;
-          console.log(`Imported product: ${p.name}`);
-
-          // ---- MULTI-UNITS ----
-          try {
-            // Trisha: Let's make sure we import ALL units, not just the first one!
-            const unitResult = await this.importProductUnits(p, newProd, { stock: totalQty, locationStocks });
-            units += unitResult.units;
-            if (unitResult.units > 0) {
-              // Update product to indicate it has multi-units
-              await Product.findByIdAndUpdate(newProd._id, {
-                hasMultiUnits: true,
-                availableUnits: unitResult.unitIds
-              });
-            }
-            // Trisha: Log the number of units imported for this product!
-            console.log(`[Trisha] Imported ${unitResult.units} units for product ${p.name} (ID: ${newProd._id})`);
-          } catch (unitError) {
-            console.error(`Error importing units for product ${p.name}:`, unitError);
-            errors.push(`Product "${p.name}" units: ${unitError.message}`);
+          
+        } catch (pErr) {
+          console.error(`❌ Error importing product ${p.id}:`, pErr);
+          errors.push(`Product ${p.id}: ${pErr.message}`);
           }
-
-        } catch (error) {
-          console.error(`Error importing product ${p.name}:`, error);
-          errors.push(`Product "${p.name}": ${error.message}`);
-        }
       }
 
+      console.log(`🎉 Import completed: ${imported} products imported, ${units} additional units imported, ${errors.length} errors`);
+      
+      // Log detailed results
+      if (imported > 0) {
+        console.log(`✅ Successfully imported ${imported} products`);
+      }
+      if (units > 0) {
+        console.log(`📦 Successfully imported ${units} additional units`);
+      }
+      if (errors.length > 0) {
+        console.log(`❌ Import errors:`, errors);
+      }
+      
       return { imported, units, errors };
 
     } catch (error) {
-      console.error('Products import batch error:', error);
+      console.error('❌ Fatal error in importProducts:', error);
       throw error;
     }
   }
@@ -483,19 +601,32 @@ class OdooImportService {
     const unitIds = [storeProduct.basicUnit]; // Start with basic unit
 
     try {
-      // Only import the units that the product currently references.
-      // This avoids importing stale / orphaned barcode units that still
-      // share the same product_id but are no longer linked to the
-      // product (which caused duplicate units in the admin).
-
-      let unitFilter = { active: true };
+      // Import all active barcode units for this product
+      let odooUnits = [];
+      
+      // First try to use barcode_unit_ids if available
       if (odooProduct.barcode_unit_ids && odooProduct.barcode_unit_ids.length > 0) {
-        unitFilter.id = { $in: odooProduct.barcode_unit_ids };
-      } else {
-        unitFilter.product_id = odooProduct.product_id;
+        odooUnits = await OdooBarcodeUnit.find({ 
+          id: { $in: odooProduct.barcode_unit_ids },
+          active: true 
+        });
       }
-
-      const odooUnits = await OdooBarcodeUnit.find(unitFilter);
+      
+      // If no units found by IDs, try product_id lookup
+      if (!odooUnits || odooUnits.length === 0) {
+        odooUnits = await OdooBarcodeUnit.find({ 
+          product_id: odooProduct.id,
+          active: true 
+        });
+      }
+      
+      // Also try product_tmpl_id if still no units found
+      if (!odooUnits || odooUnits.length === 0 && odooProduct.product_tmpl_id) {
+        odooUnits = await OdooBarcodeUnit.find({ 
+          product_tmpl_id: odooProduct.product_tmpl_id,
+          active: true 
+        });
+      }
 
       if (!odooUnits || odooUnits.length === 0) {
         return { units, unitIds };
@@ -509,12 +640,25 @@ class OdooImportService {
 
           let storeUnit = await Unit.findOne({ shortCode });
           if (!storeUnit) {
-            storeUnit = await Unit.create({ 
-              name: unitName, 
-              shortCode, 
-              type: 'pack', 
-              isBase: false 
-            });
+            try {
+              storeUnit = await Unit.create({ 
+                name: unitName, 
+                shortCode, 
+                type: 'pack', 
+                isBase: false,
+                status: 'show'
+              });
+            } catch (createErr) {
+              if (createErr.code === 11000 && createErr.keyPattern?.shortCode) {
+                // Duplicate shortCode error - try to find the existing unit
+                storeUnit = await Unit.findOne({ shortCode });
+                if (!storeUnit) {
+                  throw new Error(`Failed to create or find unit with shortCode '${shortCode}'`);
+                }
+              } else {
+                throw createErr;
+              }
+            }
           }
 
           // Create ProductUnit if not exists
@@ -549,12 +693,7 @@ class OdooImportService {
               locationStocks: locationStocks || []
             };
             
-            console.log(`Creating ProductUnit for barcode ${bu.barcode} with data:`, {
-              product: productUnitData.product,
-              unit: productUnitData.unit,
-              name: productUnitData.name,
-              barcode: productUnitData.barcode
-            });
+
             
             prodUnit = await ProductUnit.create(productUnitData);
             
@@ -562,7 +701,6 @@ class OdooImportService {
               throw new Error(`Failed to create ProductUnit for barcode unit ${bu.id}`);
             }
             
-            console.log(`✅ Created ProductUnit ${prodUnit._id} for barcode unit ${bu.id}`);
             units++;
           } else {
             // Ensure stock fields stay in sync for existing units
@@ -572,16 +710,12 @@ class OdooImportService {
               isActive: true,
               isAvailable: true
             }).save();
-            
-            console.log(`✅ Updated existing ProductUnit ${prodUnit._id} for barcode unit ${bu.id}`);
           }
 
           // Update Odoo barcode unit mapping
           bu.store_product_unit_id = prodUnit._id;
           bu._sync_status = 'imported';
           await bu.save();
-          
-          console.log(`✅ Mapped barcode unit ${bu.id} (${bu.name}) to ProductUnit ${prodUnit._id}`);
 
           if (!unitIds.includes(storeUnit._id)) {
             unitIds.push(storeUnit._id);
@@ -598,45 +732,36 @@ class OdooImportService {
         }
       }
 
-      // --- Deactivate obsolete ProductUnits that are no longer referenced ---
+      // --- Update product with all created units ---
       try {
-        const activeBarcodes = odooUnits.map(u => u.barcode).filter(Boolean);
-
-        await ProductUnit.updateMany(
-          {
-            product: storeProduct._id,
-            unitType: 'multi',
-            barcode: { $nin: activeBarcodes },
-            isActive: true,
-          },
-          { isActive: false, isAvailable: false }
-        );
-
-        // Refresh availableUnits array to include only still-active units
-        const validUnits = await ProductUnit.find({
+        // Wait a moment to ensure all newly created units are properly saved
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Get all ProductUnits for this product (both basic and multi)
+        const allProductUnits = await ProductUnit.find({
           product: storeProduct._id,
-          isActive: true,
-        }, '_id');
+        }, '_id isActive unitType barcode');
+        
+        // Get only active units for the availableUnits array
+        const activeUnits = allProductUnits.filter(u => u.isActive);
         
         // Update the store product with the correct availableUnits
-        const updatedProduct = await Product.findByIdAndUpdate(
+        await Product.findByIdAndUpdate(
           storeProduct._id, 
           {
-            availableUnits: validUnits.map(u => u._id),
-            hasMultiUnits: validUnits.length > 1
+            availableUnits: activeUnits.map(u => u._id),
+            hasMultiUnits: activeUnits.length > 1
           },
           { new: true }
         );
         
-        console.log(`✅ Updated product ${storeProduct._id} with ${validUnits.length} available units`);
-        
         // Ensure the store product object reflects the changes for subsequent operations
         if (storeProduct.availableUnits) {
-          storeProduct.availableUnits = validUnits.map(u => u._id);
+          storeProduct.availableUnits = activeUnits.map(u => u._id);
         }
         
-      } catch (cleanupErr) {
-        console.warn('⚠️  Unit cleanup failed:', cleanupErr.message);
+      } catch (updateErr) {
+        console.warn('⚠️  Product update failed:', updateErr.message);
       }
 
       return { units, unitIds };
@@ -778,31 +903,31 @@ class OdooImportService {
             if (!bu.store_product_unit_id) {
               console.log(`Barcode unit ${bu.id} not mapped to store ProductUnit, importing product units...`);
               
-              const odooProduct = await OdooProduct.findOne({ product_id: bu.product_id });
+              const odooProduct = await OdooProduct.findOne({ id: bu.product_id });  // Changed from product_id to id
               if (odooProduct) {
                 // Ensure the product exists in store collections first
                 if (!odooProduct.store_product_id) {
-                  console.log(`Product ${odooProduct.product_id} not in store, importing...`);
+                  console.log(`Product ${odooProduct.id} not in store, importing...`);  // Changed from odooProduct.product_id to odooProduct.id
                   try {
-                    await this.importProducts([odooProduct.product_id]);
+                    await this.importProducts([odooProduct.id]);  // Changed from odooProduct.product_id to odooProduct.id
                     await odooProduct.reload();
                   } catch (impErr) {
-                    console.warn(`Auto-import product ${odooProduct.product_id} failed:`, impErr.message);
-                    throw new Error(`Failed to import product ${odooProduct.product_id}: ${impErr.message}`);
+                    console.warn(`Auto-import product ${odooProduct.id} failed:`, impErr.message);  // Changed from odooProduct.product_id to odooProduct.id
+                    throw new Error(`Failed to import product ${odooProduct.id}: ${impErr.message}`);  // Changed from odooProduct.product_id to odooProduct.id
                   }
                 }
 
                 // Now import/update all units for this product to ensure the barcode unit gets mapped
                 try {
-                  console.log(`Importing units for product ${odooProduct.product_id} to ensure barcode unit mapping...`);
+                  console.log(`Importing units for product ${odooProduct.id} to ensure barcode unit mapping...`);  // Changed from odooProduct.product_id to odooProduct.id
                   await this.importProductUnits(odooProduct, { _id: odooProduct.store_product_id });
                   
                   // Reload the barcode unit to get the newly set store_product_unit_id
                   await bu.reload();
                   console.log(`After unit import, barcode unit ${bu.id} store mapping:`, bu.store_product_unit_id);
                 } catch (unitImportErr) {
-                  console.error(`Auto-import units for product ${odooProduct.product_id} failed:`, unitImportErr.message);
-                  throw new Error(`Failed to import units for product ${odooProduct.product_id}: ${unitImportErr.message}`);
+                  console.error(`Auto-import units for product ${odooProduct.id} failed:`, unitImportErr.message);  // Changed from odooProduct.product_id to odooProduct.id
+                  throw new Error(`Failed to import units for product ${odooProduct.id}: ${unitImportErr.message}`);  // Changed from odooProduct.product_id to odooProduct.id
                 }
               } else {
                 throw new Error(`Odoo product not found for barcode unit ${bu.id} (product_id: ${bu.product_id})`);
@@ -816,45 +941,79 @@ class OdooImportService {
           }
         }
 
-        // 2) Fallback: lookup by product variant (product_id) - for promotions without specific barcode units
+        // 2) When barcode_unit_id is null, handle product-level promotions
         if (!storeProductUnitId && plc.product_id) {
-          console.log(`Falling back to product_id lookup for item ${plc.id}`);
-          const opById = await OdooProduct.findOne({ product_id: plc.product_id });
+          console.log(`Processing basic unit promotion for item ${plc.id} (barcode_unit_id is null, using basic unit)`);
+          const opById = await OdooProduct.findOne({ id: plc.product_id });  // Changed from product_id to id
           if (opById) {
             // Ensure product exists in store collections
             if (!opById.store_product_id) {
               try {
-                await this.importProducts([opById.product_id]);
+                console.log(`Product ${opById.id} not in store, importing...`);
+                await this.importProducts([opById.id]);  // Changed from opById.product_id to opById.id
                 await opById.reload();
               } catch (impErr) {
                 console.warn('Auto-import product failed', impErr.message);
+                throw new Error(`Failed to import product ${opById.id}: ${impErr.message}`);
               }
             }
 
             if (opById.store_product_id) {
+              // Find the basic/default unit for this product
               const defaultPU = await ProductUnit.findOne({ product: opById.store_product_id, isDefault: true });
-              if (defaultPU) storeProductUnitId = defaultPU._id;
+              if (defaultPU) {
+                storeProductUnitId = defaultPU._id;
+                console.log(`Resolved basic unit ID: ${storeProductUnitId} for product ${opById.id}`);
+              } else {
+                // If no default unit exists, try to find any unit for this product
+                const anyPU = await ProductUnit.findOne({ product: opById.store_product_id });
+                if (anyPU) {
+                  storeProductUnitId = anyPU._id;
+                  console.log(`Resolved any unit ID: ${storeProductUnitId} for product ${opById.id} (no default unit found)`);
+                }
+              }
             }
           }
         }
 
-        // 3) Fallback: lookup by template (product_tmpl_id) - last resort
+        // 3) When both barcode_unit_id and product_id are null, use product_tmpl_id (template-level promotions)
         if (!storeProductUnitId && plc.product_tmpl_id) {
-          console.log(`Falling back to product_tmpl_id lookup for item ${plc.id}`);
+          console.log(`Processing template-level promotion for item ${plc.id} (barcode_unit_id: ${plc.barcode_unit_id}, product_id: ${plc.product_id}, product_tmpl_id: ${plc.product_tmpl_id})`);
+          
+          // Find any product with this template ID
           const opByTpl = await OdooProduct.findOne({ product_tmpl_id: plc.product_tmpl_id });
           if (opByTpl) {
+            console.log(`Found product with template ${plc.product_tmpl_id}: ${opByTpl.name} (ID: ${opByTpl.id})`);
+            
+            // Ensure product exists in store collections
             if (!opByTpl.store_product_id) {
               try {
-                await this.importProducts([opByTpl.product_id]); // Use product_id for import
+                console.log(`Product ${opByTpl.id} not in store, importing...`);
+                await this.importProducts([opByTpl.id]);
                 await opByTpl.reload();
               } catch (impErr) {
                 console.warn('Auto-import product failed', impErr.message);
+                throw new Error(`Failed to import product ${opByTpl.id}: ${impErr.message}`);
               }
             }
+            
             if (opByTpl.store_product_id) {
+              // Find the basic/default unit for this product
               const defaultPU = await ProductUnit.findOne({ product: opByTpl.store_product_id, isDefault: true });
-              if (defaultPU) storeProductUnitId = defaultPU._id;
+              if (defaultPU) {
+                storeProductUnitId = defaultPU._id;
+                console.log(`Resolved basic unit ID: ${storeProductUnitId} for template product ${opByTpl.id}`);
+              } else {
+                // If no default unit exists, try to find any unit for this product
+                const anyPU = await ProductUnit.findOne({ product: opByTpl.store_product_id });
+                if (anyPU) {
+                  storeProductUnitId = anyPU._id;
+                  console.log(`Resolved any unit ID: ${storeProductUnitId} for template product ${opByTpl.id} (no default unit found)`);
+                }
+              }
             }
+          } else {
+            console.warn(`No product found with template ID ${plc.product_tmpl_id}`);
           }
         }
 
@@ -904,7 +1063,7 @@ class OdooImportService {
    * Validate and fix data consistency issues before import
    */
   async validateAndFixDataConsistency(items) {
-    console.log('🔍 Validating data consistency...');
+
     
     try {
       // 1. Clear invalid store_promotion_id references
@@ -929,21 +1088,34 @@ class OdooImportService {
         );
       }
 
-      // 2. Ensure products are imported for all items
+      // 2. Ensure products are imported for all items (both product_id and product_tmpl_id)
       const productIds = [...new Set(items.map(item => item.product_id).filter(Boolean))];
+      const templateIds = [...new Set(items.map(item => item.product_tmpl_id).filter(Boolean))];
       const missingProducts = [];
       
+      // Check products by product_id
       for (const productId of productIds) {
-        const odooProduct = await OdooProduct.findOne({ product_id: productId });
+        const odooProduct = await OdooProduct.findOne({ id: productId });
         if (odooProduct && !odooProduct.store_product_id) {
           missingProducts.push(productId);
         }
       }
       
-      if (missingProducts.length > 0) {
-        console.log(`📦 Auto-importing ${missingProducts.length} missing products...`);
+      // Check products by product_tmpl_id (for template-level promotions)
+      for (const templateId of templateIds) {
+        const odooProduct = await OdooProduct.findOne({ product_tmpl_id: templateId });
+        if (odooProduct && !odooProduct.store_product_id) {
+          missingProducts.push(odooProduct.id);
+        }
+      }
+      
+      // Remove duplicates
+      const uniqueMissingProducts = [...new Set(missingProducts)];
+      
+      if (uniqueMissingProducts.length > 0) {
+        console.log(`📦 Auto-importing ${uniqueMissingProducts.length} missing products...`);
         try {
-          await this.importProducts(missingProducts);
+          await this.importProducts(uniqueMissingProducts);
         } catch (err) {
           console.warn(`Auto-import of products failed:`, err.message);
         }
@@ -964,7 +1136,7 @@ class OdooImportService {
         console.log(`🔗 Mapping ${unmappedBarcodeUnits.length} unmapped barcode units...`);
         for (const barcodeUnit of unmappedBarcodeUnits) {
           try {
-            const odooProduct = await OdooProduct.findOne({ product_id: barcodeUnit.product_id });
+            const odooProduct = await OdooProduct.findOne({ id: barcodeUnit.product_id });
             if (odooProduct && odooProduct.store_product_id) {
               await this.importProductUnits(odooProduct, { _id: odooProduct.store_product_id });
             }

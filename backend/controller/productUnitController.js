@@ -133,7 +133,7 @@ const getProductUnits = async (req, res) => {
       ],
       isActive: true
     })
-    .populate('unit')  // Only populate the actual database field
+    .populate('unit', 'name nameAr shortCode type isBase')  // Populate all unit fields including Arabic name
     .sort({ sortOrder: 1, unitValue: 1 });
 
     if (!productUnits || productUnits.length === 0) {
@@ -160,6 +160,9 @@ const getProductUnits = async (req, res) => {
 
     const unitsWithMetrics = productUnits.map(pu => {
       const unitData = pu.toObject();
+      
+      // Debug: Log unit data to see if nameAr is present
+      console.log(`[ProductUnitController] Unit ${pu._id} - nameAr: "${pu.unit?.nameAr}" (hasNameAr: ${!!pu.unit?.nameAr})`);
       
       if (basicProductUnitForComparison && basicProductUnitForComparison.price > 0 && basicProductUnitForComparison._id.toString() !== pu._id.toString()) {
         unitData.savings = pu.calculateSavings(basicProductUnitForComparison.pricePerBasicUnit);

@@ -178,27 +178,20 @@ const updateOrder = async (req, res) => {
       
       // When order is delivered, reduce stock and award loyalty points
       if (status === 'Delivered' && oldStatus !== 'Delivered') {
-        console.log(`📦 DELIVERY: Processing delivery for order ${order.invoice}`);
-        
-        // Reduce product stock
-        if (order.cart && order.cart.length > 0) {
-          console.log(`📦 DELIVERY: Reducing stock for ${order.cart.length} items`);
-          await handleProductQuantity(order.cart);
-        }
-        
-        // Award loyalty points to customer (calculated on order total before loyalty discount)
-        if (order.user) {
-          const orderAmountForPoints = order.subTotal + (order.shippingCost || 0) - (order.discount || 0);
-          console.log(`💎 DELIVERY: Awarding loyalty points for order ${order.invoice}, amount: ${orderAmountForPoints}`);
-          await handleLoyaltyPoints(order.user, order._id, orderAmountForPoints);
-        }
-        
-        console.log(`✅ DELIVERY: Order ${order.invoice} processed successfully`);
+            // Reduce product stock
+    if (order.cart && order.cart.length > 0) {
+      await handleProductQuantity(order.cart);
+    }
+    
+    // Award loyalty points to customer (calculated on order total before loyalty discount)
+    if (order.user) {
+      const orderAmountForPoints = order.subTotal + (order.shippingCost || 0) - (order.discount || 0);
+      await handleLoyaltyPoints(order.user, order._id, orderAmountForPoints);
+    }
       }
       
       // When order is cancelled, restore stock and loyalty points
       else if (status === 'Cancel' && oldStatus !== 'Cancel') {
-        console.log(`❌ CANCEL: Processing cancellation for order ${order.invoice}`);
         await handleOrderCancellation(order, "Order cancelled");
       }
       
@@ -221,7 +214,7 @@ const updateOrder = async (req, res) => {
       { new: true }
     );
 
-    console.log(`✅ ORDER UPDATE: Order ${updatedOrder.invoice} updated successfully`);
+
 
     res.send({
       data: updatedOrder,

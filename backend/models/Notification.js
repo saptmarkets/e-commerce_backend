@@ -33,7 +33,24 @@ const notificationSchema = new mongoose.Schema(
     },
     message: {
       type: String,
-      required: true,
+      required: false, // Made optional to support translation keys
+    },
+    // New translation support fields
+    titleKey: {
+      type: String,
+      required: false,
+    },
+    messageKey: {
+      type: String,
+      required: false,
+    },
+    titleData: {
+      type: Object,
+      default: {},
+    },
+    messageData: {
+      type: Object,
+      default: {},
     },
     image: {
       type: String,
@@ -41,6 +58,10 @@ const notificationSchema = new mongoose.Schema(
     },
     actionUrl: {
       type: String,
+      required: false,
+    },
+    orderInvoice: {
+      type: Number,
       required: false,
     },
     status: {

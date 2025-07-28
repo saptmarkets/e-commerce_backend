@@ -7,7 +7,7 @@ const CustomerAnalyticsService = require("../services/CustomerAnalyticsService")
 class CustomerAnalyticsController {
   constructor() {
     this.customerAnalytics = new CustomerAnalyticsService();
-    console.log("🎸 Customer Analytics Controller initialized - Ready to serve customer insights!");
+    
   }
 
   // 🎸 GET /api/reports/customer/overview

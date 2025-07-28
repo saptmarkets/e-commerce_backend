@@ -3,7 +3,12 @@ const Unit = require("../models/Unit");
 // Add a new unit
 const addUnit = async (req, res) => {
   try {
-    const { name, nameAr, shortCode, description, type, parentUnit: parentUnitId, packValue, status } = req.body;
+    const { name, nameAr, shortCode, description, type, parentUnit: parentUnitId, packValue, status, isBase } = req.body;
+    
+    console.log('=== ADD UNIT DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('Extracted isBase:', isBase);
+    console.log('Type of isBase:', typeof isBase);
 
     // Validate required fields
     if (!name || !shortCode) {
@@ -37,8 +42,11 @@ const addUnit = async (req, res) => {
       description,
       type,
       status,
+      isBase: isBase || false, // Handle isBase field
       isParent: true, // Default to parent
     };
+    
+    console.log('Unit data to save:', unitData);
 
     if (parentUnitId) {
       if (!packValue || parseFloat(packValue) <= 0) {
@@ -64,6 +72,7 @@ const addUnit = async (req, res) => {
     const unit = new Unit(unitData);
     const savedUnit = await unit.save();
     const populatedUnit = await Unit.findById(savedUnit._id).populate('parentUnit', 'name shortCode');
+    console.log('Saved unit:', populatedUnit);
     res.status(201).send(populatedUnit);
   } catch (err) {
     res.status(500).send({
@@ -201,9 +210,17 @@ const getMultiUnits = async (req, res) => {
 // Get basic (parent) units only
 const getBasicUnits = async (req, res) => {
   try {
-    // The static method getBasicUnits might not populate parentUnit (which would be null anyway for basic units)
-    // but for consistency in API responses, ensure fields are similar.
-    const basicUnits = await Unit.getBasicUnits(); // This fetches isParent:true units
+    // Get basic units (parent units with isParent: true or isBase: true)
+    const basicUnits = await Unit.find({
+      $or: [
+        { isParent: true },
+        { isBase: true },
+        { parentUnit: { $exists: false } },
+        { parentUnit: null }
+      ],
+      status: "show"
+    }).sort({ name: 1 });
+    
     res.send(basicUnits);
   } catch (err) {
     res.status(500).send({
@@ -239,7 +256,13 @@ const updateUnit = async (req, res) => {
       return res.status(404).send({ message: "Unit not found!" });
     }
 
-    const { name, nameAr, shortCode, description, type, parentUnit: parentUnitId, packValue, status, isParent: isParentFlag } = req.body;
+    const { name, nameAr, shortCode, description, type, parentUnit: parentUnitId, packValue, status, isParent: isParentFlag, isBase } = req.body;
+    
+    console.log('=== UPDATE UNIT DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('Extracted isBase:', isBase);
+    console.log('Type of isBase:', typeof isBase);
+    console.log('Current unit isBase:', unitToUpdate.isBase);
 
     // Check for uniqueness if name or shortCode are being changed
     if (name && name.toLowerCase() !== unitToUpdate.name.toLowerCase()) {
@@ -257,6 +280,10 @@ const updateUnit = async (req, res) => {
     if (nameAr !== undefined) unitToUpdate.nameAr = nameAr || ""; // Arabic name is optional
     if (type !== undefined) unitToUpdate.type = type;
     if (status !== undefined) unitToUpdate.status = status;
+    if (isBase !== undefined) {
+      console.log('Setting isBase to:', isBase);
+      unitToUpdate.isBase = isBase;
+    }
 
     // Handling parent-child relationship update
     if (parentUnitId !== undefined) { // User is trying to set or change the parent
@@ -296,6 +323,9 @@ const updateUnit = async (req, res) => {
 
     const updatedUnit = await unitToUpdate.save();
     const populatedUnit = await Unit.findById(updatedUnit._id).populate('parentUnit', 'name shortCode');
+    
+    console.log('Updated unit isBase:', populatedUnit.isBase);
+    console.log('Final updated unit:', populatedUnit);
 
     res.status(200).send({
       message: "Unit updated successfully",

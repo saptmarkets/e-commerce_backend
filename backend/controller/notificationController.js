@@ -5,38 +5,38 @@ const createOrderNotification = async (customerId, orderId, orderStatus, orderIn
   try {
     if (!customerId || !orderId) return;
 
-    let title, message, actionUrl;
+    let titleKey, messageKey, actionUrl;
 
     switch (orderStatus) {
       case 'Received':
         // Initial notification containing the secret / verification code
-        title = 'Order Verification Code';
-        message = `Your order #${orderInvoice} has been received. Your verification code is ${verificationCode}. Please provide this code to our delivery personnel to receive your package.`;
+        titleKey = 'orderVerificationCode';
+        messageKey = 'orderReceivedMessage';
         actionUrl = `/order/${orderInvoice}`;
         break;
       case 'Pending':
-        title = 'Order Confirmed';
-        message = `Your order #${orderInvoice} has been confirmed and is being prepared.`;
+        titleKey = 'orderConfirmed';
+        messageKey = 'orderConfirmedMessage';
         actionUrl = `/order/${orderInvoice}`;
         break;
       case 'Processing':
-        title = 'Order Processing';
-        message = `Your order #${orderInvoice} is now being processed and prepared for delivery.`;
+        titleKey = 'orderProcessing';
+        messageKey = 'orderProcessingMessage';
         actionUrl = `/order/${orderInvoice}`;
         break;
       case 'Out for Delivery':
-        title = 'Out for Delivery';
-        message = `Great news! Your order #${orderInvoice} is out for delivery and should arrive soon.`;
+        titleKey = 'outForDelivery';
+        messageKey = 'outForDeliveryMessage';
         actionUrl = `/order/${orderInvoice}`;
         break;
       case 'Delivered':
-        title = 'Order Delivered';
-        message = `Your order #${orderInvoice} has been successfully delivered. Thank you for shopping with us!`;
+        titleKey = 'orderDelivered';
+        messageKey = 'orderDeliveredMessage';
         actionUrl = `/order/${orderInvoice}`;
         break;
       case 'Cancel':
-        title = 'Order Cancelled';
-        message = `Your order #${orderInvoice} has been cancelled. Any payments will be refunded.`;
+        titleKey = 'orderCancelled';
+        messageKey = 'orderCancelledMessage';
         actionUrl = `/order/${orderInvoice}`;
         break;
       default:
@@ -46,9 +46,12 @@ const createOrderNotification = async (customerId, orderId, orderStatus, orderIn
     const notification = new Notification({
       customerId,
       orderId,
+      orderInvoice, // Add invoice number to notification
       type: 'order',
-      title,
-      message,
+      titleKey,
+      messageKey,
+      titleData: { orderInvoice },
+      messageData: { orderInvoice, verificationCode },
       actionUrl,
       status: 'unread'
     });
@@ -58,13 +61,13 @@ const createOrderNotification = async (customerId, orderId, orderStatus, orderIn
     // If the order is marked as Delivered or Cancelled, remove the previous verification-code notification
     if (['Delivered', 'Cancel'].includes(orderStatus)) {
       try {
-        await Notification.deleteMany({ orderId, title: 'Order Verification Code' });
+        await Notification.deleteMany({ orderId, titleKey: 'orderVerificationCode' });
       } catch (cleanupErr) {
         console.error('Error cleaning up verification code notifications:', cleanupErr);
       }
     }
 
-    console.log(`Created notification for customer ${customerId}: ${title}`);
+    console.log(`Created notification for customer ${customerId}: ${titleKey}`);
   } catch (error) {
     console.error('Error creating order notification:', error);
   }
@@ -78,8 +81,10 @@ const createWelcomeNotification = async (customerId, customerName) => {
     const notification = new Notification({
       customerId,
       type: 'system',
-      title: 'Welcome to SAPT Markets!',
-      message: `Hi ${customerName}! Welcome to SAPT Markets. We're excited to serve you with fresh groceries and fast delivery.`,
+      titleKey: 'welcomeToSaptMarkets',
+      messageKey: 'welcomeMessage',
+      titleData: {},
+      messageData: { customerName },
       actionUrl: '/products',
       status: 'unread'
     });
@@ -96,38 +101,40 @@ const createProductNotification = async (customerId, productId, type, customMess
   try {
     if (!customerId) return;
 
-    let title, message;
+    let titleKey, messageKey;
 
     switch (type) {
       case 'back_in_stock':
-        title = 'Product Back in Stock';
-        message = customMessage || 'A product you were interested in is now back in stock!';
+        titleKey = 'productBackInStock';
+        messageKey = 'productBackInStockMessage';
         break;
       case 'price_drop':
-        title = 'Price Drop Alert';
-        message = customMessage || 'Great news! The price of a product you viewed has dropped.';
+        titleKey = 'priceDropAlert';
+        messageKey = 'priceDropMessage';
         break;
       case 'recommendation':
-        title = 'Product Recommendation';
-        message = customMessage || 'We think you might like this product based on your previous orders.';
+        titleKey = 'productRecommendation';
+        messageKey = 'productRecommendationMessage';
         break;
       default:
-        title = 'Product Update';
-        message = customMessage || 'There\'s an update about a product you\'re interested in.';
+        titleKey = 'productUpdate';
+        messageKey = 'productUpdateMessage';
     }
 
     const notification = new Notification({
       customerId,
       productId,
       type: 'product',
-      title,
-      message,
+      titleKey,
+      messageKey,
+      titleData: {},
+      messageData: {},
       actionUrl: `/product/${productId}`,
       status: 'unread'
     });
 
     await notification.save();
-    console.log(`Created product notification for customer ${customerId}: ${title}`);
+    console.log(`Created product notification for customer ${customerId}: ${titleKey}`);
   } catch (error) {
     console.error('Error creating product notification:', error);
   }

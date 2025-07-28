@@ -199,7 +199,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340705/category%20icon/bagel_mt3fod.png",
+    icon: "",
   },
   {
     _id: "632aae624d87ff2494210951",
@@ -238,7 +238,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340705/category%20icon/juice_p5gv5k.png",
+    icon: "",
   },
   {
     _id: "632ab0454d87ff24942109cc",
@@ -316,7 +316,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340706/category%20icon/milk_dcl0dr.png",
+    icon: "",
   },
   {
     _id: "632ab1584d87ff2494210a31",
@@ -381,7 +381,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340706/category%20icon/beauty_vfbmzc.png",
+    icon: "",
   },
   {
     _id: "632ab2b64d87ff2494210aa7",
@@ -498,7 +498,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340707/category%20icon/cat_tznwmq.png",
+    icon: "",
   },
   {
     _id: "632ab4524d87ff2494210b19",
@@ -537,7 +537,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340706/category%20icon/spray_pebsjt.png",
+    icon: "",
   },
   {
     _id: "632ac9934d87ff2494210b54",
@@ -628,7 +628,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340705/category%20icon/cookie_1_ugipqa.png",
+    icon: "",
   },
   {
     _id: "632ac9ef4d87ff2494210ba8",
@@ -667,7 +667,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340704/category%20icon/frying-pan_vglm5c.png",
+    icon: "",
   },
   {
     _id: "632aca144d87ff2494210bcc",
@@ -706,7 +706,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340704/category%20icon/cabbage_n59uv3.png",
+    icon: "",
   },
   {
     _id: "632aca374d87ff2494210bf0",
@@ -784,7 +784,7 @@ const categories = [
     },
     parentId: "62c827b5a427b63741da9175",
     parentName: "Home",
-    icon: "https://res.cloudinary.com/ahossain/image/upload/v1658340705/category%20icon/carp-fish_paxzrt.png",
+    icon: "",
   },
   {
     _id: "632aca754d87ff2494210c2c",

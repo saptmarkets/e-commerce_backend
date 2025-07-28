@@ -16,6 +16,7 @@ const {
   checkProductStockAvailability,
   getEnhancedProductById,
   getEnhancedProductBySlug,
+  checkCategoryHasProducts,
 } = require("../controller/productController");
 
 // Test route to verify product routes are working
@@ -148,6 +149,41 @@ router.get("/show", getShowingProducts);
 //get showing products in store
 router.get("/store", getShowingStoreProducts);
 
+//get discounted products
+router.get("/discount", async (req, res) => {
+  try {
+    const Product = require("../models/Product");
+    const products = await Product.find({
+      status: "show",
+      stock: { $gt: 0 },
+      $or: [
+        {
+          $and: [
+            { isCombination: true },
+            { "variants.discount": { $gt: 0 } }
+          ]
+        },
+        {
+          $and: [
+            { isCombination: false },
+            { "prices.discount": { $gt: 0 } }
+          ]
+        }
+      ]
+    })
+    .populate({ path: "category", select: "name _id" })
+    .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
+    .sort({ _id: -1 })
+    .lean();
+
+    res.send(products);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
+});
+
 //get all products
 router.get("/", getAllProducts);
 
@@ -156,6 +192,8 @@ router.get("/product/:slug", getProductBySlug);
 
 //get enhanced product by slug (with multiUnits array)
 router.get("/enhanced/product/:slug", getEnhancedProductBySlug);
+
+
 
 //update many products
 router.patch("/update/many", updateManyProducts);
@@ -180,5 +218,24 @@ router.delete("/:id", deleteProduct);
 
 //check product stock availability
 router.get("/:productId/stock-availability", checkProductStockAvailability);
+
+// Check if category has products
+router.get("/category/:categoryId/has-products", checkCategoryHasProducts);
+
+// Live import status check for Odoo products
+router.post('/check-imported', async (req, res) => {
+  try {
+    const { odooProductIds } = req.body;
+    if (!Array.isArray(odooProductIds) || odooProductIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'odooProductIds must be a non-empty array' });
+    }
+    const Product = require('../models/Product');
+    const imported = await Product.find({ odooProductId: { $in: odooProductIds } }).select('odooProductId');
+    const importedIds = imported.map(p => p.odooProductId);
+    res.json({ success: true, imported: importedIds });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error checking import status', error: error.message });
+  }
+});
 
 module.exports = router;

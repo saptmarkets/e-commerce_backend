@@ -105,8 +105,8 @@ const bannerSchema = new mongoose.Schema(
     status: {
       type: String,
       lowercase: true,
-      enum: ['show', 'hide'],
-      default: 'show',
+      enum: ['active', 'inactive', 'schedule'],
+      default: 'active',
     },
     startDate: {
       type: Date,

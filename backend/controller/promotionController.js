@@ -257,7 +257,7 @@ const getAllPromotions = async (req, res) => {
           },
           {
             path: 'unit',
-            select: 'name shortName'
+            select: 'name shortName nameAr'
           }
         ]
       })
@@ -270,7 +270,7 @@ const getAllPromotions = async (req, res) => {
           },
           {
             path: 'unit',
-            select: 'name shortName'
+            select: 'name shortName nameAr'
           }
         ]
       })
@@ -346,7 +346,7 @@ const getActivePromotions = async (req, res) => {
         },
         {
           path: 'unit',
-          select: 'name shortName'
+          select: 'name shortName nameAr'
         }
       ]
     }).populate({
@@ -358,7 +358,7 @@ const getActivePromotions = async (req, res) => {
         },
         {
           path: 'unit',
-          select: 'name shortName'
+          select: 'name shortName nameAr'
         }
       ]
     }).populate('promotionList', 'name description type priority defaultValue');
@@ -403,7 +403,7 @@ const getPromotionById = async (req, res) => {
           },
           {
             path: 'unit',
-            select: 'name shortName'
+            select: 'name shortName nameAr'
           }
         ]
       })
@@ -416,7 +416,7 @@ const getPromotionById = async (req, res) => {
           },
           {
             path: 'unit',
-            select: 'name shortName'
+            select: 'name shortName nameAr'
           }
         ]
       })
@@ -456,7 +456,7 @@ const getPromotionsByProductUnit = async (req, res) => {
         },
         {
           path: 'unit',
-          select: 'name shortName'
+          select: 'name shortName nameAr'
         }
       ]
     }).populate('promotionList', 'name description type priority defaultValue');
@@ -492,7 +492,7 @@ const getPromotionsByProduct = async (req, res) => {
         },
         {
           path: 'unit',
-          select: 'name shortName'
+          select: 'name shortName nameAr'
         }
       ]
     }).populate('promotionList', 'name description type priority defaultValue');
@@ -547,7 +547,7 @@ const updatePromotion = async (req, res) => {
         },
         {
           path: 'unit',
-          select: 'name shortName'
+          select: 'name shortName nameAr'
         }
       ]
     }).populate('promotionList', 'name description type priority defaultValue');

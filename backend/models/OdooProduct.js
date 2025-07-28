@@ -14,11 +14,7 @@ const odooProductSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    product_id: {
-      type: Number,
-      required: true,
-      index: true,
-    },
+    // Note: product_id is the same as id in Odoo, so we use 'id' field
     
     // Basic product information
     name: {
@@ -55,7 +51,7 @@ const odooProductSchema = new mongoose.Schema(
     },
     
     // Category and UoM references
-    category_id: {
+    categ_id: {  // Changed from category_id to categ_id
       type: Number,
       index: true,
     },
@@ -154,7 +150,7 @@ const odooProductSchema = new mongoose.Schema(
 // Indexes for performance
 odooProductSchema.index({ write_date: -1 });
 odooProductSchema.index({ _sync_status: 1, is_active: 1 });
-odooProductSchema.index({ category_id: 1, active: 1 });
+odooProductSchema.index({ categ_id: 1, active: 1 });  // Changed from category_id to categ_id
 odooProductSchema.index({ barcode: 1 }, { sparse: true });
 
 module.exports = mongoose.model("OdooProduct", odooProductSchema); 

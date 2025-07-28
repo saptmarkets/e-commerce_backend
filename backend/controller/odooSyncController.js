@@ -188,7 +188,7 @@ const getOdooProducts = async (req, res) => {
         { barcode: { $regex: search, $options: 'i' } },
       ];
     }
-    if (category_id) filter.category_id = parseInt(category_id);
+    if (category_id) filter.categ_id = parseInt(category_id);  // Changed from category_id to categ_id
     if (sync_status) filter._sync_status = sync_status;
 
     // Build sort
@@ -205,10 +205,10 @@ const getOdooProducts = async (req, res) => {
         { $sort: sortObj },
         { $skip: skip },
         { $limit: parseInt(limit) },
-        // Category
+        // Category - Fix: use 'categ_id' not 'category_id'
         { $lookup: {
             from: 'odoo_categories',
-            localField: 'category_id',
+            localField: 'categ_id',
             foreignField: 'id',
             as: 'category'
         }},
@@ -221,17 +221,17 @@ const getOdooProducts = async (req, res) => {
             as: 'uom'
         }},
         { $unwind: { path: '$uom', preserveNullAndEmptyArrays: true } },
-        // Barcode units
+        // Barcode units - Fix: ensure 'product_id' field is used correctly
         { $lookup: {
             from: 'odoo_barcode_units',
-            localField: 'product_id',
+            localField: 'id',  // Changed from 'product_id' to 'id' as that's the Odoo product ID
             foreignField: 'product_id',
             as: 'barcode_units'
         }},
-        // Stock
+        // Stock - Fix: ensure 'product_id' field is used correctly
         { $lookup: {
             from: 'odoo_stock',
-            localField: 'product_id',
+            localField: 'id',  // Changed from 'product_id' to 'id' as that's the Odoo product ID
             foreignField: 'product_id',
             as: 'stock_records'
         }},
@@ -261,6 +261,9 @@ const getOdooProducts = async (req, res) => {
         OdooProduct.countDocuments(filter),
       ]);
     }
+
+    // Log the product IDs being sent to the frontend
+    console.log("Product IDs being sent to frontend:", products.map(p => p.id));
 
     res.status(200).json({
       success: true,
@@ -610,25 +613,44 @@ const clearOdooData = async (req, res) => {
  */
 const importToStore = async (req, res) => {
   try {
+    console.log('🔍 Import request received:', {
+      body: req.body,
+      importConfig: req.body.importConfig,
+      productIds: req.body.importConfig?.productIds,
+      categoryIds: req.body.importConfig?.categoryIds
+    });
+
     const { importConfig } = req.body;
     const user = req.admin;
     
     if (!importConfig) {
+      console.log('❌ No importConfig provided');
       return res.status(400).json({
         success: false,
         message: 'Import configuration is required',
       });
     }
     
+    console.log('🚀 Starting import with config:', importConfig);
     const results = await odooImportService.importToStore(importConfig, user);
+    
+    console.log('✅ Import completed with results:', results);
+    
+    // Format response for frontend
+    const responseData = {
+      products: results.products || 0,
+      categories: results.categories || 0,
+      units: results.units || 0,
+      errors: results.errors || []
+    };
     
     res.status(200).json({
       success: true,
-      message: 'Data imported to store successfully',
-      data: results,
+      message: `Import completed successfully! Products: ${responseData.products}, Categories: ${responseData.categories}, Units: ${responseData.units}`,
+      data: responseData,
     });
   } catch (error) {
-    console.error('Error importing to store:', error);
+    console.error('❌ Error importing to store:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to import data to store',
@@ -672,6 +694,8 @@ const getImportPreview = async (req, res) => {
  */
 const syncToStore = async (req, res) => {
   try {
+    console.log('🔍 syncToStore called with:', { fields: req.body?.fields, productIds: req.body?.productIds });
+    
     const { fields = {}, productIds = [] } = req.body || {};
 
     // Determine which fields
@@ -684,9 +708,13 @@ const syncToStore = async (req, res) => {
       promotions: !!fields.promotions,
     };
 
-    const prodFilter = productIds && productIds.length > 0 ? { product_id: { $in: productIds.map(Number) } } : {};
+    console.log('📋 Allowed fields for sync:', allowed);
+
+    const prodFilter = productIds && productIds.length > 0 ? { id: { $in: productIds.map(Number) } } : {};
 
     const odooProducts = await OdooProduct.find(prodFilter).lean();
+    console.log(`📦 Found ${odooProducts.length} Odoo products to sync`);
+    
     let updated = 0;
     const errors = [];
 
@@ -712,13 +740,15 @@ const syncToStore = async (req, res) => {
         }
 
         if (allowed.stock) {
-          updateData.stock = op.qty_available || 0;
+          const stockQty = op.qty_available || 0;
+          updateData.stock = stockQty;
+          console.log(`📊 Product ${op.id}: Syncing stock from ${op.qty_available} to ${stockQty}`);
         }
 
         // categories sync
         let categoryId = null;
-        if (allowed.categories && op.category_id) {
-          const cat = await OdooCategory.findOne({ id: op.category_id });
+        if (allowed.categories && op.categ_id) {  // Changed from op.category_id to op.categ_id
+          const cat = await OdooCategory.findOne({ id: op.categ_id });  // Changed from op.category_id to op.categ_id
           if (cat && cat.store_category_id) {
             categoryId = cat.store_category_id;
           }
@@ -741,11 +771,11 @@ const syncToStore = async (req, res) => {
             const storeProd = await Product.findById(op.store_product_id);
             await importService.importProductUnits(op, storeProd);
           } catch (unitErr) {
-            console.warn('Unit sync error for product', op.product_id, unitErr.message);
+            console.warn('Unit sync error for product', op.id, unitErr.message);
           }
         }
       } catch (pErr) {
-        console.error('Sync error for product', op.product_id, pErr);
+        console.error('Sync error for product', op.id, pErr);
         errors.push(pErr.message);
       }
     }
@@ -753,12 +783,14 @@ const syncToStore = async (req, res) => {
     // Promotions sync
     let promosUpdated = 0;
     if (allowed.promotions) {
+      console.log('🎯 Starting promotions sync...');
       const importService = require('../services/odooImportService');
       const OdooPricelistItem = require('../models/OdooPricelistItem');
       const Promotion = require('../models/Promotion');
 
       const plcFilter = { compute_price: 'fixed' };
       const plcItems = await OdooPricelistItem.find(plcFilter);
+      console.log(`📋 Found ${plcItems.length} pricelist items for promotion sync`);
 
       const toImportIds = [];
       for (const plc of plcItems) {
@@ -795,6 +827,7 @@ const syncToStore = async (req, res) => {
       }
     }
 
+    console.log(`✅ Sync completed: ${updated} products updated, ${promosUpdated} promotions updated, ${errors.length} errors`);
     res.json({ success: true, updated, promosUpdated, errors });
   } catch (error) {
     console.error('SyncToStore error:', error);
@@ -828,21 +861,71 @@ const importPromotions = async (req, res) => {
 };
 
 /**
+ * Import all Odoo categories to store
+ */
+const importAllOdooCategories = async (req, res) => {
+  try {
+    console.log('🔍 Import all Odoo categories request received');
+    
+    const user = req.admin;
+    
+    console.log('🚀 Starting import of all Odoo categories...');
+    
+    // Import all categories (no specific categoryIds means import all)
+    const result = await odooImportService.importCategories();
+    
+    console.log('✅ Category import completed with results:', result);
+    
+    res.status(200).json({
+      success: true,
+      message: `Successfully imported ${result.imported} categories`,
+      data: {
+        imported: result.imported,
+        errors: result.errors,
+        total: result.imported + result.errors.length
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error importing all Odoo categories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to import Odoo categories',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * List internal (branch) locations from Odoo
  */
 const getOdooBranches = async (req, res) => {
   try {
-    const locations = await odooService.searchRead(
+    console.log('🚀 getOdooBranches called');
+    
+    // First, let's see what usage values exist in Odoo
+    console.log('📡 Fetching all locations from Odoo...');
+    const allLocations = await odooService.searchRead(
       'stock.location',
-      [['usage', '=', 'internal']],
-      ['id', 'complete_name'],
+      [],
+      ['id', 'complete_name', 'usage'],
       0,
-      200
+      500
     );
-    const branches = locations.map((l) => ({ id: l.id, name: l.complete_name }));
+    
+    console.log('🔍 All Odoo location usages found:', [...new Set(allLocations.map(l => l.usage))]);
+    console.log('🔍 Total locations found:', allLocations.length);
+    
+    // Filter to include internal and any other relevant usages
+    const relevantUsages = ['internal', 'inventory', 'inventory_loss', 'loss', 'view'];
+    const locations = allLocations.filter(l => relevantUsages.includes(l.usage));
+    
+    console.log(`📊 Found ${locations.length} locations with relevant usages:`, locations.map(l => ({ id: l.id, name: l.complete_name, usage: l.usage })));
+    
+    const branches = locations.map((l) => ({ id: l.id, name: l.complete_name, usage: l.usage }));
+    console.log('✅ Returning branches:', branches);
     res.json({ success: true, data: branches });
   } catch (error) {
-    console.error('Error fetching Odoo branches:', error.message);
+    console.error('❌ Error fetching Odoo branches:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -852,16 +935,27 @@ const getOdooBranches = async (req, res) => {
  * Body: { locationId }
  */
 const pushBackStock = async (req, res) => {
-  const bodyLoc = req.body?.locationId;
-  const envLoc = process.env.DEDUCT_LOCATION_ID;
-  const locationId = bodyLoc || (envLoc ? parseInt(envLoc, 10) : null);
+  const sourceLocationId = req.body?.sourceLocationId;
+  const destinationLocationId = req.body?.destinationLocationId;
 
-  if (!locationId) {
-    return res.status(400).json({ success: false, message: 'locationId is required (either in body or DEDUCT_LOCATION_ID env)' });
+  if (!sourceLocationId || !destinationLocationId) {
+    return res.status(400).json({ success: false, message: 'Both sourceLocationId and destinationLocationId are required.' });
   }
 
   try {
+    console.log('🚀 pushBackStock called with:', { sourceLocationId, destinationLocationId });
+    
     const units = await ProductUnit.find({ pendingOdooQty: { $ne: 0 } });
+    console.log(`📊 Found ${units.length} units with pendingOdooQty != 0`);
+    
+    if (units.length > 0) {
+      console.log('📋 Units with pendingOdooQty:', units.map(u => ({
+        id: u._id,
+        product: u.product,
+        pendingOdooQty: u.pendingOdooQty
+      })));
+    }
+    
     let pushed = 0;
     const errors = [];
 
@@ -871,33 +965,61 @@ const pushBackStock = async (req, res) => {
 
       try {
         let productIdForStock = null;
+        let uomId = null;
+
+        console.log(`🔍 Processing unit ${unit._id} with pendingOdooQty: ${qty}`);
 
         // 1) Try via barcode unit mapping
         const bu = await OdooBarcodeUnit.findOne({ store_product_unit_id: unit._id });
         if (bu && bu.product_id) {
           productIdForStock = bu.product_id;
+          console.log(`✅ Found Odoo product via barcode unit mapping: ${productIdForStock}`);
         }
 
         // 2) Fallback – use product mapping if barcode unit not found (e.g. basic unit)
         if (!productIdForStock) {
           const op = await OdooProduct.findOne({ store_product_id: unit.product });
-          if (op && op.product_id) {
-            productIdForStock = op.product_id;
+          if (op && op.id) {
+            productIdForStock = op.id;
+            console.log(`✅ Found Odoo product via product mapping: ${productIdForStock}`);
           }
+        }
+
+        // Try to get UoM from barcode unit or product
+        if (bu && bu.unit) {
+          // If barcode unit has a UoM mapping
+          uomId = bu.unit;
+          console.log(`✅ Using UoM from barcode unit: ${uomId}`);
+        } else if (productIdForStock) {
+          // Will be fetched by odooService if not provided
+          uomId = null;
+          console.log(`ℹ️ Will fetch UoM from Odoo product`);
         }
 
         if (!productIdForStock) {
           throw new Error('No Odoo mapping for this unit or its parent product');
         }
 
-        // Push the stock adjustment
-        await odooService.updateStock(productIdForStock, locationId, qty, 'E-commerce sale');
+        console.log(`🚀 Creating picking for product ${productIdForStock}, qty: ${qty}, source: ${sourceLocationId}, dest: ${destinationLocationId}`);
+
+        // Create and validate picking (inventory loss/internal transfer)
+        await odooService.createAndValidatePicking(
+          productIdForStock,
+          sourceLocationId,
+          destinationLocationId,
+          qty,
+          uomId
+        );
+
+        console.log(`✅ Picking created successfully for unit ${unit._id}`);
 
         // Reset counter locally so it is not re-pushed
         await unit.set({ pendingOdooQty: 0 }).save();
         pushed += 1;
+        console.log(`✅ Reset pendingOdooQty to 0 for unit ${unit._id}`);
       } catch (err) {
-        console.error(`Push-back error for unit ${unit._id}:`, err.message);
+        console.error(`❌ Push-back error for unit ${unit._id}:`, err.message);
+        console.error(`❌ Full error:`, err);
         errors.push(`Unit ${unit._id}: ${err.message}`);
       }
     }
@@ -929,4 +1051,5 @@ module.exports = {
   importPromotions,
   getOdooBranches,
   pushBackStock,
+  importAllOdooCategories, // Add the new endpoint
 }; 

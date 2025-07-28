@@ -61,7 +61,7 @@ class VerificationCodeGenerator {
   // Enhanced function to get product unit information using unit ID
   static async getProductUnitById(unitId) {
     try {
-      console.log(`[DEBUG] getProductUnitById: Looking up ProductUnit by ID: ${unitId}`);
+    
       
       const productUnit = await ProductUnit.findById(unitId)
         .populate('product', 'title description images sku barcode')

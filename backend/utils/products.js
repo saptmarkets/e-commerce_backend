@@ -26,11 +26,11 @@ const products = [
       },
     ],
     image: [
-      "https://res.cloudinary.com/ahossain/image/upload/v1682058933/product/CMTHP-COR12-deep-ash-920x920.webp",
-      "https://res.cloudinary.com/ahossain/image/upload/v1682058933/product/CMTHP-COR12-turkish-blue-920x920.webp",
-      "https://res.cloudinary.com/ahossain/image/upload/v1681478890/product/CMTHP-COR12-black-920x920.webp",
-      "https://res.cloudinary.com/ahossain/image/upload/v1682243541/product/60c88fa9379ac-square.jpg",
-      "https://res.cloudinary.com/ahossain/image/upload/v1682243541/product/6291b3a8d833d-square.jpg",
+      "",
+      "",
+      "",
+      "",
+      "",
     ],
     tag: ['["premium-shirt","t-shirt","new-t-shirt"]'],
     variants: [
@@ -45,7 +45,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1682058933/product/CMTHP-COR12-deep-ash-920x920.webp",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b4",
@@ -58,7 +58,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1682058933/product/CMTHP-COR12-turkish-blue-920x920.webp",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b5",
@@ -71,7 +71,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1681478890/product/CMTHP-COR12-black-920x920.webp",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b3",
@@ -84,7 +84,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1682243541/product/60c88fa9379ac-square.jpg",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b4",
@@ -97,7 +97,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1682243541/product/6291b3a8d833d-square.jpg",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b5",
@@ -110,7 +110,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1682058933/product/CMTHP-COR12-turkish-blue-920x920.webp",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b3",
@@ -123,7 +123,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1681478890/product/CMTHP-COR12-black-920x920.webp",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b4",
@@ -136,7 +136,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1682243541/product/60c88fa9379ac-square.jpg",
+          "",
       },
       {
         "63f078f54b86ed26b05281b2": "63f078f54b86ed26b05281b5",
@@ -149,7 +149,7 @@ const products = [
         barcode: "",
         sku: "",
         image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1682243541/product/6291b3a8d833d-square.jpg",
+          "",
       },
     ],
     status: "show",

@@ -15,7 +15,7 @@ const signInToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "1h" } // Reduced from 7d to 1h
   );
 };
 
@@ -40,16 +40,8 @@ const isAuth = (req, res, next) => {
 
   try {
     const tokenWithoutBearer = token.replace("Bearer ", "");
-    console.log("isAuth: Processing token (first 50 chars):", tokenWithoutBearer.substring(0, 50) + '...');
     
     const decoded = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
-    
-    console.log("JWT Token decoded successfully:", {
-      _id: decoded._id,
-      email: decoded.email,
-      iat: decoded.iat,
-      exp: decoded.exp
-    });
     
     // Check if the token contains corrupted data
     if (decoded._id === "banners" || typeof decoded._id === "string" && decoded._id.includes("banners")) {
@@ -86,12 +78,6 @@ const isCustomer = (req, res, next) => {
   try {
     const tokenWithoutBearer = token.replace("Bearer ", "");
     const decoded = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
-    
-    console.log("Customer JWT Token decoded:", {
-      _id: decoded._id,
-      email: decoded.email,
-      name: decoded.name
-    });
     
     // Validate customer ID format
     if (!mongoose.Types.ObjectId.isValid(decoded._id)) {
@@ -167,7 +153,7 @@ const isAdmin = async (req, res, next) => {
       return res.status(401).json({ message: "User is not authenticated" });
     }
 
-    console.log("Checking admin status for user ID:", req.user._id);
+    // Checking admin status for user ID
     
     // Validate ObjectId format before database query
     if (!mongoose.Types.ObjectId.isValid(req.user._id)) {
@@ -203,7 +189,7 @@ const isAdmin = async (req, res, next) => {
       return res.status(401).json({ message: "Admin user not found" });
     }
 
-    console.log("Admin found:", admin.name, "Role:", admin.role);
+    // Admin found with role
 
     // Check if user has admin role
     if (admin.role !== "Admin" && admin.role !== "Super Admin") {

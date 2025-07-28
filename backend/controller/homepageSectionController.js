@@ -397,11 +397,40 @@ const initializeDefaultSections = async (req, res) => {
 };
 
 module.exports = {
-  getAllHomepageSections,
-  getActiveHomepageSections,
-  getHomepageSection,
-  updateHomepageSection,
+  getAllSections: getAllHomepageSections,
+  getActiveSections: getActiveHomepageSections,
+  getSectionById: getHomepageSection,
+  updateSection: updateHomepageSection,
+  toggleSection: toggleSectionVisibility,
+  initializeSections: initializeDefaultSections,
   updateSectionsOrder,
-  toggleSectionVisibility,
-  initializeDefaultSections,
+  cleanupDuplicates: async (req, res) => {
+    try {
+      // Remove duplicate sections based on sectionId
+      const sections = await HomepageSection.find({});
+      const seen = new Set();
+      const duplicates = [];
+      
+      for (const section of sections) {
+        if (seen.has(section.sectionId)) {
+          duplicates.push(section._id);
+        } else {
+          seen.add(section.sectionId);
+        }
+      }
+      
+      if (duplicates.length > 0) {
+        await HomepageSection.deleteMany({ _id: { $in: duplicates } });
+      }
+      
+      res.send({
+        message: `Cleaned up ${duplicates.length} duplicate sections`,
+        removedCount: duplicates.length
+      });
+    } catch (err) {
+      res.status(500).send({
+        message: err.message,
+      });
+    }
+  }
 }; 

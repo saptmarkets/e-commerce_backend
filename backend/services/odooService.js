@@ -12,12 +12,14 @@ class OdooService {
     this.uid = null;
     this.isAuthenticated = false;
     
-    // Configure axios with timeout and retry settings
+    // Configure axios with increased timeout for large batches
     this.axiosConfig = {
-      timeout: 30000, // 30 seconds
+      timeout: 600000, // 10 minutes (increased from 5 minutes)
       headers: {
         'Content-Type': 'application/json',
       },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
     };
   }
 
@@ -66,7 +68,11 @@ class OdooService {
     }
 
     try {
-      const response = await axios.post(`${this.baseUrl}/jsonrpc`, {
+      console.log(`\n🔄 Odoo RPC Call: ${model}.${method}`);
+      console.log(`   Args:`, JSON.stringify(args, null, 2));
+      console.log(`   Kwargs:`, JSON.stringify(kwargs, null, 2));
+
+      const payload = {
         jsonrpc: '2.0',
         method: 'call',
         params: {
@@ -74,7 +80,18 @@ class OdooService {
           method: 'execute_kw',
           args: [this.database, this.uid, this.password, model, method, args, kwargs]
         }
-      }, this.axiosConfig);
+      };
+
+      console.log(`📡 Sending request to ${this.baseUrl}/jsonrpc`);
+      const startTime = Date.now();
+      
+      const response = await axios.post(`${this.baseUrl}/jsonrpc`, payload, {
+        ...this.axiosConfig,
+        validateStatus: status => status < 500 // Accept any status < 500
+      });
+
+      const duration = Date.now() - startTime;
+      console.log(`⏱️ RPC call took ${duration}ms`);
 
       if (response.data.error) {
         // Handle session expiry
@@ -85,12 +102,25 @@ class OdooService {
           return this.callOdoo(model, method, args, kwargs);
         }
         
+        console.error('❌ Odoo RPC Error:', response.data.error);
         throw new Error(`Odoo call failed: ${response.data.error.data?.message || 'Unknown error'}`);
+      }
+
+      // Log response details
+      if (Array.isArray(response.data.result)) {
+        console.log(`✅ Success: Received ${response.data.result.length} records`);
+      } else {
+        console.log(`✅ Success: Received result of type ${typeof response.data.result}`);
       }
 
       return response.data.result;
     } catch (error) {
       console.error(`❌ Error calling ${model}.${method}:`, error.message);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+      }
       throw error;
     }
   }
@@ -98,18 +128,64 @@ class OdooService {
   /**
    * Search and read records from Odoo
    */
-  async searchRead(model, domain = [], fields = [], offset = 0, limit = 100, order = null) {
-    const kwargs = { fields, offset, limit };
-    if (order) kwargs.order = order;
+  async searchRead(model, domain = [], fields = [], offset = 0, limit = null, order = null) {
+    // Ensure domain is properly formatted
+    const safeDomain = Array.isArray(domain) ? domain : [];
     
-    return await this.callOdoo(model, 'search_read', [domain], kwargs);
+    // Build kwargs with required fields
+    const kwargs = { 
+      fields,
+      offset,
+      order: order || 'id'
+    };
+
+    // Only add limit if specified
+    if (limit !== null && limit > 0) {
+      kwargs.limit = limit;
+    }
+
+    // ALWAYS include inactive/archived records as well
+    kwargs.context = {
+      ...(kwargs.context || {}),
+      active_test: false,
+    };
+
+    console.log(`\n🔍 Executing search_read on ${model}`);
+    console.log(`   Domain: ${JSON.stringify(safeDomain)}`);
+    console.log(`   Fields: ${fields.length} fields requested`);
+    console.log(`   Pagination: offset=${offset}, limit=${limit || 'unlimited'}`);
+
+    const results = await this.callOdoo(model, 'search_read', [safeDomain], kwargs);
+    
+    if (!results) {
+      console.warn(`⚠️ No results returned from ${model}.search_read`);
+      return [];
+    }
+
+    return results;
   }
 
   /**
    * Count records matching domain
    */
   async searchCount(model, domain = []) {
-    return await this.callOdoo(model, 'search_count', [domain]);
+    // Ensure domain is properly formatted
+    const safeDomain = Array.isArray(domain) ? domain : [];
+    
+    console.log(`\n🔢 Counting ${model} records`);
+    console.log(`   Domain: ${JSON.stringify(safeDomain)}`);
+    
+    // Include inactive records as well
+    const kwargs = {
+      context: {
+        active_test: false,
+      },
+    };
+
+    const count = await this.callOdoo(model, 'search_count', [safeDomain], kwargs);
+    console.log(`   Found ${count} records`);
+    
+    return count;
   }
 
   /**
@@ -198,7 +274,14 @@ class OdooService {
   /**
    * Fetch products with comprehensive information
    */
-  async fetchProducts(domain = [], limit = 1000, offset = 0) {
+  async fetchProducts(domain = [], limit = null, offset = 0) {
+    console.log('\n📦 Fetching products from Odoo');
+    console.log('Domain:', JSON.stringify(domain));
+    
+    // First get total count
+    const totalCount = await this.searchCount('product.product', domain);
+    console.log(`Total products matching domain: ${totalCount}`);
+    
     const productFields = [
       'id', 'product_tmpl_id', 'name', 'default_code', 'barcode',
       'list_price', 'standard_price', 'qty_available', 'virtual_available',
@@ -208,38 +291,51 @@ class OdooService {
       'create_date', 'write_date'
     ];
 
-    const products = await this.searchRead(
-      'product.product',
-      domain,
-      productFields,
-      offset,
-      limit,
-      'write_date desc'
-    );
+    try {
+      console.log(`🔄 Fetching products batch: offset=${offset}, limit=${limit || 'unlimited'}`);
+      const products = await this.searchRead(
+        'product.product',
+        domain,
+        productFields,
+        offset,
+        limit,
+        'id'  // Sort by ID for consistent pagination
+      );
 
-    // Fetch product attributes for variants
-    for (const product of products) {
-      if (product.product_template_attribute_value_ids?.length > 0) {
-        try {
-          const attributes = await this.read(
-            'product.template.attribute.value',
-            product.product_template_attribute_value_ids,
-            ['attribute_id', 'name']
-          );
-          
-          product.attributes = attributes.map(attr => ({
-            attribute_id: attr.attribute_id[0],
-            attribute_name: attr.attribute_id[1],
-            value: attr.name
-          }));
-        } catch (error) {
-          console.warn(`Warning: Could not fetch attributes for product ${product.id}:`, error.message);
-          product.attributes = [];
+      if (!products) {
+        console.warn('⚠️ No products returned from Odoo');
+        return [];
+      }
+
+      console.log(`📊 Processing ${products.length} products`);
+
+      // Fetch product attributes for variants (in smaller chunks to avoid timeout)
+      for (const product of products) {
+        if (product.product_template_attribute_value_ids?.length > 0) {
+          try {
+            const attributes = await this.read(
+              'product.template.attribute.value',
+              product.product_template_attribute_value_ids,
+              ['attribute_id', 'name']
+            );
+            
+            product.attributes = attributes.map(attr => ({
+              attribute_id: attr.attribute_id[0],
+              attribute_name: attr.attribute_id[1],
+              value: attr.name
+            }));
+          } catch (error) {
+            console.warn(`Warning: Could not fetch attributes for product ${product.id}:`, error.message);
+            product.attributes = [];
+          }
         }
       }
-    }
 
-    return products;
+      return products;
+    } catch (error) {
+      console.error(`❌ Error fetching products batch at offset ${offset}:`, error.message);
+      throw error;
+    }
   }
 
   /**
@@ -423,6 +519,89 @@ class OdooService {
       console.error(`❌ Failed to update stock for product ${productId}:`, err.message || err);
       throw err;
     }
+  }
+
+  /**
+   * Create and validate a stock picking (inventory loss/internal transfer) in Odoo
+   * @param {number} productId - Odoo product.product id
+   * @param {number} sourceLocationId - Odoo source location id (e.g. warehouse)
+   * @param {number} destinationLocationId - Odoo destination location id (e.g. e-commerce/inventory loss)
+   * @param {number} qty - Quantity to move
+   * @param {number} uomId - Odoo unit of measure id (optional, can be fetched if needed)
+   * @param {number} pickingTypeId - Odoo picking type id (optional, can be fetched if needed)
+   * @returns {Promise<object>} - Result of picking creation and validation
+   */
+  async createAndValidatePicking(productId, sourceLocationId, destinationLocationId, qty, uomId = null, pickingTypeId = null) {
+    if (!productId || !sourceLocationId || !destinationLocationId || !qty) {
+      throw new Error('Missing required parameters for picking');
+    }
+    
+    console.log(`🔧 createAndValidatePicking called with:`, {
+      productId, sourceLocationId, destinationLocationId, qty, uomId, pickingTypeId
+    });
+    
+    // Try to fetch UoM if not provided
+    if (!uomId) {
+      console.log(`🔍 Fetching UoM for product ${productId}...`);
+      const product = await this.read('product.product', [productId], ['uom_id']);
+      uomId = Array.isArray(product) && product[0]?.uom_id ? (Array.isArray(product[0].uom_id) ? product[0].uom_id[0] : product[0].uom_id) : null;
+      if (!uomId) throw new Error('Could not determine UoM for product ' + productId);
+      console.log(`✅ Found UoM: ${uomId}`);
+    }
+    
+    // Try to fetch picking type if not provided (default to first internal picking type)
+    if (!pickingTypeId) {
+      console.log(`🔍 Fetching picking type for internal transfers...`);
+      const types = await this.searchRead('stock.picking.type', [['code', '=', 'internal']], ['id'], 0, 1);
+      pickingTypeId = types.length ? types[0].id : null;
+      if (!pickingTypeId) throw new Error('Could not determine picking type');
+      console.log(`✅ Found picking type: ${pickingTypeId}`);
+    }
+    
+    console.log(`🚀 Creating picking with:`, {
+      picking_type_id: pickingTypeId,
+      location_id: sourceLocationId,
+      location_dest_id: destinationLocationId,
+      move_ids_without_package: [{
+        name: 'E-commerce sale',
+        product_id: productId,
+        product_uom_qty: Math.abs(qty),
+        product_uom: uomId,
+        location_id: sourceLocationId,
+        location_dest_id: destinationLocationId,
+      }]
+    });
+    
+    // 1. Create picking
+    const pickingId = await this.create('stock.picking', {
+      picking_type_id: pickingTypeId,
+      location_id: sourceLocationId,
+      location_dest_id: destinationLocationId,
+      move_ids_without_package: [
+        [0, 0, {
+          name: 'E-commerce sale',
+          product_id: productId,
+          product_uom_qty: Math.abs(qty),
+          product_uom: uomId,
+          location_id: sourceLocationId,
+          location_dest_id: destinationLocationId,
+        }]
+      ]
+    });
+    
+    console.log(`✅ Picking created with ID: ${pickingId}`);
+    
+    // 2. Confirm picking
+    console.log(`🔄 Confirming picking ${pickingId}...`);
+    await this.callOdoo('stock.picking', 'action_confirm', [[pickingId]]);
+    console.log(`✅ Picking confirmed`);
+    
+    // 3. Validate picking
+    console.log(`🔄 Validating picking ${pickingId}...`);
+    await this.callOdoo('stock.picking', 'button_validate', [[pickingId]]);
+    console.log(`✅ Picking validated`);
+    
+    return { success: true, pickingId };
   }
 
   /**

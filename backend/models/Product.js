@@ -99,7 +99,7 @@ const productSchema = new mongoose.Schema(
     basicUnitType: {
       type: String,
       // required: true, // No longer strictly required, will be derived or phased out
-      enum: ["pcs", "kg", "g", "l", "ml", "bottle", "can", "pack", "box", "other"],
+      // enum: ["pcs", "kg", "g", "l", "ml", "bottle", "can", "pack", "box", "unit", "other"], // Removed enum validation
       // default: "pcs",
       comment: "DEPRECATED: This field will be removed. Use populated basicUnit.shortCode or basicUnit.name instead."
     },
@@ -195,6 +195,12 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: "show",
       enum: ["show", "hide"],
+    },
+
+    // Add this field for Odoo integration
+    odooProductId: {
+      type: Number,
+      index: true,
     },
   },
   {

@@ -5,6 +5,20 @@ const Unit = require("../models/Unit");
 const ProductUnit = require("../models/ProductUnit");
 const { languageCodes } = require("../utils/data");
 
+// Helper function to get all child category IDs for a parent, or just itself if no children
+// This function expects a Mongoose ObjectId as input for categoryId
+const getAllChildCategoryIds = async (categoryId) => {
+  // We already validate/convert categoryId in the calling functions (getAllProducts, getShowingStoreProducts)
+  // so at this point, categoryId is expected to be a valid mongoose.Types.ObjectId instance.
+  
+  const children = await Category.find({ parentId: categoryId }, { _id: 1 }).lean();
+  
+  const childObjectIds = children.map(child => child._id);
+  
+  // Return parent ID and all children IDs as ObjectIds
+  return [categoryId, ...childObjectIds];
+};
+
 const addProduct = async (req, res) => {
   try {
     let productData = { ...req.body };
@@ -92,25 +106,185 @@ const getShowingProducts = async (req, res) => {
 };
 
 const getAllProducts = async (req, res) => {
-  const { title, category, price, page, limit } = req.query;
+  const { title, category, price, page, limit, searchType } = req.query;
 
   // console.log("getAllProducts");
 
   let queryObject = {};
   let sortObject = {};
-  if (title) {
-    // Enhanced multi-word search: split words and match in order with flexible gap
-    const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const words = title.trim().split(/\s+/).filter(Boolean);
-    const lookaheadPattern = words.map(w => `(?=.*${escapeRegExp(w)})`).join('');
-    const regexMatch = { $regex: `${lookaheadPattern}.*`, $options: 'i' };
 
-    queryObject.$or = [
-      { "title.en": regexMatch },
-      { "title.es": regexMatch },
-      { "title.fr": regexMatch },
-      { "title.de": regexMatch }
-    ];
+  let categoryIdsToQuery = [];
+  if (category) {
+    try {
+      // Convert the incoming category string to ObjectId
+      const categoryObjectId = new mongoose.Types.ObjectId(category);
+      categoryIdsToQuery = await getAllChildCategoryIds(categoryObjectId);
+      console.log('getAllProducts categoryIdsToQuery (after conversion):', categoryIdsToQuery); // Debug log
+    } catch (error) {
+      console.error("Error in getAllProducts when converting category ID:", error);
+      // If the category ID is invalid, treat as if no category was provided
+      categoryIdsToQuery = [];
+    }
+  }
+
+  if (title) {
+    // Enhanced comprehensive search: search across multiple fields
+    const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchTerm = title.trim();
+    
+    // Create regex patterns for different search strategies
+    const exactMatch = { $regex: `^${escapeRegExp(searchTerm)}$`, $options: 'i' };
+    const startsWithMatch = { $regex: `^${escapeRegExp(searchTerm)}`, $options: 'i' };
+    const containsMatch = { $regex: escapeRegExp(searchTerm), $options: 'i' };
+    
+    // For multi-word searches, use lookahead pattern
+    const words = searchTerm.split(/\s+/).filter(Boolean);
+    const lookaheadPattern = words.map(w => `(?=.*${escapeRegExp(w)})`).join('');
+    const multiWordMatch = { $regex: `${lookaheadPattern}.*`, $options: 'i' };
+
+    // Handle different search types
+    if (searchType === 'barcode') {
+      // Barcode only search
+      queryObject.$or = [
+        { "barcode": exactMatch },
+        { "barcode": startsWithMatch },
+        { "barcode": containsMatch }
+      ];
+    } else if (searchType === 'sku') {
+      // SKU only search
+      queryObject.$or = [
+        { "sku": exactMatch },
+        { "sku": startsWithMatch },
+        { "sku": containsMatch },
+        { "default_code": exactMatch },
+        { "default_code": startsWithMatch },
+        { "default_code": containsMatch }
+      ];
+    } else if (searchType === 'id') {
+      // Product ID only search - validate ObjectId first
+      if (mongoose.Types.ObjectId.isValid(searchTerm)) {
+        queryObject.$or = [
+          { "_id": searchTerm },
+          { "productId": exactMatch },
+          { "productId": startsWithMatch },
+          { "productId": containsMatch }
+        ];
+      } else {
+        // If not a valid ObjectId, search by productId field instead
+        queryObject.$or = [
+          { "productId": exactMatch },
+          { "productId": startsWithMatch },
+          { "productId": containsMatch }
+        ];
+      }
+    } else if (searchType === 'name') {
+      // Name only search
+      queryObject.$or = [
+        { "title.en": exactMatch },
+        { "title.en": startsWithMatch },
+        { "title.en": containsMatch },
+        { "title.en": multiWordMatch },
+        { "title.ar": exactMatch },
+        { "title.ar": startsWithMatch },
+        { "title.ar": containsMatch },
+        { "title.ar": multiWordMatch },
+        { "title.es": exactMatch },
+        { "title.es": startsWithMatch },
+        { "title.es": containsMatch },
+        { "title.es": multiWordMatch },
+        { "title.fr": exactMatch },
+        { "title.fr": startsWithMatch },
+        { "title.fr": containsMatch },
+        { "title.fr": multiWordMatch },
+        { "title.de": exactMatch },
+        { "title.de": startsWithMatch },
+        { "title.de": containsMatch },
+        { "title.de": multiWordMatch },
+        { "name": exactMatch },
+        { "name": startsWithMatch },
+        { "name": containsMatch },
+        { "name": multiWordMatch }
+      ];
+    } else {
+      // All fields search (default)
+      const searchConditions = [
+        // Title searches (all languages including Arabic)
+        { "title.en": exactMatch },
+        { "title.en": startsWithMatch },
+        { "title.en": containsMatch },
+        { "title.en": multiWordMatch },
+        { "title.ar": exactMatch },
+        { "title.ar": startsWithMatch },
+        { "title.ar": containsMatch },
+        { "title.ar": multiWordMatch },
+        { "title.es": exactMatch },
+        { "title.es": startsWithMatch },
+        { "title.es": containsMatch },
+        { "title.es": multiWordMatch },
+        { "title.fr": exactMatch },
+        { "title.fr": startsWithMatch },
+        { "title.fr": containsMatch },
+        { "title.fr": multiWordMatch },
+        { "title.de": exactMatch },
+        { "title.de": startsWithMatch },
+        { "title.de": containsMatch },
+        { "title.de": multiWordMatch },
+        
+        // Name searches (fallback field)
+        { "name": exactMatch },
+        { "name": startsWithMatch },
+        { "name": containsMatch },
+        { "name": multiWordMatch },
+        
+        // Barcode and SKU searches (exact matches first)
+        { "barcode": exactMatch },
+        { "barcode": startsWithMatch },
+        { "barcode": containsMatch },
+        { "sku": exactMatch },
+        { "sku": startsWithMatch },
+        { "sku": containsMatch },
+        { "default_code": exactMatch },
+        { "default_code": startsWithMatch },
+        { "default_code": containsMatch },
+        
+        // Product ID searches - only add _id search if it's a valid ObjectId
+        { "productId": exactMatch },
+        { "productId": startsWithMatch },
+        { "productId": containsMatch },
+      ];
+      
+      // Add ObjectId search only if it's a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(searchTerm)) {
+        searchConditions.push({ "_id": searchTerm });
+      }
+      
+      // Add remaining search conditions
+      searchConditions.push(
+        // Slug searches
+        { "slug": containsMatch },
+        
+        // Description searches
+        { "description.en": containsMatch },
+        { "description.ar": containsMatch },
+        
+        // Brand/Manufacturer searches
+        { "brand": containsMatch },
+        { "manufacturer": containsMatch },
+        
+        // Tags searches - use $in only for exact matches
+        { "tags": containsMatch },
+        
+        // Category name searches (if populated)
+        { "categoryName": containsMatch },
+        
+        // Product unit searches (if populated)
+        { "productUnits.name": containsMatch },
+        { "productUnits.shortCode": containsMatch }
+      );
+      
+      queryObject.$or = searchConditions;
+        
+    }
   }
 
   if (price === "low") {
@@ -143,12 +317,32 @@ const getAllProducts = async (req, res) => {
 
   // console.log('sortObject', sortObject);
 
-  if (category) {
-    queryObject.categories = category;
+  if (categoryIdsToQuery.length > 0) {
+    const categoryQuery = { $in: categoryIdsToQuery }; // This array now contains ObjectIds
+
+    if (queryObject.$or) {
+      // If there's already an $or query (from title search), we need to use $and
+      queryObject.$and = [
+        { $or: queryObject.$or },
+        { $or: [
+          { category: categoryQuery },
+          { categories: categoryQuery }
+        ]}
+      ];
+      delete queryObject.$or;
+    } else {
+      queryObject.$or = [
+        { category: categoryQuery },
+        { categories: categoryQuery }
+      ];
+    }
   }
 
+  // Debug log
+  console.log('getAllProducts final queryObject:', JSON.stringify(queryObject));
+
   const pages = Number(page) || 1;
-  const limits = Number(limit) || 10;
+  const limits = Math.min(Number(limit) || 10, 50000); // Cap at 50,000 for customer app
   const skip = (pages - 1) * limits;
 
   try {
@@ -157,7 +351,7 @@ const getAllProducts = async (req, res) => {
     const products = await Product.find(queryObject)
       .populate({ path: "category", select: "_id name" })
       .populate({ path: "categories", select: "_id name" })
-      .populate({ path: "basicUnit", select: "_id name shortCode" })
+      .populate({ path: "basicUnit", select: "_id name nameAr shortCode" })
       .sort(sortObject)
       .skip(skip)
       .limit(limits);
@@ -183,7 +377,7 @@ const getProductBySlug = async (req, res) => {
     const product = await Product.findOne({ slug: req.params.slug })
       .populate({ path: "category", select: "name _id" })
       .populate({ path: "categories", select: "name _id" })
-      .populate({ path: "basicUnit", select: "name shortCode _id" })
+      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
       .lean();
 
     if (!product) {
@@ -217,7 +411,7 @@ const getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id)
       .populate({ path: "category", select: "_id name" })
       .populate({ path: "categories", select: "_id name" })
-      .populate({ path: "basicUnit", select: "_id name shortCode isParent" });
+      .populate({ path: "basicUnit", select: "_id name nameAr shortCode isParent" });
 
     if (!product) return res.status(404).send({ message: "Product not found" });
     
@@ -575,208 +769,213 @@ const checkProductStockAvailability = async (req, res) => {
 };
 
 const getShowingStoreProducts = async (req, res) => {
-  try {
-    const queryObject = { 
-      status: "show",
-      stock: { $gt: 0 }  // Only show products with stock > 0
-    };
-    const { category, title, slug, page = 1, limit = 50 } = req.query;
-    
-    // Convert page and limit to numbers
-    const pageNum = parseInt(page) || 1;
-    const limitNum = Math.min(parseInt(limit) || 50, 100); // Cap at 100
-    const skip = (pageNum - 1) * limitNum;
+  const { category, title, slug, page, limit } = req.query; // Added page and limit
 
-    // Build efficient query object
-    if (category) {
-      queryObject.categories = category;
+  let queryObject = {};
+  let sortObject = { _id: -1 }; // Default sort by latest
+
+  let categoryIdsToQuery = [];
+  if (category) {
+    try {
+      const categoryObjectId = new mongoose.Types.ObjectId(category);
+      categoryIdsToQuery = await getAllChildCategoryIds(categoryObjectId);
+    } catch (error) {
+      console.error("Error in getShowingStoreProducts when converting category ID:", error);
+      categoryIdsToQuery = [];
     }
+  }
 
-    if (title) {
-      // Enhanced multi-word search: split words and match in order with flexible gap
-      const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const words = title.trim().split(/\s+/).filter(Boolean);
-      const lookaheadPattern = words.map(w => `(?=.*${escapeRegExp(w)})`).join('');
-      const regexMatch = { $regex: `${lookaheadPattern}.*`, $options: 'i' };
+  // Base query conditions
+  queryObject = {
+    status: "show",
+    stock: { $gt: 0 },
+  };
 
+  if (title) {
+    // Enhanced comprehensive search: search across multiple fields
+    const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchTerm = title.trim();
+    
+    // Create regex patterns for different search strategies
+    const exactMatch = { $regex: `^${escapeRegExp(searchTerm)}$`, $options: 'i' };
+    const startsWithMatch = { $regex: `^${escapeRegExp(searchTerm)}`, $options: 'i' };
+    const containsMatch = { $regex: escapeRegExp(searchTerm), $options: 'i' };
+    
+    // For multi-word searches, use lookahead pattern
+    const words = searchTerm.split(/\s+/).filter(Boolean);
+    const lookaheadPattern = words.map(w => `(?=.*${escapeRegExp(w)})`).join('');
+    const multiWordMatch = { $regex: `${lookaheadPattern}.*`, $options: 'i' };
+
+    queryObject.$or = [
+      // Title searches (all languages including Arabic)
+      { "title.en": exactMatch },
+      { "title.en": startsWithMatch },
+      { "title.en": containsMatch },
+      { "title.en": multiWordMatch },
+      { "title.ar": exactMatch },
+      { "title.ar": startsWithMatch },
+      { "title.ar": containsMatch },
+      { "title.ar": multiWordMatch },
+      { "title.es": exactMatch },
+      { "title.es": startsWithMatch },
+      { "title.es": containsMatch },
+      { "title.es": multiWordMatch },
+      { "title.fr": exactMatch },
+      { "title.fr": startsWithMatch },
+      { "title.fr": containsMatch },
+      { "title.fr": multiWordMatch },
+      { "title.de": exactMatch },
+      { "title.de": startsWithMatch },
+      { "title.de": containsMatch },
+      { "title.de": multiWordMatch },
+      
+      // Name searches (fallback field)
+      { "name": exactMatch },
+      { "name": startsWithMatch },
+      { "name": containsMatch },
+      { "name": multiWordMatch },
+      
+      // Barcode and SKU searches (exact matches first)
+      { "barcode": exactMatch },
+      { "barcode": startsWithMatch },
+      { "barcode": containsMatch },
+      { "sku": exactMatch },
+      { "sku": startsWithMatch },
+      { "sku": containsMatch },
+      { "default_code": exactMatch },
+      { "default_code": startsWithMatch },
+      { "default_code": containsMatch },
+      
+      // Product ID searches - only add _id search if it's a valid ObjectId
+      ...(mongoose.Types.ObjectId.isValid(searchTerm) ? [{ "_id": searchTerm }] : []),
+      
+      // Slug searches
+      { "slug": containsMatch },
+      
+      // Description searches
+      { "description.en": containsMatch },
+      { "description.ar": containsMatch },
+      
+      // Brand/Manufacturer searches
+      { "brand": containsMatch },
+      { "manufacturer": containsMatch },
+      
+      // Tags searches - use $in only for exact matches
+      { "tags": containsMatch },
+      
+      // Category name searches (if populated)
+      { "categoryName": containsMatch },
+      
+      // Product unit searches (if populated)
+      { "productUnits.name": containsMatch },
+      { "productUnits.shortCode": containsMatch }
+    ];
+  }
+
+  if (slug) {
+    queryObject.slug = slug;
+  }
+
+  if (categoryIdsToQuery.length > 0) {
+    const categoryQuery = { $in: categoryIdsToQuery };
+    if (queryObject.$or) {
+      queryObject.$and = [
+        { $or: queryObject.$or },
+        { $or: [
+          { category: categoryQuery },
+          { categories: categoryQuery }
+        ]}
+      ];
+      delete queryObject.$or;
+    } else {
       queryObject.$or = [
-        { "title.en": regexMatch },
-        { "title.es": regexMatch },
-        { "title.fr": regexMatch },
-        { "title.de": regexMatch }
+        { category: categoryQuery },
+        { categories: categoryQuery }
       ];
     }
+  }
 
-    if (slug) {
-      queryObject.slug = { $regex: slug, $options: "i" };
-    }
+  console.log('getShowingStoreProducts final queryObject:', JSON.stringify(queryObject));
 
-    // Optimize field selection for better performance
-    const productFields = 'title slug image price originalPrice discount stock status category categories basicUnit hasMultiUnits availableUnits createdAt updatedAt';
-    const categoryFields = 'name _id';
-    const unitFields = 'name shortCode _id';
+  const pages = Number(page) || 1;
+  const limits = Math.min(Number(limit) || 20, 50000); // Default limit 20, cap at 50000
+  const skip = (pages - 1) * limits;
 
-    let products = [];
-    let popularProducts = [];
-    let discountedProducts = [];
-    let relatedProducts = [];
-    let totalProducts = 0;
+  try {
+    const totalDoc = await Product.countDocuments(queryObject);
 
-    if (slug) {
-      // Single product query for slug
-      products = await Product.find(queryObject)
-        .select(productFields)
-        .populate({ path: "category", select: categoryFields })
-        .populate({ path: "categories", select: categoryFields })
-        .populate({ path: "basicUnit", select: unitFields })
-        .sort({ _id: -1 })
-        .limit(limitNum)
-        .lean(); // Use lean() for better performance
+    const products = await Product.find(queryObject)
+      .populate({ path: "category", select: "name _id" })
+      .populate({ path: "categories", select: "name _id" })
+      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
+      .sort(sortObject)
+      .skip(skip)
+      .limit(limits)
+      .lean(); // Add lean() for performance if not modifying docs after query
 
-      if (products.length > 0) {
-        relatedProducts = await Product.find({
-          category: products[0]?.category?._id,
-          _id: { $ne: products[0]._id },
-          stock: { $gt: 0 }  // Also filter related products
-        })
-        .select(productFields)
-        .populate({ path: "category", select: categoryFields })
-        .populate({ path: "basicUnit", select: unitFields })
-        .limit(12)
+    // Get popular products (based on recent orders and sales)
+    // First try to get products with sales > 0, if not enough, get recent products
+    let popularProducts = await Product.find({
+      status: "show",
+      stock: { $gt: 0 },
+      sales: { $gt: 0 }
+    })
+      .populate({ path: "category", select: "name _id" })
+      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
+      .sort({ sales: -1 })
+      .limit(20)
+      .lean();
+
+    // If we don't have enough popular products (less than 8), add recent products
+    if (popularProducts.length < 8) {
+      const recentProducts = await Product.find({
+        status: "show",
+        stock: { $gt: 0 },
+        _id: { $nin: popularProducts.map(p => p._id) }
+      })
+        .populate({ path: "category", select: "name _id" })
+        .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
+        .sort({ createdAt: -1 })
+        .limit(20 - popularProducts.length)
         .lean();
-      }
-    } else {
-      // Paginated search results
-      const [productResults, totalCount] = await Promise.all([
-        Product.find(queryObject)
-          .select(productFields)
-          .populate({ path: "category", select: categoryFields })
-          .populate({ path: "categories", select: categoryFields })
-          .populate({ path: "basicUnit", select: unitFields })
-          .sort({ _id: -1 })
-          .skip(skip)
-          .limit(limitNum)
-          .lean(),
-        Product.countDocuments(queryObject)
-      ]);
-      
-      products = productResults;
-      totalProducts = totalCount;
+
+      popularProducts = [...popularProducts, ...recentProducts];
     }
 
-    if (!slug) {
-      // Home page - fetch all categories in parallel with stock filtering
-      const [popularResults, discountedResults] = await Promise.all([        
-        Product.find({ 
-          status: "show",
-          stock: { $gt: 0 }  // Filter popular products
-        })
-          .select(productFields)
-          .populate({ path: "category", select: categoryFields })
-          .populate({ path: "basicUnit", select: unitFields })
-          .sort({ sales: -1 })
-          .limit(20)
-          .lean(),
-        
-        Product.find({
-          status: "show",
-          stock: { $gt: 0 },  // Filter discounted products
-          $or: [
-            {
-              $and: [
-                { isCombination: true },
-                { "variants.discount": { $gt: 0 } }
-              ]
-            },
-            {
-              $and: [
-                { isCombination: false },
-                { "prices.discount": { $gt: 0 } }
-              ]
-            }
+    // Get discounted products
+    const discountedProducts = await Product.find({
+      status: "show",
+      stock: { $gt: 0 },
+      $or: [
+        {
+          $and: [
+            { isCombination: true },
+            { "variants.discount": { $gt: 0 } }
           ]
-        })
-        .select(productFields)
-        .populate({ path: "category", select: categoryFields })
-        .populate({ path: "basicUnit", select: unitFields })
-        .sort({ _id: -1 })
-        .limit(20)
-        .lean()
-      ]);
-
-      popularProducts = popularResults;
-      discountedProducts = discountedResults;
-    }
-
-    // Enhanced stock filtering: Consider pending orders for all product lists
-    const Order = require("../models/Order");
-    const pendingOrders = await Order.find({ 
-      status: { $in: ["Pending", "Processing"] }
-    });
-    
-    // Calculate reserved stock for each product
-    const reservedStock = {};
-    pendingOrders.forEach(order => {
-      order.cart.forEach(item => {
-        const productId = (item.productId || item.id)?.toString();
-        if (productId) {
-          const packQty = item.packQty || 1;
-          const reservedQty = item.quantity * packQty;
-          
-          if (reservedStock[productId]) {
-            reservedStock[productId] += reservedQty;
-          } else {
-            reservedStock[productId] = reservedQty;
-          }
+        },
+        {
+          $and: [
+            { isCombination: false },
+            { "prices.discount": { $gt: 0 } }
+          ]
         }
-      });
-    });
-    
-    // Filter function to check actual availability
-    const filterByActualStock = (productList) => {
-      return productList.filter(product => {
-        const productId = product._id.toString();
-        const reserved = reservedStock[productId] || 0;
-        const availableStock = product.stock - reserved;
-        return availableStock > 0;
-      });
-    };
-    
-    // Apply filtering to all product lists
-    products = filterByActualStock(products);
-    popularProducts = filterByActualStock(popularProducts);
-    discountedProducts = filterByActualStock(discountedProducts);
-    relatedProducts = filterByActualStock(relatedProducts);
-    
-    console.log(`📦 PRODUCT FILTERING: Applied pending order filtering. Reserved stock for ${Object.keys(reservedStock).length} products`);
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(totalProducts / limitNum);
-    const hasNextPage = pageNum < totalPages;
-    const hasPrevPage = pageNum > 1;
-
-    res.set({
-      'Cache-Control': 'public, max-age=300, s-maxage=600', // Cache for 5-10 minutes
-      'ETag': `W/"${Date.now()}"`,
-      'Last-Modified': new Date().toUTCString()
-    });
+      ]
+    })
+      .populate({ path: "category", select: "name _id" })
+      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
+      .sort({ _id: -1 })
+      .limit(20)
+      .lean();
 
     res.send({
       products,
       popularProducts,
-      relatedProducts,
       discountedProducts,
-      pagination: {
-        currentPage: pageNum,
-        totalPages,
-        totalProducts,
-        hasNextPage,
-        hasPrevPage,
-        limit: limitNum
-      }
+      totalDoc,
+      pages,
+      limits,
     });
   } catch (err) {
-    console.error("Error in getShowingStoreProducts:", err.message);
     res.status(500).send({
       message: err.message,
     });
@@ -808,7 +1007,7 @@ const getEnhancedProductById = async (req, res) => {
     const product = await Product.findById(req.params.id)
       .populate({ path: "category", select: "_id name" })
       .populate({ path: "categories", select: "_id name" })
-      .populate({ path: "basicUnit", select: "_id name shortCode" });
+      .populate({ path: "basicUnit", select: "_id name nameAr shortCode" });
 
     if (!product) {
       return res.status(404).send({ message: "Product not found" });
@@ -821,7 +1020,7 @@ const getEnhancedProductById = async (req, res) => {
         { product: product._id },
         { productId: product._id }
       ]
-    }).populate('unit');
+    }).populate('unit', '_id name nameAr shortCode');
     
     // Create enhanced product structure with multiUnits array
     const enhancedProduct = {
@@ -856,6 +1055,7 @@ const getEnhancedProductById = async (req, res) => {
         unit: {
           _id: unit.unit._id,
           name: unit.unit.name,
+          nameAr: unit.unit.nameAr,
           shortCode: unit.unit.shortCode
         },
         unitType: unit.unit.unitType || 'multi',
@@ -889,7 +1089,7 @@ const getEnhancedProductBySlug = async (req, res) => {
     const product = await Product.findOne({ slug: req.params.slug })
       .populate({ path: "category", select: "name _id" })
       .populate({ path: "categories", select: "name _id" })
-      .populate({ path: "basicUnit", select: "name shortCode _id" });
+      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" });
 
     if (!product) {
       console.log(`Enhanced product not found for slug: ${req.params.slug}`);
@@ -903,7 +1103,7 @@ const getEnhancedProductBySlug = async (req, res) => {
         { product: product._id },
         { productId: product._id }
       ]
-    }).populate('unit');
+    }).populate('unit', '_id name nameAr shortCode');
     
     // Create enhanced product structure
     const enhancedProduct = {
@@ -938,6 +1138,7 @@ const getEnhancedProductBySlug = async (req, res) => {
         unit: {
           _id: unit.unit._id,
           name: unit.unit.name,
+          nameAr: unit.unit.nameAr,
           shortCode: unit.unit.shortCode
         },
         unitType: unit.unit.unitType || 'multi',
@@ -974,6 +1175,50 @@ const getEnhancedProductBySlug = async (req, res) => {
   }
 };
 
+// Check if a category has products
+const checkCategoryHasProducts = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    
+    if (!categoryId) {
+      return res.status(400).send({ message: "Category ID is required" });
+    }
+
+    // Get all child category IDs for this category
+    let categoryIdsToQuery = [];
+    try {
+      const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
+      categoryIdsToQuery = await getAllChildCategoryIds(categoryObjectId);
+    } catch (error) {
+      console.error("Error in checkCategoryHasProducts when converting category ID:", error);
+      return res.status(400).send({ message: "Invalid category ID" });
+    }
+
+    // Query for products in this category or its subcategories
+    const queryObject = {
+      status: "show",
+      stock: { $gt: 0 },
+      $or: [
+        { category: { $in: categoryIdsToQuery } },
+        { categories: { $in: categoryIdsToQuery } }
+      ]
+    };
+
+    const count = await Product.countDocuments(queryObject);
+    
+    res.send({
+      hasProducts: count > 0,
+      productCount: count,
+      categoryId: categoryId
+    });
+  } catch (err) {
+    console.error("Error in checkCategoryHasProducts:", err.message);
+    res.status(500).send({
+      message: err.message,
+    });
+  }
+};
+
 module.exports = {
   addProduct,
   addAllProducts,
@@ -990,4 +1235,5 @@ module.exports = {
   checkProductStockAvailability,
   getEnhancedProductById,
   getEnhancedProductBySlug,
+  checkCategoryHasProducts,
 };
