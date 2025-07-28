@@ -18,6 +18,8 @@ const OdooSync = () => {
   const [showPushModal, setShowPushModal] = useState(false);
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
+  const [selectedSource, setSelectedSource] = useState(null);
+  const [selectedDestination, setSelectedDestination] = useState(null);
 
   // Helper to update stats
   const loadStatistics = async () => {
@@ -85,22 +87,6 @@ const OdooSync = () => {
     }
   };
 
-  const handleImportData = async () => {
-    if (!window.confirm("Import data into store collections?")) return;
-
-    try {
-      setLoading(true);
-      setLastAction("import");
-      const res = await OdooSyncServices.importToStore();
-      notifySuccess(res.message || "Data imported successfully");
-    } catch (err) {
-      console.error(err);
-      notifyError(err.response?.data?.message || "Import failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleOpenSyncModal = () => setShowSyncModal(true);
   const handleCloseSyncModal = () => setShowSyncModal(false);
 
@@ -122,7 +108,12 @@ const OdooSync = () => {
     try{
       setLoading(true);
       const res = await OdooSyncServices.listBranches();
-      setBranches(res.data?.data || res.data || []);
+      console.log('🔍 Branches API response:', res);
+      console.log('🔍 Branches data:', res.data?.data || res.data);
+      const branchesData = res.data?.data || res.data || [];
+      console.log('🔍 Final branches array:', branchesData);
+      console.log('🔍 Branch details:', branchesData.map(b => ({ id: b.id, name: b.name, usage: b.usage })));
+      setBranches(branchesData);
       setShowPushModal(true);
     }catch(err){
       console.error(err);
@@ -135,7 +126,10 @@ const OdooSync = () => {
   const handlePushBack = async () => {
     try{
       setLoading(true);
-      const res = await OdooSyncServices.pushBackStock(selectedBranch ? selectedBranch.id : null);
+      const res = await OdooSyncServices.pushBackStock({
+        sourceLocationId: selectedSource?.id,
+        destinationLocationId: selectedDestination?.id
+      });
       notifySuccess(`Pushed ${res.pushed||0} units back to Odoo`);
     }catch(err){
       console.error(err);
@@ -161,13 +155,6 @@ const OdooSync = () => {
           className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none"
         >
           <FiDownload className="mr-2" /> Fetch Data
-        </button>
-
-        <button
-          onClick={handleImportData}
-          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 focus:outline-none"
-        >
-          <FiUpload className="mr-2" /> Import to Store
         </button>
 
         <button
@@ -216,13 +203,13 @@ const OdooSync = () => {
         <div className="p-4 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <h2 className="text-lg font-semibold mb-2">Fetched Data Statistics</h2>
           <ul className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-            <li>Products: <span className="font-medium">{statistics.products || 0}</span></li>
-            <li>Categories: <span className="font-medium">{statistics.categories || 0}</span></li>
-            <li>Units of Measure: <span className="font-medium">{statistics.uoms || 0}</span></li>
-            <li>Stock: <span className="font-medium">{statistics.stock || 0}</span></li>
-            <li>Barcode Units: <span className="font-medium">{statistics.barcode_units || 0}</span></li>
-            <li>Pricelists: <span className="font-medium">{statistics.pricelists || 0}</span></li>
-            <li>Pricelist Items: <span className="font-medium">{statistics.pricelist_items || 0}</span></li>
+            <li>Products: <span className="font-medium">{statistics.total_records?.products || 0}</span></li>
+            <li>Categories: <span className="font-medium">{statistics.total_records?.categories || 0}</span></li>
+            <li>Units of Measure: <span className="font-medium">{statistics.total_records?.uom || 0}</span></li>
+            <li>Stock: <span className="font-medium">{statistics.total_records?.stock || 0}</span></li>
+            <li>Barcode Units: <span className="font-medium">{statistics.total_records?.barcode_units || 0}</span></li>
+            <li>Pricelists: <span className="font-medium">{statistics.total_records?.pricelists || 0}</span></li>
+            <li>Pricelist Items: <span className="font-medium">{statistics.total_records?.pricelist_items || 0}</span></li>
           </ul>
         </div>
       )}
@@ -250,21 +237,34 @@ const OdooSync = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96">
             <h2 className="text-lg font-semibold mb-4">Push Stock Back to Odoo</h2>
             {branches.length>0 ? (
-              <select value={selectedBranch?.id||''} onChange={e=>{
-                const id=parseInt(e.target.value,10);
-                setSelectedBranch(branches.find(b=>b.id===id));
-              }} className="w-full border px-3 py-2 mb-4 rounded">
-                <option value="">Select Branch</option>
-                {branches.map(b=> (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+              <>
+                <label className="block mb-2 font-medium">Source Location</label>
+                <select value={selectedSource?.id||''} onChange={e=>{
+                  const id=parseInt(e.target.value,10);
+                  setSelectedSource(branches.find(b=>b.id===id));
+                }} className="w-full border px-3 py-2 mb-4 rounded">
+                  <option value="">Select Source</option>
+                  {branches.map(b=> (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+                <label className="block mb-2 font-medium">Destination Location</label>
+                <select value={selectedDestination?.id||''} onChange={e=>{
+                  const id=parseInt(e.target.value,10);
+                  setSelectedDestination(branches.find(b=>b.id===id));
+                }} className="w-full border px-3 py-2 mb-4 rounded">
+                  <option value="">Select Destination</option>
+                  {branches.map(b=> (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </>
             ):(
               <p className="text-sm text-gray-500 mb-4">No branches found.</p>
             )}
             <div className="flex justify-end gap-3">
               <button onClick={closePushModal} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-              <button disabled={!selectedBranch && branches.length>0} onClick={handlePushBack} className="px-4 py-2 bg-teal-600 text-white rounded disabled:opacity-50">Push</button>
+              <button disabled={!(selectedSource && selectedDestination)} onClick={handlePushBack} className="px-4 py-2 bg-teal-600 text-white rounded disabled:opacity-50">Push</button>
             </div>
           </div>
         </div>

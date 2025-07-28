@@ -13,6 +13,12 @@ const useAddToCart = () => {
     const result = items.find((i) => i.id === product.id);
     const { variants, categories, description, ...updatedProduct } = product;
     
+    // Dispatch cart interaction event to pause carousel autoplay
+    const cartEvent = new CustomEvent('product-added-to-cart', {
+      detail: { product, quantity: quantityToAdd || item }
+    });
+    window.dispatchEvent(cartEvent);
+    
     // ----------------------------------------------
     // PROMOTION PRICING OVERRIDE
     // If the product carries a fixed-price promotion and the quantity we are
@@ -75,6 +81,12 @@ const useAddToCart = () => {
       ) {
         updateItemQuantity(product.id, result.quantity + qty);
         notifySuccess(`${qty} ${product.title} added to cart!`);
+        
+        // Dispatch cart updated event
+        const cartEvent = new CustomEvent('cart-updated', {
+          detail: { product, action: 'updated', quantity: result.quantity + qty }
+        });
+        window.dispatchEvent(cartEvent);
       } else {
         notifyError("Insufficient stock!");
       }
@@ -88,6 +100,12 @@ const useAddToCart = () => {
       ) {
         addItem(updatedProduct, qty);
         notifySuccess(`${qty} ${product.title} added to cart!`);
+        
+        // Dispatch cart updated event
+        const cartEvent = new CustomEvent('cart-updated', {
+          detail: { product, action: 'added', quantity: qty }
+        });
+        window.dispatchEvent(cartEvent);
       } else {
         notifyError("Insufficient stock!");
       }
@@ -98,6 +116,12 @@ const useAddToCart = () => {
     const result = items?.find((p) => p.id === product.id);
     
     if (result) {
+      // Prevent quantity modifications for combo deals
+      if (result.isCombo) {
+        notifyError("Combo deals cannot be modified. Please remove and re-add if needed.");
+        return;
+      }
+      
       // Check if item has promotion
       if (result.promotion) {
         const nextQuantity = result.quantity + 1;

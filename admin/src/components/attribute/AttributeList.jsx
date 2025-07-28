@@ -21,7 +21,7 @@ const AttributeList = ({ variants, variantTitle }) => {
                   />
                 ) : (
                   <Avatar
-                    src="https://res.cloudinary.com/ahossain/image/upload/v1655097002/placeholder_kvepfp.png"
+                    src="https://res.cloudinary.com/dxjobesyt/image/upload/v1752706908/placeholder_kvepfp_wkyfut.png"
                     alt="product"
                     className="hidden p-1 mr-2 md:block bg-gray-50 shadow-none"
                   />

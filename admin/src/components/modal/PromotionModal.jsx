@@ -94,7 +94,8 @@ const PromotionModal = ({ isOpen, onClose, promotionId = null }) => {
 
   const loadProducts = async () => {
     try {
-      const response = await ProductServices.getProductsForPromotions(1, 100, '');
+      // Fetch all products (increase limit)
+      const response = await ProductServices.getProductsForPromotions(1, 10000, '');
       console.log('Products API response:', response);
       
       // Handle different response structures
@@ -636,10 +637,12 @@ const PromotionModal = ({ isOpen, onClose, promotionId = null }) => {
     if (!searchText.trim()) return true;
     const productTitle = renderSafeText(product.title, '');
     const productSku = renderSafeText(product.sku, '');
+    const productBarcode = product.barcode || '';
     const searchLower = searchText.toLowerCase();
     
     return productTitle.toLowerCase().includes(searchLower) ||
-           productSku.toLowerCase().includes(searchLower);
+           productSku.toLowerCase().includes(searchLower) ||
+           productBarcode.toLowerCase().includes(searchLower);
   });
 
   const resetForm = () => {
@@ -1217,7 +1220,7 @@ const PromotionModal = ({ isOpen, onClose, promotionId = null }) => {
                     <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
-                      placeholder="Search products by name or SKU..."
+                      placeholder="Search by name, SKU, or barcode..."
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
                       className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"

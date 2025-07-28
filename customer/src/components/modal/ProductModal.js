@@ -164,22 +164,28 @@ const ProductModal = ({
     }
   }, [selectedUnit]);
 
-  // Auto-adjust quantity (item) to meet promotion minimum requirements
+  // 1. Set initial quantity to minQty on modal open or promo change
   useEffect(() => {
-    if (!activePromotion) return;
-
-    const minQty = activePromotion.minQty || activePromotion.requiredQty || 1;
-    if (item < minQty) {
-      setItem(minQty);
+    if (modalOpen && activePromotion && activePromotion.minQty) {
+      setItem(activePromotion.minQty);
+    } else if (modalOpen) {
+      setItem(1);
     }
-  }, [activePromotion, item]);
+  }, [modalOpen, activePromotion]);
 
-  // Enhanced pricing calculation with unit-specific promotions
+  // 2. Dynamic pricing logic: advanced promo breakdown for min/max
   const pricingInfo = useMemo(() => {
     let basePrice = 0;
     let finalPrice = 0;
     let isPromotional = false;
     let savings = 0;
+    let minQty = activePromotion ? (activePromotion.minQty || 1) : 1;
+    let maxQty = activePromotion && activePromotion.maxQty ? activePromotion.maxQty : null;
+    let promoUnits = 0;
+    let normalUnits = 0;
+    let promoUnitPrice = 0;
+    let normalUnitPrice = 0;
+    let breakdown = '';
 
     if (selectedUnit && product?.hasMultiUnits) {
       basePrice = selectedUnit.price || 0;
@@ -188,38 +194,47 @@ const ProductModal = ({
     } else {
       basePrice = getNumber(product?.prices?.price || product?.price || 0);
     }
+    normalUnitPrice = basePrice;
 
+    // Default: all at normal price
     finalPrice = basePrice;
+    promoUnitPrice = basePrice;
+    promoUnits = 0;
+    normalUnits = item;
+    isPromotional = false;
+    savings = 0;
 
-    // Apply promotion if available and unit-specific
-    if (activePromotion && item >= (activePromotion.minQty || 1)) {
-      // Check if this promotion is for the current unit
+    if (activePromotion && item >= minQty) {
       const isUnitSpecificPromotion = !selectedUnit || 
-                                     (activePromotion.productUnit && 
-                                      activePromotion.productUnit._id === selectedUnit._id);
-      
+        (activePromotion.productUnit && activePromotion.productUnit._id === selectedUnit._id);
       if (isUnitSpecificPromotion) {
         if (activePromotion.type === 'fixed_price') {
-          finalPrice = activePromotion.value || activePromotion.offerPrice || basePrice;
-          // Use the original price from promotion data if available
-          const originalPrice = activePromotion.originalPrice || 
-                               activePromotion.productUnit?.price || 
-                               basePrice;
-          savings = originalPrice - finalPrice;
-          isPromotional = true;
-          // Update basePrice to show correct original price
-          basePrice = originalPrice;
+          promoUnitPrice = activePromotion.value || activePromotion.offerPrice || basePrice;
+          if (maxQty && item > maxQty) {
+            promoUnits = maxQty;
+            normalUnits = item - maxQty;
+          } else {
+            promoUnits = item;
+            normalUnits = 0;
+          }
+          finalPrice = promoUnitPrice;
+          isPromotional = promoUnits > 0;
+          savings = (basePrice - promoUnitPrice) * promoUnits;
+          
+          // Fix currency issue in breakdown
+          breakdown = `${promoUnits} × ${promoUnitPrice.toFixed(2)}`;
+          if (normalUnits > 0) {
+            breakdown += ` + ${normalUnits} × ${basePrice.toFixed(2)}`;
+          }
         } else if (activePromotion.type === 'bulk_purchase') {
           const totalRequired = activePromotion.requiredQty || activePromotion.minQty || 1;
           const freeQty = activePromotion.freeQty || 0;
           const originalPrice = activePromotion.originalPrice || 
-                               activePromotion.productUnit?.price || 
-                               basePrice;
+            activePromotion.productUnit?.price || basePrice;
           const effectivePrice = (originalPrice * totalRequired) / (totalRequired + freeQty);
           finalPrice = effectivePrice;
           savings = originalPrice - effectivePrice;
           isPromotional = true;
-          // Update basePrice to show correct original price
           basePrice = originalPrice;
         }
       }
@@ -230,9 +245,23 @@ const ProductModal = ({
       finalPrice: Math.max(0, finalPrice),
       savings: Math.max(0, savings),
       isPromotional,
-      pricePerBaseUnit: selectedUnit?.packQty ? finalPrice / selectedUnit.packQty : finalPrice
+      pricePerBaseUnit: selectedUnit?.packQty ? finalPrice / selectedUnit.packQty : finalPrice,
+      promoUnits,
+      normalUnits,
+      promoUnitPrice,
+      normalUnitPrice,
+      breakdown
     };
-  }, [selectedUnit, product, selectVariant, activePromotion, item]);
+  }, [selectedUnit, product, selectVariant, activePromotion, item, currency]);
+
+  // 3. Counter logic: respect minimum quantity for promotions
+  const handleDecrease = () => {
+    const minQty = activePromotion ? (activePromotion.minQty || 1) : 1;
+    if (item > minQty) setItem(item - 1);
+  };
+  const handleIncrease = () => {
+    setItem(item + 1);
+  };
 
   useEffect(() => {
     if (value) {
@@ -371,7 +400,7 @@ const ProductModal = ({
         isMultiUnit: product?.hasMultiUnits || Boolean(selectedUnit)
       };
 
-      handleAddItem(cartItem);
+      handleAddItem(cartItem, item);
       notifySuccess(`${item} ${selectedUnit?.unit?.name || 'item(s)'} added to cart!`);
       setModalOpen(false);
     }
@@ -394,10 +423,13 @@ const ProductModal = ({
   return (
     <>
       <MainModal modalOpen={modalOpen} setModalOpen={setModalOpen}>
-        <div className="inline-block overflow-y-auto h-full align-middle transition-all transform bg-white shadow-xl rounded-2xl max-w-6xl w-full">
+        <div
+          className="bg-white rounded-2xl shadow-xl mx-auto my-8 w-full max-w-2xl p-6 relative
+          sm:max-w-[95vw] sm:p-3 sm:text-[0.92rem]"
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900">Product Details</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t('productDetails')}</h2>
             <button
                 onClick={() => setModalOpen(false)}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -649,18 +681,22 @@ const ProductModal = ({
                                 (() => {
                                   // Try to locate the unit promotion data (either from activePromotion or by API call earlier)
                                   const unitPromo = unitPromotions.get(unit._id) || (activePromotion && activePromotion.productUnit && activePromotion.productUnit._id === unit._id ? activePromotion : null);
-
                                   const promoPrice = unitPromo ? (unitPromo.value || unitPromo.offerPrice || unit.price) : unit.price;
                                   const minQtyPromo = unitPromo ? (unitPromo.minQty || unitPromo.requiredQty || 1) : 1;
                                   const maxQtyPromo = unitPromo ? (unitPromo.maxQty || unitPromo.requiredQty || null) : null;
-
+                                  const basePrice = unit.price;
                                   return (
-                                    <div className="space-y-0.5 text-right">
-                                      <div className="flex items-baseline justify-end space-x-1">
-                                        <span className="font-bold text-red-600">{currency}{getNumberTwo(promoPrice)}</span>
-                                        <span className="text-xs line-through text-gray-400">{currency}{getNumberTwo(unit.price)}</span>
-                                      </div>
-                                      <div className="text-[10px] text-red-600">🔥 {t('min')} {minQtyPromo}</div>
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-base font-bold text-red-600">
+                                        {currency}{(promoPrice * minQtyPromo).toFixed(2)}
+                                      </span>
+                                      <span className="text-xs text-gray-500 font-normal mt-1">
+                                        ({minQtyPromo} × {currency}{promoPrice.toFixed(2)})
+                                      </span>
+                                      <span className="text-xs line-through text-gray-400">
+                                        {currency}{(basePrice * minQtyPromo).toFixed(2)}
+                                      </span>
+                                      <div className="text-[10px] text-red-600 mt-1">🔥 {t('min')} {minQtyPromo}</div>
                                       {maxQtyPromo && (
                                         <div className="text-[10px] text-red-600">🔥 {t('max')} {maxQtyPromo}</div>
                                       )}
@@ -730,6 +766,20 @@ const ProductModal = ({
                           </span>
                         )}
                       </div>
+                      {/* Fixed Price Promo Calculation Display */}
+                      {activePromotion && activePromotion.type === 'fixed_price' ? (
+                        <div className="flex flex-col items-start">
+                          <span className="text-xl font-bold text-red-600">
+                            {currency}{(pricingInfo.finalPrice * (activePromotion.minQty || 1)).toFixed(2)}
+                          </span>
+                          <span className="text-xs text-gray-500 font-normal mt-1">
+                            ({activePromotion.minQty || 1} × {currency}{pricingInfo.finalPrice.toFixed(2)})
+                          </span>
+                          <span className="text-sm text-gray-500 line-through">
+                            {currency}{(pricingInfo.basePrice * (activePromotion.minQty || 1)).toFixed(2)}
+                          </span>
+                        </div>
+                      ) : (
                       <div className="flex items-center space-x-3">
                         <span className="text-xl font-bold text-red-600">
                           {currency}{pricingInfo.finalPrice.toFixed(2)}
@@ -741,104 +791,35 @@ const ProductModal = ({
                           {t('save')} {currency}{pricingInfo.savings.toFixed(2)}
                         </span>
                       </div>
-                      
-                      {/* Unit Information */}
+                      )}
+                      {/* Unit and Min/Max/Per Base Unit Info - compact arrangement */}
+                      {(selectedUnit || (activePromotion && (activePromotion.minQty || activePromotion.maxQty))) && (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 mt-1">
                       {selectedUnit && (
-                        <div className="text-xs text-gray-600">
-                          / {getLocalizedUnitDisplayName(selectedUnit, lang)}{selectedUnit.unitValue > 1 ? ` ${selectedUnit.unitValue}` : ''}
-                        </div>
+                            <span>/ {getLocalizedUnitDisplayName(selectedUnit, lang)}</span>
                       )}
-                      
-                      {/* Min/Max Quantity Info */}
                       {activePromotion && (
-                        <div className="text-xs text-gray-600">
-                          {(() => {
-                            // Debug promotion unit structure with more detail
-                            const promotionUnit = activePromotion.productUnit || selectedUnit;
-                            
-                            console.log('ProductModal: Detailed promotion unit analysis:', {
-                              'activePromotion': activePromotion,
-                              'activePromotion.productUnit': activePromotion.productUnit,
-                              'selectedUnit': selectedUnit,
-                              'promotionUnit (final)': promotionUnit,
-                              'promotionUnit.unit': promotionUnit?.unit,
-                              'promotionUnit.unit.shortCode': promotionUnit?.unit?.shortCode,
-                              'promotionUnit.unit.nameAr': promotionUnit?.unit?.nameAr,
-                              'promotionUnit.unit.name': promotionUnit?.unit?.name,
-                              'promotionUnit.unitValue': promotionUnit?.unitValue,
-                              'lang': lang,
-                              'getLocalizedUnitDisplayName result': getLocalizedUnitDisplayName(promotionUnit, lang)
-                            });
-                            
-                            // Log the exact shortCode we're checking
-                            console.log('ProductModal: ShortCode check:', {
-                              'shortCode': promotionUnit?.unit?.shortCode,
-                              'shortCode type': typeof promotionUnit?.unit?.shortCode,
-                              'shortCode === CTN': promotionUnit?.unit?.shortCode === 'CTN',
-                              'shortCode === ctn': promotionUnit?.unit?.shortCode === 'ctn',
-                              'promotionUnit.shortCode': promotionUnit?.shortCode,
-                              'selectedUnit.unit.shortCode': selectedUnit?.unit?.shortCode,
-                              'selectedUnit.shortCode': selectedUnit?.shortCode
-                            });
-                            
-                            // Log full structures to understand the difference
-                            console.log('ProductModal: Full structures:', {
-                              'promotionUnit': JSON.stringify(promotionUnit, null, 2),
-                              'selectedUnit': JSON.stringify(selectedUnit, null, 2)
-                            });
-                            
-                            // Try to get Arabic unit name with fallback
-                            let unitDisplayName;
-                            
-                            // Check multiple possible locations for unit info
-                            const shortCode = promotionUnit?.unit?.shortCode || promotionUnit?.shortCode || selectedUnit?.unit?.shortCode || selectedUnit?.shortCode;
-                            const nameAr = promotionUnit?.unit?.nameAr || promotionUnit?.nameAr || selectedUnit?.unit?.nameAr || selectedUnit?.nameAr;
-                            
-                            if (nameAr && lang === 'ar') {
-                              unitDisplayName = nameAr;
-                            } else if (shortCode) {
-                              // Use the same fallback logic as in unitUtils
-                              const shortCodeMap = {
-                                'pcs': lang === 'ar' ? 'قطعة' : 'pcs',
-                                'CTN': lang === 'ar' ? 'كرتون' : 'CTN',
-                                'ctn': lang === 'ar' ? 'كرتون' : 'ctn',
-                                'kg': lang === 'ar' ? 'كيلو' : 'kg',
-                                'g': lang === 'ar' ? 'جرام' : 'g'
-                              };
-                              unitDisplayName = shortCodeMap[shortCode] || shortCode;
-                            } else {
-                              // Final fallback to the utility function
-                              unitDisplayName = getLocalizedUnitDisplayName(selectedUnit, lang);
-                            }
-                            
-                            const unitValue = promotionUnit?.unitValue || 1;
-                            
-                            return (
-                              <>
-                                {t('min')}: {activePromotion.minQty || 1} {unitDisplayName}
+                            <span>
+                              {t('min')}: {activePromotion.minQty || 1}
                                 {activePromotion.maxQty && (
-                                  <span className="ml-2">{t('max')}: {activePromotion.maxQty} {unitDisplayName}</span>
+                                <span className="ml-2">{t('max')}: {activePromotion.maxQty}</span>
                                 )}
-                              </>
-                            );
-                          })()}
+                            </span>
+                          )}
+                          {selectedUnit?.packQty > 1 && (
+                            <span>{currency}{pricingInfo.pricePerBaseUnit.toFixed(2)} {t('perBaseUnit')}</span>
+                          )}
                         </div>
                       )}
-                      
                       {/* Promotional Offer Details */}
-                      {activePromotion && (
+                      {activePromotion && activePromotion.type !== 'fixed_price' && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
                           <div className="text-xs font-medium text-red-700">
                             {(() => {
                               const promotionUnit = activePromotion.productUnit || selectedUnit;
-                              
-                              // Use the same fallback logic for promotional offer text
                               let unitDisplayName;
-                              
-                              // Check multiple possible locations for unit info
                               const shortCode = promotionUnit?.unit?.shortCode || promotionUnit?.shortCode || selectedUnit?.unit?.shortCode || selectedUnit?.shortCode;
                               const nameAr = promotionUnit?.unit?.nameAr || promotionUnit?.nameAr || selectedUnit?.unit?.nameAr || selectedUnit?.nameAr;
-                              
                               if (nameAr && lang === 'ar') {
                                 unitDisplayName = nameAr;
                               } else if (shortCode) {
@@ -851,12 +832,9 @@ const ProductModal = ({
                                 };
                                 unitDisplayName = shortCodeMap[shortCode] || shortCode;
                               } else {
-                                // Final fallback to the utility function
                                 unitDisplayName = getLocalizedUnitDisplayName(selectedUnit, lang);
                               }
-                              
                               const unitValue = promotionUnit?.unitValue || 1;
-                              
                               return `${t('get')} ${activePromotion.minQty || 1} ${unitDisplayName} ${t('for')}`;
                             })()}
                           </div>
@@ -904,8 +882,8 @@ const ProductModal = ({
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center border border-gray-300 rounded-lg">
                       <button
-                        onClick={() => setItem(item - 1)}
-                        disabled={item === 1}
+                        onClick={handleDecrease}
+                        disabled={item === (activePromotion ? (activePromotion.minQty || 1) : 1)}
                           className="p-2 text-gray-600 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <FiMinus size={14} />
@@ -914,7 +892,7 @@ const ProductModal = ({
                           {item}
                         </span>
                       <button
-                        onClick={() => setItem(item + 1)}
+                        onClick={handleIncrease}
                         disabled={
                           (product.hasMultiUnits ? availableStock : product.quantity) < item || 
                           (product.hasMultiUnits ? availableStock : product.quantity) === item
@@ -942,12 +920,18 @@ const ProductModal = ({
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-gray-700 text-sm">{t('total')}:</span>
                     <span className="text-lg font-bold text-emerald-600">
-                      {currency}{(pricingInfo.finalPrice * item).toFixed(2)}
+                      {currency}{(pricingInfo.promoUnits * pricingInfo.promoUnitPrice + pricingInfo.normalUnits * pricingInfo.normalUnitPrice).toFixed(2)}
                     </span>
                   </div>
                   {pricingInfo.isPromotional && (
                     <div className="text-xs text-red-600 mt-1">
-                      {t('totalSavings')}: {currency}{(pricingInfo.savings * item).toFixed(2)}
+                      {t('totalSavings')}: {currency}{pricingInfo.savings.toFixed(2)}
+                    </div>
+                  )}
+                  {/* Show breakdown if promo applies */}
+                  {pricingInfo.isPromotional && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {pricingInfo.breakdown}
                     </div>
                   )}
                 </div>

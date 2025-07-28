@@ -9,10 +9,28 @@ const useHomepageSections = () => {
     refetch
   } = useQuery({
     queryKey: ["homepage-sections"],
-    queryFn: async () => await HomepageSectionServices.getActiveSections(),
+    queryFn: async () => {
+      try {
+        return await HomepageSectionServices.getActiveSections();
+      } catch (error) {
+        // If API endpoint doesn't exist, return empty array instead of throwing
+        if (error?.response?.status === 404) {
+          console.warn('Homepage sections API endpoint not found, returning empty sections');
+          return [];
+        }
+        throw error;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 errors
+      if (error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   // Remove duplicates and ensure unique sections

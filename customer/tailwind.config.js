@@ -28,6 +28,9 @@ module.exports = {
       DejaVu: ["DejaVu Sans", "Arial", "sans-serif"],
     },
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       colors: {
         primary: "#76bd43",
         secondary: "#74368c",

@@ -2,7 +2,7 @@ const { default: Image } = require("next/image");
 const { useEffect, useState } = require("react");
 
 const fallbackImage =
-  "https://res.cloudinary.com/ahossain/image/upload/v1655097002/placeholder_kvepfp.png";
+  "https://res.cloudinary.com/dxjobesyt/image/upload/v1752706908/placeholder_kvepfp_wkyfut.png";
 
 const ImageWithFallback = ({
   fallback = fallbackImage,
@@ -26,7 +26,7 @@ const ImageWithFallback = ({
       style={{
         objectFit: "contain",
       }}
-      sizes="100%"
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       className="object-contain transition duration-150 ease-linear transform group-hover:scale-105 p-2"
     />
   );

@@ -35,7 +35,27 @@ import DistanceBasedShippingCalculator from "@components/shipping/DistanceBasedS
 const Checkout = () => {
   const { t } = useTranslation();
   const { storeCustomizationSetting } = useGetSetting();
-  const { showingTranslateValue } = useUtilsFunction();
+  const { showingTranslateValue, tr, lang, currency } = useUtilsFunction();
+
+  // Helper to render price with correct currency placement
+  const formatPrice = (amount) => {
+    const value = (amount || 0).toFixed(2);
+    const displayCurrency = lang === 'ar' ? 'ريال' : currency;
+
+    if (lang === 'ar') {
+      return (
+        <span className="whitespace-nowrap text-lg">
+          {value}&nbsp;{displayCurrency}
+        </span>
+      );
+    }
+
+    return (
+      <span className="whitespace-nowrap text-lg">
+        {displayCurrency}&nbsp;{value}
+      </span>
+    );
+  };
   const userInfo = getUserSession();
   
   // Location hook for getting user coordinates
@@ -96,7 +116,6 @@ const Checkout = () => {
     isEmpty,
     items,
     cartTotal,
-    currency,
     register,
     setValue,
     errors,
@@ -150,7 +169,7 @@ const Checkout = () => {
     // Reset userLocation for shipping calculator
     setUserLocation(null);
     
-    console.log(`Switched to ${selectedLocationOption} - cleared other location data`);
+
   }, [selectedLocationOption]);
 
  
@@ -208,7 +227,6 @@ const Checkout = () => {
         throw new Error('Geocoding API request failed');
       }
     } catch (error) {
-      console.log('Reverse geocoding failed:', error);
       return null;
     }
   };
@@ -311,11 +329,11 @@ const Checkout = () => {
             accuracy: 100
           };
           locationSource = 'Saved Address';
-          console.log('Using profile coordinates:', { lat: profileLat, lng: profileLng });
+
         } else {
           setIsCalculatingShipping(false);
           setCalculationStatus('❌ No coordinates found in saved address. Please update your profile with location details or use GPS/Manual entry.');
-          console.log('Profile data:', userInfo);
+
           return;
         }
         break;
@@ -328,7 +346,7 @@ const Checkout = () => {
             accuracy: gpsLocationData.accuracy || 10
           };
           locationSource = 'GPS Location';
-          console.log('Using GPS coordinates:', gpsLocationData);
+
         } else {
           setIsCalculatingShipping(false);
           setCalculationStatus('❌ GPS location not detected. Please click "Get My Location" first.');
@@ -344,7 +362,7 @@ const Checkout = () => {
             accuracy: 0
           };
           locationSource = 'Manual Coordinates';
-          console.log('Using manual coordinates:', manualLocationCoords);
+
         } else {
           setIsCalculatingShipping(false);
           setCalculationStatus('❌ No manual coordinates set. Please enter coordinates and click "Get Location Info" first.');
@@ -359,7 +377,6 @@ const Checkout = () => {
     }
     
     if (locationToUse) {
-      console.log(`Calculating shipping for ${locationSource}:`, locationToUse);
       
       // Set the location for shipping calculator
       setUserLocation({
@@ -379,7 +396,6 @@ const Checkout = () => {
 
   // Handle location update from LocationService
   const handleLocationUpdate = (locationData) => {
-    console.log('Location updated:', locationData);
     
     // Automatically select GPS option when location is detected
     setSelectedLocationOption('gps');
@@ -394,7 +410,7 @@ const Checkout = () => {
         timestamp: Date.now()
       };
       
-      console.log('Storing GPS location data:', gpsLocation);
+
       setGpsLocationData(gpsLocation);
       
       // Store coordinates globally for order submission
@@ -458,16 +474,12 @@ const Checkout = () => {
         });
       }
       
-      console.log('✅ Location fields updated successfully');
+
     }
   };
 
   // Handle using profile default location
   const handleUseProfileLocation = () => {
-    console.log('🔍 handleUseProfileLocation called');
-    console.log('userInfo:', userInfo);
-    console.log('setValue function:', setValue);
-    console.log('setValue type:', typeof setValue);
     
     if (!userInfo) {
       console.warn('No user info available for profile location');
@@ -528,14 +540,24 @@ const Checkout = () => {
             country: userInfo.country || 'Saudi Arabia'
           }
         };
-        
-        console.log('✅ Profile location with GPS coordinates applied');
-      } else {
-        console.log('✅ Profile location applied (address only, no GPS coordinates)');
       }
-      
     } catch (error) {
       console.error('Error applying profile location:', error);
+    }
+  };
+
+  const handleLocationOptionChange = (option) => {
+    setSelectedLocationOption(option);
+    
+    // Clear other location data when switching options
+    if (option === 'manual') {
+      setGpsLocationData(null);
+      setManualLocationCoords(null);
+    } else if (option === 'gps') {
+      setManualLocationCoords(null);
+    } else if (option === 'profile') {
+      setGpsLocationData(null);
+      setManualLocationCoords(null);
     }
   };
 
@@ -547,11 +569,13 @@ const Checkout = () => {
             <div className="md:w-full lg:w-3/5 flex h-full flex-col order-2 sm:order-1 lg:order-1">
               <div className="mt-5 md:mt-0 md:col-span-2">
                 <form onSubmit={handleSubmit(submitHandler)}>
+                  {/* Container 1: Personal Info + Delivery Cost + Address */}
+                  <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                   {hasShippingAddress && (
                     <div className="flex justify-end my-2">
                       <SwitchToggle
                         id="shipping-address"
-                        title="Use Default Shipping Address"
+                        title={tr('Use Default Shipping Address', 'استخدم عنوان الشحن الافتراضي')}
                         processOption={useExistingAddress}
                         handleProcess={handleDefaultShippingAddress}
                       />
@@ -562,7 +586,7 @@ const Checkout = () => {
                       01.{" "}
                       {showingTranslateValue(
                         storeCustomizationSetting?.checkout?.personal_details
-                      )}
+                      ) || tr('Personal Details', 'التفاصيل الشخصية')}
                     </h2>
 
                     <div className="grid grid-cols-6 gap-6">
@@ -571,10 +595,10 @@ const Checkout = () => {
                           register={register}
                           label={showingTranslateValue(
                             storeCustomizationSetting?.checkout?.first_name
-                          )}
+                          ) || tr('First Name', 'الاسم الأول')}
                           name="firstName"
                           type="text"
-                          placeholder="John"
+                          placeholder={tr('John', 'محمد')}
                           required={true}
                         />
                         <Error errorName={errors.firstName} />
@@ -585,10 +609,10 @@ const Checkout = () => {
                           register={register}
                           label={`${showingTranslateValue(
                             storeCustomizationSetting?.checkout?.last_name
-                          )} (Optional)`}
+                          ) || tr('Last Name', 'اسم العائلة')} (${tr('Optional', 'اختياري')})`}
                           name="lastName"
                           type="text"
-                          placeholder="Doe"
+                          placeholder={tr('Doe', 'أحمد')}
                           required={false}
                         />
                         <Error errorName={errors.lastName} />
@@ -599,10 +623,10 @@ const Checkout = () => {
                           register={register}
                           label={showingTranslateValue(
                             storeCustomizationSetting?.checkout?.checkout_phone
-                          )}
+                          ) || tr('Phone Number', 'رقم الهاتف')}
                           name="contact"
                           type="tel"
-                          placeholder="+966-5xxxxxxxx"
+                          placeholder={tr('+966-5xxxxxxxx', '+966-5xxxxxxxx')}
                           defaultValue={userInfo?.phone || ""}
                           required={true}
                         />
@@ -614,12 +638,12 @@ const Checkout = () => {
                           register={register}
                           label={`${showingTranslateValue(
                             storeCustomizationSetting?.checkout?.email_address
-                          )} (Optional)`}
+                          ) || tr('Email Address', 'عنوان البريد الإلكتروني')} (${tr('Optional', 'اختياري')})`}
                           name="email"
                           type="email"
                           readOnly={false}
                           defaultValue={userInfo?.email || ""}
-                          placeholder="youremail@gmail.com"
+                          placeholder={tr('youremail@gmail.com', 'البريد الإلكتروني')}
                           required={false}
                         />
                         <Error errorName={errors.email} />
@@ -632,13 +656,13 @@ const Checkout = () => {
                       02.{" "}
                       {showingTranslateValue(
                         storeCustomizationSetting?.checkout?.shipping_details
-                      )}
+                      ) || tr('Shipping Details', 'تفاصيل الشحن')}
                     </h2>
 
                     {/* Horizontal Location Selection System */}
                     <div className="mb-6">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        📍 Choose Your Delivery Location
+                        📍 {tr('Choose Your Delivery Location', 'اختر موقع التوصيل الخاص بك')}
                       </h3>
                       
                       {/* Horizontal Selection Buttons */}
@@ -659,8 +683,8 @@ const Checkout = () => {
                             }`}
                           >
                             <div className="text-3xl mb-2">🏠</div>
-                            <div className="font-semibold text-sm">Saved Address</div>
-                            <div className="text-xs mt-1 opacity-75">Use my profile location</div>
+                            <div className="font-semibold text-sm">{tr('Saved Address', 'العنوان المحفوظ')}</div>
+                            <div className="text-xs mt-1 opacity-75">{tr('Use my profile location', 'استخدم موقع الملف الشخصي')}</div>
                           </button>
                         )}
                         
@@ -678,8 +702,8 @@ const Checkout = () => {
                           }`}
                         >
                           <div className="text-3xl mb-2">📱</div>
-                          <div className="font-semibold text-sm">Get My Location</div>
-                          <div className="text-xs mt-1 opacity-75">Auto-detect GPS</div>
+                          <div className="font-semibold text-sm">{tr('Get My Location', 'الحصول على موقعي')}</div>
+                          <div className="text-xs mt-1 opacity-75">{tr('Auto-detect GPS', 'تحديد الموقع تلقائياً')}</div>
                         </button>
                         
                         {/* Manual Entry Option */}
@@ -696,8 +720,8 @@ const Checkout = () => {
                           }`}
                         >
                           <div className="text-3xl mb-2">🗺️</div>
-                          <div className="font-semibold text-sm">Manual Entry</div>
-                          <div className="text-xs mt-1 opacity-75">Enter coordinates</div>
+                          <div className="font-semibold text-sm">{tr('Manual Entry', 'إدخال يدوي')}</div>
+                          <div className="text-xs mt-1 opacity-75">{tr('Enter coordinates', 'أدخل الإحداثيات')}</div>
                         </button>
                                 </div>
                       
@@ -708,40 +732,40 @@ const Checkout = () => {
                           <div>
                             <div className="flex items-center mb-4">
                               <span className="text-2xl mr-3">🏠</span>
-                              <h4 className="text-lg font-semibold text-gray-800">Your Saved Address</h4>
-                              <span className="ml-3 px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">Active</span>
+                              <h4 className="text-lg font-semibold text-gray-800">{tr('Your Saved Address', 'عنوانك المحفوظ')}</h4>
+                              <span className="ml-3 px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">{tr('Active', 'نشط')}</span>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-3">
                                 <div className="flex items-start">
-                                  <span className="text-gray-500 text-sm w-20 mt-1">Address:</span>
+                                  <span className="text-gray-500 text-sm w-20 mt-1">{tr('Address:', 'العنوان:')}</span>
                                   <span className="text-gray-800 font-medium flex-1">{userInfo.address}</span>
                                 </div>
                                 {userInfo.city && (
                                   <div className="flex items-start">
-                                    <span className="text-gray-500 text-sm w-20 mt-1">City:</span>
+                                    <span className="text-gray-500 text-sm w-20 mt-1">{tr('City:', 'المدينة:')}</span>
                                     <span className="text-gray-800">{userInfo.city}</span>
                                   </div>
                                 )}
                                 {userInfo.country && (
                                   <div className="flex items-start">
-                                    <span className="text-gray-500 text-sm w-20 mt-1">Country:</span>
+                                    <span className="text-gray-500 text-sm w-20 mt-1">{tr('Country:', 'البلد:')}</span>
                                     <span className="text-gray-800">{userInfo.country}</span>
                                   </div>
                                 )}
                                 {userInfo.zipCode && (
                                   <div className="flex items-start">
-                                    <span className="text-gray-500 text-sm w-20 mt-1">ZIP:</span>
+                                    <span className="text-gray-500 text-sm w-20 mt-1">{tr('ZIP:', 'الرمز البريدي:')}</span>
                                     <span className="text-gray-800">{userInfo.zipCode}</span>
                                   </div>
                                 )}
                               </div>
                               <div className="bg-white p-4 rounded-lg border">
-                                <div className="text-sm font-medium text-gray-700 mb-2">Delivery Information</div>
+                                <div className="text-sm font-medium text-gray-700 mb-2">{tr('Delivery Information', 'معلومات التوصيل')}</div>
                                 <div className="text-xs text-gray-600 space-y-1">
-                                  <div>✅ Address verified from profile</div>
-                                  <div>📦 Ready for delivery calculation</div>
-                                  <div>🚚 Standard delivery rates apply</div>
+                                  <div>✅ {tr('Address verified from profile', 'تم التحقق من العنوان من الملف الشخصي')}</div>
+                                  <div>📦 {tr('Ready for delivery calculation', 'جاهز لحساب التوصيل')}</div>
+                                  <div>🚚 {tr('Standard delivery rates apply', 'تطبق أسعار التوصيل العادية')}</div>
                                 </div>
                               </div>
                             </div>
@@ -753,21 +777,21 @@ const Checkout = () => {
                           <div>
                             <div className="flex items-center mb-4">
                               <span className="text-2xl mr-3">📱</span>
-                              <h4 className="text-lg font-semibold text-gray-800">GPS Location Detection</h4>
+                              <h4 className="text-lg font-semibold text-gray-800">{tr('GPS Location Detection', 'كشف الموقع عبر GPS')}</h4>
                               {userLocation && (
-                                <span className="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Location Found</span>
+                                <span className="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{tr('Location Found', 'تم العثور على الموقع')}</span>
                               )}
                                 </div>
                             
                                                          {!gpsLocationData ? (
                                <div className="space-y-4">
                                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                                   <div className="text-sm font-medium text-blue-800 mb-2">📍 Detect Your Current Location</div>
+                                   <div className="text-sm font-medium text-blue-800 mb-2">📍 {tr('Detect Your Current Location', 'اكتشف موقعك الحالي')}</div>
                                    <div className="text-xs text-blue-600 mb-4">
-                                     • Most accurate delivery cost calculation<br/>
-                                     • Automatic address field filling<br/>
-                                     • Precise GPS coordinates for delivery driver<br/>
-                                     • Works best with location services enabled
+                                     • {tr('Most accurate delivery cost calculation', 'حساب تكلفة التوصيل الأكثر دقة')}<br/>
+                                     • {tr('Automatic address field filling', 'ملء حقول العنوان تلقائياً')}<br/>
+                                     • {tr('Precise GPS coordinates for delivery driver', 'إحداثيات GPS دقيقة للسائق')}<br/>
+                                     • {tr('Works best with location services enabled', 'يعمل بشكل أفضل مع خدمات الموقع المفعلة')}
                                 </div>
                                    <div className="flex flex-col gap-3">
                                      <div className="bg-white p-3 rounded-lg border border-gray-200">
@@ -777,7 +801,7 @@ const Checkout = () => {
                                 />
                               </div>
                                      <div className="text-xs text-blue-500 italic">
-                                       💡 Allow location access when prompted by your browser for best results
+                                       💡 {tr('Allow location access when prompted by your browser for best results', 'اسمح بالوصول للموقع عند طلب المتصفح للحصول على أفضل النتائج')}
                                   </div>
                                   </div>
                                  </div>
@@ -786,12 +810,12 @@ const Checkout = () => {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                  <div className="space-y-3">
                                    <div className="flex items-start">
-                                     <span className="text-gray-500 text-sm w-24 mt-1">Coordinates:</span>
+                                     <span className="text-gray-500 text-sm w-24 mt-1">{tr('Coordinates:', 'الإحداثيات:')}</span>
                                      <span className="text-gray-800 font-mono text-sm">{gpsLocationData.latitude?.toFixed(6)}, {gpsLocationData.longitude?.toFixed(6)}</span>
                                    </div>
                                    <div className="flex items-start">
-                                     <span className="text-gray-500 text-sm w-24 mt-1">Accuracy:</span>
-                                     <span className="text-gray-800">±{gpsLocationData.accuracy?.toFixed(0)} meters</span>
+                                     <span className="text-gray-500 text-sm w-24 mt-1">{tr('Accuracy:', 'الدقة:')}</span>
+                                     <span className="text-gray-800">±{gpsLocationData.accuracy?.toFixed(0)} {tr('meters', 'متر')}</span>
                                    </div>
                                   {window.userLocationCoords?.address && (
                                     <div className="flex items-start">
@@ -806,27 +830,27 @@ const Checkout = () => {
                                       rel="noopener noreferrer"
                                       className="text-xs bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition-colors"
                                     >
-                                      🗺️ View on Maps
+                                      🗺️ {tr('View on Maps', 'عرض على الخرائط')}
                                     </a>
                                                                          <button
                                        type="button"
                                        onClick={() => {
                                          navigator.clipboard.writeText(`${gpsLocationData.latitude}, ${gpsLocationData.longitude}`);
-                                         alert('📋 Coordinates copied to clipboard!');
+                                         alert(tr('📋 Coordinates copied to clipboard!', '📋 تم نسخ الإحداثيات إلى الحافظة!'));
                                        }}
                                        className="text-xs bg-gray-600 text-white px-3 py-2 rounded hover:bg-gray-700 transition-colors"
                                      >
-                                       📋 Copy Coordinates
+                                       📋 {tr('Copy Coordinates', 'نسخ الإحداثيات')}
                                      </button>
                             </div>
                           </div>
                                 <div className="bg-white p-4 rounded-lg border">
-                                  <div className="text-sm font-medium text-green-700 mb-2">✅ GPS Location Active</div>
+                                  <div className="text-sm font-medium text-green-700 mb-2">✅ {tr('GPS Location Active', 'موقع GPS نشط')}</div>
                                   <div className="text-xs text-green-600 space-y-1">
-                                    <div>📍 Precise location detected</div>
-                                    <div>🎯 Most accurate delivery cost</div>
-                                    <div>🚚 Shared with delivery driver</div>
-                                    <div>⚡ Address fields auto-filled</div>
+                                    <div>📍 {tr('Precise location detected', 'تم اكتشاف الموقع بدقة')}</div>
+                                    <div>🎯 {tr('Most accurate delivery cost', 'تكلفة التوصيل الأكثر دقة')}</div>
+                                    <div>🚚 {tr('Shared with delivery driver', 'مشاركة مع سائق التوصيل')}</div>
+                                    <div>⚡ {tr('Address fields auto-filled', 'تم ملء حقول العنوان تلقائياً')}</div>
                         </div>
                                 </div>
                               </div>
@@ -839,53 +863,33 @@ const Checkout = () => {
                           <div>
                             <div className="flex items-center mb-4">
                               <span className="text-2xl mr-3">🗺️</span>
-                              <h4 className="text-lg font-semibold text-gray-800">Manual Location Entry</h4>
-                              <span className="ml-3 px-3 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">Manual Mode</span>
+                              <h4 className="text-lg font-semibold text-gray-800">{tr('Manual Location Entry', 'إدخال الموقع يدوياً')}</h4>
+                              <span className="ml-3 px-3 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">{tr('Manual Mode', 'الوضع اليدوي')}</span>
                               </div>
                             
                             <div className="space-y-4">
                               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                                <div className="text-sm font-medium text-orange-800 mb-2">📍 How to get your exact coordinates:</div>
-                                <div className="text-xs text-orange-700 space-y-2">
-                                  <div className="flex items-start">
-                                    <span className="mr-2">1.</span>
-                                    <div>
-                                      <strong>Open Google Maps</strong> on your phone or computer<br/>
-                                      <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                        🔗 maps.google.com
-                                      </a>
-                              </div>
-                                  </div>
-                                  <div className="flex items-start">
-                                    <span className="mr-2">2.</span>
-                                    <div><strong>Find your delivery location</strong> on the map</div>
-                                  </div>
-                                  <div className="flex items-start">
-                                    <span className="mr-2">3.</span>
-                                    <div><strong>Right-click</strong> (or press and hold on mobile) on the exact spot</div>
-                                  </div>
-                                  <div className="flex items-start">
-                                    <span className="mr-2">4.</span>
-                                    <div><strong>Copy the coordinates</strong> that appear (e.g., 24.7136, 46.6753)</div>
-                                  </div>
-                                  <div className="flex items-start">
-                                    <span className="mr-2">5.</span>
-                                    <div><strong>Paste them below</strong> and click "Get Location Info"</div>
-                                  </div>
-                                </div>
+                                <div className="text-sm font-medium text-orange-800 mb-2">📍 {tr('How to get your exact coordinates:', 'كيفية الحصول على إحداثياتك الدقيقة:')}</div>
+                                <ol className="list-decimal ml-6 text-xs text-gray-600 space-y-1">
+                                  <li>{tr('Open Google Maps on your phone or computer', 'افتح خرائط جوجل على هاتفك أو جهاز الكمبيوتر')} <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-1">maps.google.com</a></li>
+                                  <li>{tr('Find your delivery location on the map', 'حدد موقع التوصيل على الخريطة')}</li>
+                                  <li>{tr('Right-click (or press and hold on mobile) on the exact spot', 'انقر بزر الماوس الأيمن (أو اضغط مطولاً على الجوال) على الموقع المحدد')}</li>
+                                  <li>{tr('Copy the coordinates that appear (e.g., 24.7136, 46.6753)', 'انسخ الإحداثيات التي تظهر (مثال: 24.7136, 46.6753)')}</li>
+                                  <li>{tr('Paste them below and click "Get Location Info"', 'الصقها أدناه واضغط "الحصول على معلومات الموقع"')}</li>
+                                </ol>
                               </div>
                               
                                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                  <div className="space-y-3">
                                    <div>
                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                       Enter Coordinates (Latitude, Longitude)
+                                       {tr('Enter Coordinates (Latitude, Longitude)', 'أدخل الإحداثيات (خط العرض, خط الطول)')}
                             </label>
                                      <div className="flex gap-2">
                                        <input
                                          type="text"
                                          id="manualCoordinates"
-                                         placeholder="24.7136, 46.6753"
+                                         placeholder={tr('24.7136, 46.6753', '24.7136, 46.6753')}
                                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                                        />
                                        <button
@@ -895,7 +899,7 @@ const Checkout = () => {
                                            const value = input.value.trim();
                                            
                                            if (!value) {
-                                             alert('❌ Please enter coordinates first!');
+                                             alert(tr('❌ Please enter coordinates first!', '❌ يرجى إدخال الإحداثيات أولاً!'));
                                              return;
                                            }
                                            
@@ -903,14 +907,14 @@ const Checkout = () => {
                                            if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
                                              // Validate coordinate ranges
                                              if (coords[0] < -90 || coords[0] > 90 || coords[1] < -180 || coords[1] > 180) {
-                                               alert('❌ Invalid coordinates! Latitude must be between -90 and 90, Longitude between -180 and 180');
+                                               alert(tr('❌ Invalid coordinates! Latitude must be between -90 and 90, Longitude between -180 and 180', '❌ إحداثيات غير صحيحة! يجب أن يكون خط العرض بين -90 و 90، خط الطول بين -180 و 180'));
                                                return;
                                              }
                                              
                                              // Show loading state
                                              const button = document.querySelector('[data-manual-location-btn]');
                                              const originalText = button.textContent;
-                                             button.textContent = '🔄 Getting Address...';
+                                             button.textContent = tr('🔄 Getting Address...', '🔄 جاري الحصول على العنوان...');
                                              button.disabled = true;
                                              
                                              try {
@@ -926,7 +930,6 @@ const Checkout = () => {
                                                
                                                // Store manual coordinates separately
                                                setManualLocationCoords(locationData);
-                                               console.log('Storing manual coordinates:', locationData);
                                                
                                                if (addressData) {
                                                  // Store detailed address data
@@ -959,49 +962,49 @@ const Checkout = () => {
                                                }
                                              } catch (error) {
                                                console.error('Error getting address:', error);
-                                               alert('⚠️ Location set but failed to get address details. You can still use the coordinates.');
+                                               alert(tr('⚠️ Location set but failed to get address details. You can still use the coordinates.', '⚠️ تم تعيين الموقع ولكن فشل في الحصول على تفاصيل العنوان. يمكنك لا تزال استخدام الإحداثيات'));
                                              } finally {
                                                // Restore button state
                                                button.textContent = originalText;
                                                button.disabled = false;
                                              }
                                            } else {
-                                             alert('❌ Please enter valid coordinates in format: latitude, longitude (e.g., 24.7136, 46.6753)');
+                                             alert(tr('❌ Please enter valid coordinates in format: latitude, longitude (e.g., 24.7136, 46.6753)', '❌ يرجى إدخال إحداثيات صحيحة بصيغة: خط العرض، خط الطول (مثال: 24.7136، 46.6753)'));
                                            }
                                          }}
                                          data-manual-location-btn
                                          className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap disabled:opacity-50"
                                        >
-                                         📍 Get Location Info
+                                         📍 {tr('Get Location Info', 'الحصول على معلومات الموقع')}
                                        </button>
                           </div>
                         </div>
                                   
                                                                      {manualLocationCoords && selectedLocationOption === 'manual' && (
                                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                                       <div className="text-sm font-medium text-green-800 mb-2">✅ Location Found</div>
+                                       <div className="text-sm font-medium text-green-800 mb-2">✅ {tr('Location Found', 'تم العثور على الموقع')}</div>
                                                                                <div className="text-xs text-green-600 mb-2">
-                                          <strong>Coordinates:</strong> {manualLocationCoords.latitude?.toFixed(6)}, {manualLocationCoords.longitude?.toFixed(6)}
+                                          <strong>{tr('Coordinates:', 'الإحداثيات:')}</strong> {manualLocationCoords.latitude?.toFixed(6)}, {manualLocationCoords.longitude?.toFixed(6)}
                       </div>
 
                                        {manualLocationData && (
                                          <div className="mb-3">
-                                           <div className="text-xs font-medium text-green-800 mb-1">📍 Address Details:</div>
+                                           <div className="text-xs font-medium text-green-800 mb-1">📍 {tr('Address Details:', 'تفاصيل العنوان:')}</div>
                                            <div className="text-xs text-green-700 space-y-1">
                                              {manualLocationData.addressComponents.streetAddress && (
-                                               <div><strong>Street:</strong> {manualLocationData.addressComponents.streetAddress}</div>
+                                               <div><strong>{tr('Street:', 'الشارع:')}</strong> {manualLocationData.addressComponents.streetAddress}</div>
                                              )}
                                              {manualLocationData.addressComponents.city && (
-                                               <div><strong>City:</strong> {manualLocationData.addressComponents.city}</div>
+                                               <div><strong>{tr('City:', 'المدينة:')}</strong> {manualLocationData.addressComponents.city}</div>
                                              )}
                                              {manualLocationData.addressComponents.state && (
-                                               <div><strong>State:</strong> {manualLocationData.addressComponents.state}</div>
+                                               <div><strong>{tr('State:', 'الولاية:')}</strong> {manualLocationData.addressComponents.state}</div>
                                              )}
                                              {manualLocationData.addressComponents.country && (
-                                               <div><strong>Country:</strong> {manualLocationData.addressComponents.country}</div>
+                                               <div><strong>{tr('Country:', 'البلد:')}</strong> {manualLocationData.addressComponents.country}</div>
                                              )}
                                              {manualLocationData.addressComponents.postcode && (
-                                               <div><strong>ZIP:</strong> {manualLocationData.addressComponents.postcode}</div>
+                                               <div><strong>{tr('ZIP:', 'الرمز البريدي:')}</strong> {manualLocationData.addressComponents.postcode}</div>
                                              )}
                             </div>
                                          </div>
@@ -1014,7 +1017,7 @@ const Checkout = () => {
                                 rel="noopener noreferrer"
                                            className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
                               >
-                                           🗺️ Verify on Maps
+                                           🗺️ {tr('Verify on Maps', 'التحقق على الخرائط')}
                               </a>
                                          
                                          {manualLocationData && (
@@ -1023,7 +1026,7 @@ const Checkout = () => {
                                              onClick={fillFormWithManualLocation}
                                              className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
                                            >
-                                             📝 Fill Form Fields
+                                             📝 {tr('Fill Form Fields', 'ملء حقول النموذج')}
                               </button>
                                          )}
                             </div>
@@ -1032,12 +1035,12 @@ const Checkout = () => {
                                 </div>
                                 
                                 <div className="bg-white p-4 rounded-lg border">
-                                  <div className="text-sm font-medium text-gray-700 mb-2">⚠️ Important Notes</div>
+                                  <div className="text-sm font-medium text-gray-700 mb-2">⚠️ {tr('Important Notes', 'ملاحظات هامة')}</div>
                                   <div className="text-xs text-gray-600 space-y-1">
-                                    <div>📍 Use exact coordinates for accuracy</div>
-                                    <div>🎯 Double-check location on map</div>
-                                    <div>📱 GPS location is more accurate</div>
-                                    <div>🚚 Delivery cost may be estimated</div>
+                                    <div>📍 {tr('Use exact coordinates for accuracy', 'استخدم الإحداثيات الدقيقة لضمان الدقة')}</div>
+                                    <div>🎯 {tr('Double-check location on map', 'تحقق من الموقع على الخريطة')}</div>
+                                    <div>📱 {tr('GPS location is more accurate', 'الموقع عبر GPS أكثر دقة')}</div>
+                                    <div>🚚 {tr('Delivery cost may be estimated', 'قد يتم تقدير تكلفة التوصيل')}</div>
                                   </div>
                                 </div>
                               </div>
@@ -1048,20 +1051,20 @@ const Checkout = () => {
                       
                       {/* Delivery Cost Information */}
                       <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                        <h4 className="text-sm font-semibold text-emerald-800 mb-2">💰 Delivery Cost Calculation</h4>
+                        <h4 className="text-sm font-semibold text-emerald-800 mb-2">💰 {tr('Delivery Cost Calculation', 'حساب تكلفة التوصيل')}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="text-xs text-emerald-700 space-y-1">
-                            <div><strong>Base Cost:</strong> {storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost || 10} <span className="font-saudi_riyal">{currency}</span></div>
-                            <div><strong>Per KM:</strong> {storeCustomizationSetting?.distanceBasedShipping?.cost_per_km || 2} <span className="font-saudi_riyal">{currency}</span></div>
+                            <div><strong>{tr('Base Cost:', 'التكلفة الأساسية:')}</strong> {storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost || 10} {lang === 'ar' ? 'ريال' : currency}</div>
+                            <div><strong>{tr('Per KM:', 'لكل كيلومتر:')}</strong> {storeCustomizationSetting?.distanceBasedShipping?.cost_per_km || 2} {lang === 'ar' ? 'ريال' : currency}</div>
                           {storeCustomizationSetting?.distanceBasedShipping?.enable_free_shipping !== false && (
                               <>
-                                <div><strong>Free over:</strong> {storeCustomizationSetting?.distanceBasedShipping?.min_order_free_delivery || 100} <span className="font-saudi_riyal">{currency}</span></div>
+                                <div><strong>{tr('Free over:', 'توصيل مجاني لأكثر من:')}</strong> {storeCustomizationSetting?.distanceBasedShipping?.min_order_free_delivery || 100} {lang === 'ar' ? 'ريال' : currency}</div>
                               </>
                           )}
                           </div>
                           <div className="text-xs text-emerald-600">
-                            <div className="font-medium mb-1">Formula: Base + (Distance × Rate)</div>
-                            <div>Example: {storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost || 10} <span className="font-saudi_riyal">{currency}</span> + (5 × {storeCustomizationSetting?.distanceBasedShipping?.cost_per_km || 2} <span className="font-saudi_riyal">{currency}</span>) = <span className="font-saudi_riyal">{currency}</span>{(storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost || 10) + (5 * (storeCustomizationSetting?.distanceBasedShipping?.cost_per_km || 2))}</div>
+                            <div className="font-medium mb-1">{tr('Formula: Base + (Distance × Rate)', 'الصيغة: التكلفة الأساسية + (المسافة × السعر')}</div>
+                            <div>{tr('Example:', 'مثال:')} {storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost || 10} {lang === 'ar' ? 'ريال' : currency} + (5 × {storeCustomizationSetting?.distanceBasedShipping?.cost_per_km || 2} {lang === 'ar' ? 'ريال' : currency}) = {lang === 'ar' ? 'ريال' : currency}{(storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost || 10) + (5 * (storeCustomizationSetting?.distanceBasedShipping?.cost_per_km || 2))}</div>
                         </div>
                       </div>
                       </div>
@@ -1081,16 +1084,16 @@ const Checkout = () => {
                           {isCalculatingShipping ? (
                             <>
                               <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Calculating...
+                              {tr('Calculating...', 'جاري الحساب...')}
                             </>
                           ) : (
                             <>
-                              🚚 Calculate Delivery Cost
+                              🚚 {tr('Calculate Delivery Cost', 'احسب تكلفة التوصيل')}
                             </>
                           )}
                         </button>
                         <div className="text-xs text-gray-600 mt-2">
-                          Click to calculate shipping cost based on your selected location method
+                          {tr('Click to calculate shipping cost based on your selected location method', 'انقر لحساب تكلفة الشحن بناءً على طريقة الموقع المختارة')}
                         </div>
                       </div>
                       
@@ -1112,7 +1115,7 @@ const Checkout = () => {
                           </div>
                           {!calculationStatus.includes('❌') && calculationStatus.includes('✅') && (
                             <div className="text-xs text-green-600 mt-1">
-                              Check the "Distance-Based Shipping Calculator" section below for your exact delivery cost.
+                              {tr('Check the "Distance-Based Shipping Calculator" section below for your exact delivery cost.', 'تحقق من قسم "حاسبة الشحن حسب المسافة" أدناه للحصول على تكلفة التوصيل الدقيقة.')}
                             </div>
                           )}
                         </div>
@@ -1124,12 +1127,12 @@ const Checkout = () => {
                       <div className="col-span-6">
                         <InputArea
                           register={register}
-                          label={`${showingTranslateValue(
+                          label={showingTranslateValue(
                             storeCustomizationSetting?.checkout?.street_address
-                          )} *`}
+                          ) || tr('Street Address', 'عنوان الشارع')}
                           name="address"
                           type="text"
-                          placeholder="House No, Street Name, Area (e.g., Building 123, King Fahd Road, Al Malaz)"
+                          placeholder={tr('House No, Street Name, Area (e.g., Building 123, King Fahd Road, Al Malaz)', 'رقم المنزل، اسم الشارع، المنطقة (مثال: مبنى 123، طريق الملك فهد، الملز)')}
                           required={true}
                         />
                         <Error errorName={errors.address} />
@@ -1138,12 +1141,12 @@ const Checkout = () => {
                       <div className="col-span-6 sm:col-span-6 lg:col-span-2">
                         <InputArea
                           register={register}
-                          label={`${showingTranslateValue(
+                          label={showingTranslateValue(
                             storeCustomizationSetting?.checkout?.city
-                          )} *`}
+                          ) || tr('City', 'المدينة')}
                           name="city"
                           type="text"
-                          placeholder="Riyadh"
+                          placeholder={tr('Riyadh', 'الرياض')}
                           required={true}
                         />
                         <Error errorName={errors.city} />
@@ -1152,12 +1155,12 @@ const Checkout = () => {
                       <div className="col-span-6 sm:col-span-3 lg:col-span-2">
                         <InputArea
                           register={register}
-                          label={`${showingTranslateValue(
+                          label={showingTranslateValue(
                             storeCustomizationSetting?.checkout?.country
-                          )}`}
+                          ) || tr('Country', 'البلد')}
                           name="country"
                           type="text"
-                          placeholder="Saudi Arabia"
+                          placeholder={tr('Saudi Arabia', 'المملكة العربية السعودية')}
                           defaultValue="Saudi Arabia"
                           required={false}
                         />
@@ -1167,12 +1170,12 @@ const Checkout = () => {
                       <div className="col-span-6 sm:col-span-3 lg:col-span-2">
                         <InputArea
                           register={register}
-                          label={`${showingTranslateValue(
+                          label={showingTranslateValue(
                             storeCustomizationSetting?.checkout?.zip_code
-                          )} (Optional)`}
+                          ) || tr('Zip Code', 'الرمز البريدي')}
                           name="zipCode"
                           type="text"
-                          placeholder="12345"
+                          placeholder={tr('12345', '12345')}
                           required={false}
                         />
                         <Error errorName={errors.zipCode} />
@@ -1187,10 +1190,6 @@ const Checkout = () => {
                     
                     {/* Distance-Based Shipping Calculator */}
                     <div className="mb-6">
-                      {/* Debug: Log the actual values being passed */}
-                      {console.log('DEBUG: storeCustomizationSetting.distanceBasedShipping:', storeCustomizationSetting?.distanceBasedShipping)}
-                      {console.log('DEBUG: base_shipping_cost:', storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost, 'type:', typeof storeCustomizationSetting?.distanceBasedShipping?.base_shipping_cost)}
-                      {console.log('DEBUG: cost_per_km:', storeCustomizationSetting?.distanceBasedShipping?.cost_per_km, 'type:', typeof storeCustomizationSetting?.distanceBasedShipping?.cost_per_km)}
                       
                       <DistanceBasedShippingCalculator
                         userLocation={userLocation}
@@ -1217,12 +1216,171 @@ const Checkout = () => {
                       />
                     </div>
                   </div>
-                  <div className="form-group mt-12">
+                  </div> {/* End Container 1: Personal Info + Delivery Cost + Address */}
+                  
+                  {/* Container 2b: Coupon + Loyalty Points + Price Breakdown - Mobile Only */}
+                  <div className="md:hidden border p-5 lg:px-8 lg:py-8 rounded-lg bg-white mb-6">
+                    <div className="flex items-center mt-4 py-4 lg:py-4 text-sm w-full font-semibold text-heading last:border-b-0 last:text-base last:pb-0">
+                      <div className="w-full">
+                        {couponInfo.couponCode ? (
+                          <span className="bg-emerald-50 px-4 py-3 leading-tight w-full rounded-md flex justify-between">
+                            {" "}
+                            <p className="text-emerald-600">{t("applyCoupon")} </p>{" "}
+                            <span className="text-red-500 text-right">
+                              {couponInfo.couponCode}
+                            </span>
+                          </span>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row items-start justify-end">
+                            <input
+                              ref={couponRef}
+                              type="text"
+                              placeholder={tr('Enter coupon code', 'أدخل رمز القسيمة الخاص بك')}
+                              className="form-input py-2 px-3 md:px-4 w-full appearance-none transition ease-in-out border text-input text-sm rounded-md h-12 duration-200 bg-white border-gray-200 focus:ring-0 focus:outline-none focus:border-emerald-500 placeholder-gray-500 placeholder-opacity-75"
+                            />
+                            {isCouponAvailable ? (
+                              <button
+                                disabled={isCouponAvailable}
+                                type="submit"
+                                className="md:text-sm leading-4 inline-flex items-center cursor-pointer transition ease-in-out duration-300 font-semibold text-center justify-center border border-gray-200 rounded-md placeholder-white focus-visible:outline-none focus:outline-none px-5 md:px-6 lg:px-8 py-3 md:py-3.5 lg:py-3 mt-3 sm:mt-0 sm:ml-3 md:mt-0 md:ml-3 lg:mt-0 lg:ml-3 hover:text-white hover:bg-emerald-500 h-12 text-sm lg:text-base w-full sm:w-auto"
+                              >
+                                <img
+                                  src="/loader/spinner.gif"
+                                  alt="Loading"
+                                  width={20}
+                                  height={10}
+                                />
+                                <span className=" ml-2 font-light">{t("loading")}</span>
+                              </button>
+                            ) : (
+                              <button
+                                disabled={isCouponAvailable}
+                                onClick={handleCouponCode}
+                                className="md:text-sm leading-4 inline-flex items-center cursor-pointer transition ease-in-out duration-300 font-semibold text-center justify-center border border-gray-200 rounded-md placeholder-white focus-visible:outline-none focus:outline-none px-5 md:px-6 lg:px-8 py-3 md:py-3.5 lg:py-3 mt-3 sm:mt-0 sm:ml-3 md:mt-0 md:ml-3 lg:mt-0 lg:ml-3 hover:text-white hover:bg-emerald-500 h-12 text-sm lg:text-base w-full sm:w-auto"
+                              >
+                                {showingTranslateValue(
+                                  storeCustomizationSetting?.checkout?.apply_button
+                                ) || tr('Apply', 'تطبيق')}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Loyalty Points Redemption */}
+                    {userInfo?.id && (
+                      <div className="flex items-center mt-4 py-4 lg:py-4 text-sm w-full font-semibold text-heading border-t">
+                        <div className="w-full">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center">
+                              <FiStar className="text-purple-600 mr-2" />
+                              <span className="text-gray-700 font-semibold">{tr('Loyalty Points', 'نقاط الولاء')}</span>
+                            </div>
+                            <div className="text-purple-600 font-bold">
+                              {loyaltyPoints} {tr('available points', 'النقاط المتاحة')}
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row items-start justify-end">
+                            <input
+                              type="number"
+                              min="0"
+                              max={Math.min(maxRedeemablePoints, loyaltyPoints)}
+                              value={pointsToRedeem}
+                              onChange={handlePointsChange}
+                              placeholder={tr('Points to redeem', 'النقاط المراد استبدالها')}
+                              className="form-input py-2 px-3 md:px-4 w-full appearance-none transition ease-in-out border text-input text-sm rounded-md h-12 duration-200 bg-white border-gray-200 focus:ring-0 focus:outline-none focus:border-purple-500 placeholder-gray-500 placeholder-opacity-75"
+                            />
+                            <button
+                              type="button"
+                              onClick={applyMaxPoints}
+                              className="md:text-sm leading-4 inline-flex items-center cursor-pointer transition ease-in-out duration-300 font-semibold text-center justify-center border border-purple-200 rounded-md placeholder-white focus-visible:outline-none focus:outline-none px-5 md:px-6 lg:px-8 py-3 md:py-3.5 lg:py-3 mt-3 sm:mt-0 sm:ml-3 md:mt-0 md:ml-3 lg:mt-0 lg:ml-3 hover:text-white hover:bg-purple-500 bg-purple-50 text-purple-600 h-12 text-sm lg:text-base w-full sm:w-auto"
+                            >
+                              {tr('Apply Max Points', 'تطبيق أقصى نقاط')}
+                            </button>
+                          </div>
+                          
+                          {pointsToRedeem > 0 && (
+                            <div className="mt-3 p-3 bg-purple-50 rounded-lg">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-purple-700">
+                                  <FiInfo className="inline mr-1" />
+                                  {tr('Redeem points', 'استبدال النقاط')} {pointsToRedeem} {tr('loyalty points', 'نقاط الولاء')}
+                                </span>
+                                <span className="text-purple-700 font-bold">-{formatPrice(loyaltyDiscount)}</span>
+                              </div>
+                              <div className="text-xs text-purple-600 mt-1">
+                                {tr('Remaining', 'المتبقي')}: {loyaltyPoints - pointsToRedeem} {tr('loyalty points', 'نقاط الولاء')}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {maxRedeemablePoints < loyaltyPoints && (
+                            <div className="mt-2 text-xs text-gray-500">
+                              <FiInfo className="inline mr-1" />
+                              {tr('Max redeemable', 'أقصى قابل للاستبدال')}: {maxRedeemablePoints} {tr('loyalty points', 'نقاط الولاء')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
+                      {showingTranslateValue(
+                        storeCustomizationSetting?.checkout?.sub_total
+                      ) || tr('Subtotal', 'المجموع الفرعي')}
+                      <span className="ml-auto flex-shrink-0 text-gray-800 font-bold">
+                        {formatPrice(cartTotal)}
+                      </span>
+                    </div>
+                    <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
+                      {showingTranslateValue(
+                        storeCustomizationSetting?.checkout?.shipping_cost
+                      ) || tr('Shipping Cost', 'تكلفة الشحن')}
+                      <span className="ml-auto flex-shrink-0 text-gray-800 font-bold">
+                        {formatPrice(shippingCost)}
+                      </span>
+                    </div>
+                    <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
+                      {showingTranslateValue(
+                        storeCustomizationSetting?.checkout?.discount
+                      ) || tr('Discount', 'الخصم')}
+                      <span className="ml-auto flex-shrink-0 font-bold text-orange-400">
+                        {formatPrice(discountAmount)}
+                      </span>
+                    </div>
+                    {loyaltyDiscount > 0 && (
+                      <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
+                        <span className="flex items-center">
+                          <FiStar className="text-purple-600 mr-2" />
+                          {t("loyaltyDiscount")}
+                        </span>
+                        <span className="ml-auto flex-shrink-0 font-bold text-purple-600">
+                          {formatPrice(loyaltyDiscount)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="border-t mt-4">
+                      <div className="flex items-center font-bold font-serif justify-between pt-5 text-sm uppercase">
+                        {showingTranslateValue(
+                          storeCustomizationSetting?.checkout?.total_cost
+                        ) || tr('TOTAL COST', 'التكلفة الإجمالية')}
+                        <span className="font-serif font-extrabold text-lg">
+                          {formatPrice(Math.max(0, parseFloat(total) - loyaltyDiscount))}
+                        </span>
+                      </div>
+                    </div>
+                  </div> {/* End Container 2b: Coupon + Loyalty Points + Price Breakdown - Mobile Only */}
+                  
+                  {/* Container 3: Payment Method + Action Buttons - Mobile Only */}
+                  <div className="md:hidden bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div className="form-group">
                     <h2 className="font-semibold text-base text-gray-700 pb-3">
                       03.{" "}
                       {showingTranslateValue(
                         storeCustomizationSetting?.checkout?.payment_method
-                      )}
+                      ) || tr('Payment Method', 'طريقة الدفع')}
                     </h2>
 
                     <div className="grid sm:grid-cols-1 grid-cols-1 gap-4">
@@ -1230,7 +1388,7 @@ const Checkout = () => {
                         <InputPayment
                           setShowCard={setShowCard}
                           register={register}
-                          name={t("common:cashOnDelivery")}
+                          name={tr('Cash On Delivery', 'الدفع عند الاستلام')}
                           value="Cash"
                           Icon={IoWalletSharp}
                           defaultChecked={true}
@@ -1251,7 +1409,7 @@ const Checkout = () => {
                         </span>
                         {showingTranslateValue(
                           storeCustomizationSetting?.checkout?.continue_button
-                        )}
+                        ) || tr('Continue Shipping', 'متابعة التسوق')}
                       </Link>
                     </div>
                     <div className="col-span-6 sm:col-span-3">
@@ -1270,7 +1428,7 @@ const Checkout = () => {
                               height={10}
                             />{" "}
                             <span className="ml-2">
-                              {t("common:processing")}
+                              {t("processing")}
                             </span>
                           </span>
                         ) : (
@@ -1278,7 +1436,7 @@ const Checkout = () => {
                             {showingTranslateValue(
                               storeCustomizationSetting?.checkout
                                 ?.confirm_button
-                            )}
+                            ) || tr('Confirm Order', 'تأكيد الطلب')}
                             <span className="text-xl ml-2">
                               {" "}
                               <IoArrowForward />
@@ -1288,16 +1446,95 @@ const Checkout = () => {
                       </button>
                     </div>
                   </div>
+                  </div> {/* End Container 3: Payment Method + Action Buttons - Mobile Only */}
+                  
+                  {/* Container 3: Payment Method + Action Buttons - Desktop Only */}
+                  <div className="hidden md:block bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div className="form-group">
+                      <h2 className="font-semibold text-base text-gray-700 pb-3">
+                        03.{" "}
+                        {showingTranslateValue(
+                          storeCustomizationSetting?.checkout?.payment_method
+                        ) || tr('Payment Method', 'طريقة الدفع')}
+                      </h2>
+
+                      <div className="grid sm:grid-cols-1 grid-cols-1 gap-4">
+                        <div className="">
+                          <InputPayment
+                            setShowCard={setShowCard}
+                            register={register}
+                            name={tr('Cash On Delivery', 'الدفع عند الاستلام')}
+                            value="Cash"
+                            Icon={IoWalletSharp}
+                            defaultChecked={true}
+                          />
+                          <Error errorMessage={errors.paymentMethod} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-6 gap-4 lg:gap-6 mt-10">
+                      <div className="col-span-6 sm:col-span-3">
+                        <Link
+                          href="/"
+                          className="bg-indigo-50 border border-indigo-100 rounded py-3 text-center text-sm font-medium text-gray-700 hover:text-gray-800 hover:border-gray-300 transition-all flex justify-center font-serif w-full"
+                        >
+                          <span className="text-xl mr-2">
+                            <IoReturnUpBackOutline />
+                          </span>
+                          {showingTranslateValue(
+                            storeCustomizationSetting?.checkout?.continue_button
+                          ) || tr('Continue Shipping', 'متابعة التسوق')}
+                        </Link>
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <button
+                          type="submit"
+                          disabled={isEmpty || isCheckoutSubmit}
+                          className="bg-emerald-500 hover:bg-emerald-600 border border-emerald-500 transition-all rounded py-3 text-center text-sm font-serif font-medium text-white flex justify-center w-full"
+                        >
+                          {isCheckoutSubmit ? (
+                            <span className="flex justify-center text-center">
+                              {" "}
+                              <img
+                                src="/loader/spinner.gif"
+                                alt="Loading"
+                                width={20}
+                                height={10}
+                              />{" "}
+                              <span className="ml-2">
+                                {t("processing")}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="flex justify-center text-center">
+                              {showingTranslateValue(
+                                storeCustomizationSetting?.checkout
+                                  ?.confirm_button
+                              ) || tr('Confirm Order', 'تأكيد الطلب')}
+                              <span className="text-xl ml-2">
+                                {" "}
+                                <IoArrowForward />
+                              </span>
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div> {/* End Container 3: Payment Method + Action Buttons */}
                 </form>
               </div>
             </div>
 
+
+
             <div className="md:w-full lg:w-2/5 lg:ml-10 xl:ml-14 md:ml-6 flex flex-col h-full md:sticky lg:sticky top-28 md:order-2 lg:order-2">
-              <div className="border p-5 lg:px-8 lg:py-8 rounded-lg bg-white order-1 sm:order-2">
+              {/* Container 2: Order Summary (Cart Items) */}
+              <div className="border p-5 lg:px-8 lg:py-8 rounded-lg bg-white order-1 md:order-2 mb-6">
                 <h2 className="font-semibold font-serif text-lg pb-4">
                   {showingTranslateValue(
                     storeCustomizationSetting?.checkout?.order_summary
-                  )}
+                  ) || tr('Order Summary', 'ملخص الطلب')}
                 </h2>
 
                 <div className="overflow-y-scroll flex-grow scrollbar-hide w-full max-h-64 bg-gray-50 block">
@@ -1311,18 +1548,21 @@ const Checkout = () => {
                         <IoBagHandle />
                       </span>
                       <h2 className="font-medium font-serif text-sm pt-2 text-gray-600">
-                        No Item Added Yet!
+                        {tr('No Item Added Yet!', 'لم يتم إضافة أي عنصر بعد!')}
                       </h2>
                     </div>
                   )}
                 </div>
+              </div> {/* End Container 2: Order Summary */}
 
+              {/* Container 2b: Coupon + Loyalty Points + Price Breakdown - Desktop Only */}
+              <div className="hidden md:block border p-5 lg:px-8 lg:py-8 rounded-lg bg-white">
                 <div className="flex items-center mt-4 py-4 lg:py-4 text-sm w-full font-semibold text-heading last:border-b-0 last:text-base last:pb-0">
                   <form className="w-full">
                     {couponInfo.couponCode ? (
                       <span className="bg-emerald-50 px-4 py-3 leading-tight w-full rounded-md flex justify-between">
                         {" "}
-                        <p className="text-emerald-600">{t("common:applyCoupon")} </p>{" "}
+                        <p className="text-emerald-600">{t("applyCoupon")} </p>{" "}
                         <span className="text-red-500 text-right">
                           {couponInfo.couponCode}
                         </span>
@@ -1332,7 +1572,7 @@ const Checkout = () => {
                         <input
                           ref={couponRef}
                           type="text"
-                          placeholder={t("common:couponCode")}
+                          placeholder={tr('Enter coupon code', 'أدخل رمز القسيمة الخاص بك')}
                           className="form-input py-2 px-3 md:px-4 w-full appearance-none transition ease-in-out border text-input text-sm rounded-md h-12 duration-200 bg-white border-gray-200 focus:ring-0 focus:outline-none focus:border-emerald-500 placeholder-gray-500 placeholder-opacity-75"
                         />
                         {isCouponAvailable ? (
@@ -1347,7 +1587,7 @@ const Checkout = () => {
                               width={20}
                               height={10}
                             />
-                            <span className=" ml-2 font-light">{t("common:loading")}</span>
+                            <span className=" ml-2 font-light">{t("loading")}</span>
                           </button>
                         ) : (
                           <button
@@ -1357,7 +1597,7 @@ const Checkout = () => {
                           >
                             {showingTranslateValue(
                               storeCustomizationSetting?.checkout?.apply_button
-                            )}
+                            ) || tr('Apply', 'تطبيق')}
                           </button>
                         )}
                       </div>
@@ -1366,16 +1606,16 @@ const Checkout = () => {
                 </div>
 
                 {/* Loyalty Points Redemption */}
-                {loyaltyPoints > 0 && (
+                {userInfo?.id && (
                   <div className="flex items-center mt-4 py-4 lg:py-4 text-sm w-full font-semibold text-heading border-t">
                     <div className="w-full">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center">
                           <FiStar className="text-purple-600 mr-2" />
-                          <span className="text-gray-700 font-semibold">{t("common:loyaltyPoints")}</span>
+                          <span className="text-gray-700 font-semibold">{tr('Loyalty Points', 'نقاط الولاء')}</span>
                         </div>
                         <div className="text-purple-600 font-bold">
-                          {loyaltyPoints} {t("common:availablePoints")}
+                          {loyaltyPoints} {tr('available points', 'النقاط المتاحة')}
                         </div>
                       </div>
                       
@@ -1386,7 +1626,7 @@ const Checkout = () => {
                           max={Math.min(maxRedeemablePoints, loyaltyPoints)}
                           value={pointsToRedeem}
                           onChange={handlePointsChange}
-                          placeholder={t("common:pointsToRedeem")}
+                          placeholder={tr('Points to redeem', 'النقاط المراد استبدالها')}
                           className="form-input py-2 px-3 md:px-4 w-full appearance-none transition ease-in-out border text-input text-sm rounded-md h-12 duration-200 bg-white border-gray-200 focus:ring-0 focus:outline-none focus:border-purple-500 placeholder-gray-500 placeholder-opacity-75"
                         />
                         <button
@@ -1394,7 +1634,7 @@ const Checkout = () => {
                           onClick={applyMaxPoints}
                           className="md:text-sm leading-4 inline-flex items-center cursor-pointer transition ease-in-out duration-300 font-semibold text-center justify-center border border-purple-200 rounded-md placeholder-white focus-visible:outline-none focus:outline-none px-5 md:px-6 lg:px-8 py-3 md:py-3.5 lg:py-3 mt-3 sm:mt-0 sm:ml-3 md:mt-0 md:ml-3 lg:mt-0 lg:ml-3 hover:text-white hover:bg-purple-500 bg-purple-50 text-purple-600 h-12 text-sm lg:text-base w-full sm:w-auto"
                         >
-                          {t("common:applyMaxPoints")}
+                          {tr('Apply Max Points', 'تطبيق أقصى نقاط')}
                         </button>
                       </div>
                       
@@ -1403,14 +1643,12 @@ const Checkout = () => {
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-purple-700">
                               <FiInfo className="inline mr-1" />
-                              {t("common:redeemPoints")} {pointsToRedeem} {t("common:loyaltyPoints")}
+                              {tr('Redeem points', 'استبدال النقاط')} {pointsToRedeem} {tr('loyalty points', 'نقاط الولاء')}
                             </span>
-                            <span className="text-purple-700 font-bold">
-                              -<span className="font-saudi_riyal">{currency}</span>{loyaltyDiscount.toFixed(2)}
-                            </span>
+                            <span className="text-purple-700 font-bold">-{formatPrice(loyaltyDiscount)}</span>
                           </div>
                           <div className="text-xs text-purple-600 mt-1">
-                            {t("common:remaining")}: {loyaltyPoints - pointsToRedeem} {t("common:loyaltyPoints")}
+                            {tr('Remaining', 'المتبقي')}: {loyaltyPoints - pointsToRedeem} {tr('loyalty points', 'نقاط الولاء')}
                           </div>
                         </div>
                       )}
@@ -1418,7 +1656,7 @@ const Checkout = () => {
                       {maxRedeemablePoints < loyaltyPoints && (
                         <div className="mt-2 text-xs text-gray-500">
                           <FiInfo className="inline mr-1" />
-                          {t("common:maxRedeemable")}: {maxRedeemablePoints} {t("common:loyaltyPoints")}
+                          {tr('Max redeemable', 'أقصى قابل للاستبدال')}: {maxRedeemablePoints} {tr('loyalty points', 'نقاط الولاء')}
                         </div>
                       )}
                     </div>
@@ -1428,39 +1666,35 @@ const Checkout = () => {
                 <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
                   {showingTranslateValue(
                     storeCustomizationSetting?.checkout?.sub_total
-                  )}
+                  ) || tr('Subtotal', 'المجموع الفرعي')}
                   <span className="ml-auto flex-shrink-0 text-gray-800 font-bold">
-                    <span className="font-saudi_riyal">{currency}</span>
-                    {(cartTotal || 0).toFixed(2)}
+                    {formatPrice(cartTotal)}
                   </span>
                 </div>
                 <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
                   {showingTranslateValue(
                     storeCustomizationSetting?.checkout?.shipping_cost
-                  )}
+                  ) || tr('Shipping Cost', 'تكلفة الشحن')}
                   <span className="ml-auto flex-shrink-0 text-gray-800 font-bold">
-                    <span className="font-saudi_riyal">{currency}</span>
-                    {(shippingCost || 0).toFixed(2)}
+                    {formatPrice(shippingCost)}
                   </span>
                 </div>
                 <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
                   {showingTranslateValue(
                     storeCustomizationSetting?.checkout?.discount
-                  )}
+                  ) || tr('Discount', 'الخصم')}
                   <span className="ml-auto flex-shrink-0 font-bold text-orange-400">
-                    <span className="font-saudi_riyal">{currency}</span>
-                    {(discountAmount || 0).toFixed(2)}
+                    {formatPrice(discountAmount)}
                   </span>
                 </div>
                 {loyaltyDiscount > 0 && (
                   <div className="flex items-center py-2 text-sm w-full font-semibold text-gray-500 last:border-b-0 last:text-base last:pb-0">
                     <span className="flex items-center">
                       <FiStar className="text-purple-600 mr-2" />
-                      {t("common:loyaltyDiscount")}
+                      {t("loyaltyDiscount")}
                     </span>
                     <span className="ml-auto flex-shrink-0 font-bold text-purple-600">
-                      <span className="font-saudi_riyal">{currency}</span>
-                      {loyaltyDiscount.toFixed(2)}
+                      {formatPrice(loyaltyDiscount)}
                     </span>
                   </div>
                 )}
@@ -1468,14 +1702,13 @@ const Checkout = () => {
                   <div className="flex items-center font-bold font-serif justify-between pt-5 text-sm uppercase">
                     {showingTranslateValue(
                       storeCustomizationSetting?.checkout?.total_cost
-                    )}
+                    ) || tr('TOTAL COST', 'التكلفة الإجمالية')}
                     <span className="font-serif font-extrabold text-lg">
-                      <span className="font-saudi_riyal">{currency}</span>
-                      {Math.max(0, parseFloat(total) - loyaltyDiscount).toFixed(2)}
+                      {formatPrice(Math.max(0, parseFloat(total) - loyaltyDiscount))}
                     </span>
                   </div>
                 </div>
-              </div>
+              </div> {/* End Container 2b: Coupon + Loyalty Points + Price Breakdown - Desktop Only */}
             </div>
           </div>
         </div>

@@ -20,6 +20,7 @@ import NewsletterSubscription from '@components/common/NewsletterSubscription';
 // Import services for data
 import ProductServices from '@services/ProductServices';
 import AttributeServices from '@services/AttributeServices';
+import PromotionServices from '@services/PromotionServices';
 
 const DynamicHomepage = () => {
   const { sections, isLoading: sectionsLoading, isSectionActive, getSectionContent, getSectionSettings } = useHomepageSections();
@@ -48,6 +49,32 @@ const DynamicHomepage = () => {
     refetchOnWindowFocus: false,
   });
 
+  // Fetch active promotions once to build exclusion list for popular section
+  const { data: activePromotions } = useQuery({
+    queryKey: ["active-promotions-homepage"],
+    queryFn: async () => await PromotionServices.getActivePromotions(),
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const promoProductIdSet = React.useMemo(() => {
+    const set = new Set();
+    if (activePromotions && Array.isArray(activePromotions)) {
+      activePromotions.forEach(promo => {
+        if (promo.productUnit && promo.productUnit.product) {
+          set.add(promo.productUnit.product._id || promo.productUnit.product.id);
+        }
+        if (promo.productUnits && promo.productUnits.length) {
+          promo.productUnits.forEach(u => {
+            if (u.product) set.add(u.product._id || u.product.id);
+          });
+        }
+      });
+    }
+    return set;
+  }, [activePromotions]);
+
   if (sectionsLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -69,7 +96,7 @@ const DynamicHomepage = () => {
 
     switch (sectionId) {
       case 'hero':
-        return <MainCarousel key={sectionId} />;
+        return <MainCarousel key={sectionId} animationType="modern" />;
 
       case 'why_choose_us':
         return <DynamicSupermarketStats key={sectionId} />;
@@ -117,6 +144,7 @@ const DynamicHomepage = () => {
             viewAllLink={content?.viewAllLink || "/products"}
             cardVariant={settings?.cardVariant || "simple"}
             gridCols={settings?.gridCols || "lg:grid-cols-5"}
+            excludeProductIds={promoProductIdSet}
           />
         ) : null;
 
@@ -132,6 +160,7 @@ const DynamicHomepage = () => {
             viewAllLink={content?.viewAllLink || "/products"}
             cardVariant={settings?.cardVariant || "simple"}
             gridCols={settings?.gridCols || "lg:grid-cols-5"}
+            excludeProductIds={promoProductIdSet}
           />
         ) : null;
 
@@ -158,6 +187,7 @@ const DynamicHomepage = () => {
             viewAllLink={content?.viewAllLink || "/offer"}
             cardVariant={settings?.cardVariant || "simple"}
             gridCols={settings?.gridCols || "lg:grid-cols-5"}
+            excludeProductIds={promoProductIdSet}
           />
         ) : null;
 
@@ -165,9 +195,9 @@ const DynamicHomepage = () => {
         return (
           <TrustFeatures 
             key={sectionId}
-            title={content?.title}
+            title={showingTranslateValue(content?.title) || 'The SAPT Markets Advantage'}
             subtitle={content?.subtitle}
-            description={content?.description}
+            description={showingTranslateValue(content?.description) || 'Experience the difference with our premium service standards'}
             features={content?.features || []}
           />
         );
@@ -200,11 +230,15 @@ const DynamicHomepage = () => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col space-y-2 sm:space-y-3 md:space-y-4">
       {sections
         .filter(section => section.isActive) // Only render active sections
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(section => renderSection(section))
+        .map(section => (
+          <div key={section.sectionId}>
+            {renderSection(section)}
+          </div>
+        ))
         .filter(Boolean)
       }
     </div>

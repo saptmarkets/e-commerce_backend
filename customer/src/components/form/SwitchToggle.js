@@ -1,6 +1,19 @@
 import Switch from "react-switch";
+import useTranslation from 'next-translate/useTranslation';
 
 const SwitchToggle = ({ id, title, handleProcess, processOption }) => {
+  const { t, lang } = useTranslation();
+  
+  // Translation function
+  const tr = (en, ar) => {
+    const key = 'common:' + en.replace(/\s+/g, '').replace(/[^a-zA-Z]/g, '');
+    const translated = t(key);
+    if (translated === key) {
+      return lang === 'ar' ? (ar || en) : en;
+    }
+    return translated;
+  };
+
   return (
     <>
       <div className={`${"mb-3"}`}>
@@ -27,7 +40,7 @@ const SwitchToggle = ({ id, title, handleProcess, processOption }) => {
                   paddingTop: 1,
                 }}
               >
-                No
+                {tr('No', 'لا')}
               </div>
             }
             width={80}
@@ -48,7 +61,7 @@ const SwitchToggle = ({ id, title, handleProcess, processOption }) => {
                   paddingTop: 1,
                 }}
               >
-                Yes
+                {tr('Yes', 'نعم')}
               </div>
             }
           />

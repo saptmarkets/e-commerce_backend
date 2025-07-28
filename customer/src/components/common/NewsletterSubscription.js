@@ -68,25 +68,25 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
   };
 
   return (
-    <div className="bg-gray-50 py-12 md:py-16">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-10">
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-md p-6 md:p-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+    <div className="bg-gray-50 py-8 sm:py-10 md:py-12 lg:py-16">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-10">
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-md p-3 sm:p-4 md:p-6 lg:p-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 items-center">
             <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-800 mb-2 sm:mb-3 md:mb-4 brand-name-arabic">
                 {title || tr('Stay Connected with SAPT Markets', 'ابقَ على اتصال مع أسواق سبت')}
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 md:mb-6">
                 {description || tr('Join over 50,000 satisfied customers who receive exclusive deals, seasonal offers, and insider updates', 'انضم إلى أكثر من 50,000 عميل راضٍ يتلقون عروضًا حصرية وتحديثات موسمية')}
               </p>
               
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-2 sm:space-y-3 mb-3 sm:mb-4 md:mb-6">
                 {benefits.map((benefit, index) => (
-                  <li key={index} className="flex items-center space-x-3">
-                    <span className="flex-shrink-0">
+                  <li key={index} className="flex items-center space-x-2 sm:space-x-3">
+                    <span className="flex-shrink-0 text-sm sm:text-base">
                       {benefit.icon || getIconByType(benefit.iconType)}
                     </span>
-                    <span className="text-gray-700">
+                    <span className="text-gray-700 text-xs sm:text-sm md:text-base">
                       {typeof benefit.text === 'string' ? benefit.text : showingTranslateValue(benefit.text)}
                     </span>
                   </li>
@@ -94,63 +94,60 @@ const NewsletterSubscription = ({ title, description, buttonText, placeholderTex
               </ul>
             </div>
             
-            <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-sm">
               {submitted ? (
-                <div className="text-center py-8">
-                  <FaCheckCircle className="text-green-500 text-5xl mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{tr('Successfully Subscribed!', 'تم الاشتراك بنجاح!')}</h3>
-                  <p className="text-gray-600">{tr('Thank you for subscribing. Check your inbox for a confirmation email.', 'شكرًا لاشتراكك. تحقق من بريدك الإلكتروني لتأكيد الاشتراك.')}</p>
+                <div className="text-center py-4 sm:py-6 md:py-8">
+                  <FaCheckCircle className="text-green-500 text-2xl sm:text-3xl md:text-4xl lg:text-5xl mx-auto mb-2 sm:mb-3 md:mb-4" />
+                  <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 mb-1 sm:mb-2">{tr('Successfully Subscribed!', 'تم الاشتراك بنجاح!')}</h3>
+                  <p className="text-sm sm:text-base text-gray-600">{tr('Thank you for subscribing. Check your inbox for a confirmation email.', 'شكرًا لاشتراكك. تحقق من بريدك الإلكتروني لتأكيد الاشتراك.')}</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit}>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4">{tr('Subscribe to Our Newsletter', 'اشترك في نشرتنا الإخبارية')}</h3>
+                  <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 mb-2 sm:mb-3 md:mb-4">{tr('Subscribe to Our Newsletter', 'اشترك في نشرتنا الإخبارية')}</h3>
                   
-                  <div className="mb-4">
-                    <label htmlFor="email" className="block text-gray-700 mb-2">{tr('Email Address', 'عنوان البريد الإلكتروني')}</label>
+                  <div className="mb-3 sm:mb-4">
+                    <label htmlFor="email" className="block text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">{tr('Email Address', 'عنوان البريد الإلكتروني')}</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaRegEnvelope className="text-gray-400" />
+                      <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+                        <FaRegEnvelope className="text-gray-400 text-sm sm:text-base" />
                       </div>
                       <input
                         type="email"
                         id="email"
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
+                        className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary text-sm sm:text-base"
                         placeholder={placeholderText || tr('Enter your email address', 'أدخل عنوان بريدك الإلكتروني')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>
                   </div>
-                  
-                  <div className="mb-6">
-                    <div className="flex items-start">
-                      <div className="flex items-center h-5">
-                        <input
-                          id="agreement"
-                          type="checkbox"
-                          className="focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded"
-                          checked={agreed}
-                          onChange={() => setAgreed(!agreed)}
-                        />
-                      </div>
-                      <label htmlFor="agreement" className="ml-2 text-sm text-gray-600">
+
+                  <div className="mb-3 sm:mb-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={agreed}
+                        onChange={(e) => setAgreed(e.target.checked)}
+                        className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                      />
+                      <span className="text-xs sm:text-sm text-gray-600">
                         {tr('I agree to receive promotional emails', 'أوافق على استلام الرسائل الترويجية')}
-                      </label>
-                    </div>
+                      </span>
+                    </label>
                   </div>
-                  
-                  {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-                  
+
+                  {error && (
+                    <div className="mb-3 sm:mb-4 text-red-600 text-xs sm:text-sm">
+                      {error}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition duration-200"
+                    className="w-full bg-primary text-white py-2 sm:py-2.5 md:py-3 px-3 sm:px-4 md:px-6 rounded-md hover:bg-primary/90 transition duration-200 font-medium text-sm sm:text-base"
                   >
-{buttonText || tr('Subscribe & Save', 'اشترك ووفّر')}
+                    {buttonText || tr('Subscribe', 'اشترك')}
                   </button>
-                  
-                  <p className="text-xs text-gray-500 mt-4 text-center">
-                    {tr('We respect your privacy. Unsubscribe anytime.', 'نحترم خصوصيتك. يمكنك إلغاء الاشتراك في أي وقت.')}
-                  </p>
                 </form>
               )}
             </div>

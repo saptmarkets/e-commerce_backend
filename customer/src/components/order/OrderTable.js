@@ -1,10 +1,29 @@
+import { getUnitDisplayName } from '@utils/unitUtils';
 import useUtilsFunction from "@hooks/useUtilsFunction";
 import React, { useState } from "react";
 import { FiChevronDown, FiChevronUp, FiPackage } from "react-icons/fi";
 
 const OrderTable = ({ data, currency }) => {
-  const { getNumberTwo } = useUtilsFunction();
+  const { getNumberTwo, lang } = useUtilsFunction();
   const [expandedCombos, setExpandedCombos] = useState(new Set());
+
+  // Helper to render price correctly based on language direction
+  const formatPrice = (value) => {
+    const amount = getNumberTwo(value);
+    if (lang === 'ar') {
+      return (
+        <>
+          {amount}
+          <span className="font-saudi_riyal ml-0.5">{currency}</span>
+        </>
+      );
+    }
+    return (
+      <>
+        <span className="font-saudi_riyal mr-0.5">{currency}</span>{amount}
+      </>
+    );
+  };
 
   const toggleComboExpansion = (itemIndex) => {
     const newExpanded = new Set(expandedCombos);
@@ -18,7 +37,7 @@ const OrderTable = ({ data, currency }) => {
 
   // Get multi-unit display information for an item
   const getUnitDisplayInfo = (item) => {
-    const unitName = item.unitName || 'pcs';
+    const unitName = getUnitDisplayName(item.unit, lang);
     const packQty = item.packQty || 1;
     const totalBaseUnits = item.quantity * packQty;
     
@@ -95,12 +114,10 @@ const OrderTable = ({ data, currency }) => {
                 </div>
               </td>
               <td className="px-6 py-1 whitespace-nowrap font-bold text-center font-DejaVu">
-                {currency}
-                {getNumberTwo(item.price)}
+                {formatPrice(item.price)}
               </td>
               <td className="px-6 py-1 whitespace-nowrap text-right font-bold font-DejaVu k-grid text-red-500">
-                {currency}
-                {getNumberTwo(item.itemTotal || (item.price * item.quantity))}
+                {formatPrice(item.itemTotal || (item.price * item.quantity))}
               </td>
             </tr>
 
@@ -113,7 +130,7 @@ const OrderTable = ({ data, currency }) => {
                     <span className="w-2 h-2 bg-purple-300 rounded-full flex-shrink-0"></span>
                     <span>{comboProduct.productTitle}</span>
                     <span className="text-xs text-gray-400">
-                      ({comboProduct.unitName || 'pcs'})
+                      ({getUnitDisplayName(comboProduct.unit, lang)})
                     </span>
                   </div>
                 </td>
@@ -121,12 +138,10 @@ const OrderTable = ({ data, currency }) => {
                   {comboProduct.quantity}
                 </td>
                 <td className="px-6 py-1 whitespace-nowrap text-center text-sm text-gray-500 font-DejaVu">
-                  {currency}
-                  {getNumberTwo(comboProduct.unitPrice || 0)}
+                  {formatPrice(comboProduct.unitPrice || 0)}
                 </td>
                 <td className="px-6 py-1 whitespace-nowrap text-right text-sm text-gray-500 font-DejaVu">
-                  {currency}
-                  {getNumberTwo((comboProduct.unitPrice || 0) * comboProduct.quantity)}
+                  {formatPrice((comboProduct.unitPrice || 0) * comboProduct.quantity)}
                 </td>
               </tr>
             ))}
@@ -142,12 +157,10 @@ const OrderTable = ({ data, currency }) => {
                   {item.quantity} combo{item.quantity > 1 ? 's' : ''}
                 </td>
                 <td className="px-6 py-1 text-center text-sm font-medium text-purple-800 font-DejaVu">
-                  {currency}
-                  {getNumberTwo(item.comboDetails?.pricePerItem || item.price)}
+                  {formatPrice(item.comboDetails?.pricePerItem || item.price)}
                 </td>
                 <td className="px-6 py-1 text-right text-sm font-bold text-purple-800 font-DejaVu">
-                  {currency}
-                  {getNumberTwo(item.comboDetails?.totalValue || (item.price * item.quantity))}
+                  {formatPrice(item.comboDetails?.totalValue || (item.price * item.quantity))}
                 </td>
               </tr>
             )}

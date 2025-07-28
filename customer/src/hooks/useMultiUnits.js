@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import ProductUnitServices from '@services/ProductUnitServices';
+import { getLocalizedUnitName } from '@utils/unitUtils';
+import useUtilsFunction from '@hooks/useUtilsFunction';
 
 const useMultiUnits = (product) => {
+  const { lang } = useUtilsFunction();
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [availableUnits, setAvailableUnits] = useState([]);
   const [isLoadingUnits, setIsLoadingUnits] = useState(false);
@@ -10,13 +13,13 @@ const useMultiUnits = (product) => {
   // Fetch available units for the product
   const fetchProductUnits = useCallback(async (promotionHint = null) => {
     if (!product || !product._id) {
-      console.log('No product or product ID, skipping fetch');
+      // No product or product ID, skipping fetch
       return;
     }
 
     // If product doesn't have multi-units, create a basic unit
     if (!product.hasMultiUnits) {
-      console.log('Product does not have multi-units, creating basic unit');
+      // Product does not have multi-units, creating basic unit
       const defaultUnit = {
         _id: `basic-${product._id}`,
         product: product._id,
@@ -41,7 +44,7 @@ const useMultiUnits = (product) => {
       console.log('Fetching product units from API...');
       console.log('Product ID being used:', product._id);
       const response = await ProductUnitServices.getProductUnits(product._id);
-      console.log('Product units API response received:', response);
+      // Product units API response received
       
       const units = response?.data || [];
       console.log('Parsed units array:', units);
@@ -134,7 +137,7 @@ const useMultiUnits = (product) => {
   const getUnitDisplayName = useCallback((unit) => {
     if (!unit) return 'Unit';
     
-    const unitName = unit.unit?.name || unit.unit?.shortCode || 'Unit';
+    const unitName = getLocalizedUnitName(unit.unit, lang);
     const unitValue = unit.unitValue || 1;
     
     if (unitValue === 1) {
@@ -142,7 +145,7 @@ const useMultiUnits = (product) => {
     }
     
     return `${unitValue} ${unitName}${unitValue > 1 ? 's' : ''}`;
-  }, []);
+  }, [lang]);
 
   // Get current unit display name
   const currentUnitDisplayName = useMemo(() => {

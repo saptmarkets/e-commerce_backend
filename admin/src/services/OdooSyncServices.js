@@ -67,7 +67,7 @@ const OdooSyncServices = {
    * Push accumulated stock back to Odoo.
    * If locationId omitted, backend will fall back to env var.
    */
-  pushBackStock: (locationId=null) => requests.post("/odoo-sync/push-back/stock", locationId ? { locationId } : {}),
+  pushBackStock: (payload) => requests.post("/odoo-sync/push-back/stock", payload),
 };
 
 export default OdooSyncServices; 

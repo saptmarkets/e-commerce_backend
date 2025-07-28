@@ -1,37 +1,111 @@
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { connectDB } = require('./config/db');
 const Admin = require('./models/Admin');
 
-async function addDriver() {
+// MongoDB connection
+const connectDB = async () => {
   try {
-    console.log('🚀 Adding delivery driver...');
-    await connectDB();
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/saptmarkets', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('✅ MongoDB connected successfully');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  }
+};
+
+// Create driver account
+const createDriver = async () => {
+  try {
+    console.log('🔧 Creating driver account...');
     
-    const existing = await Admin.findOne({ email: 'driver@saptmarkets.com' });
-    if (existing) {
-      console.log('✅ Driver already exists');
-      process.exit(0);
+    // Check if driver already exists
+    const existingDriver = await Admin.findOne({ 
+      email: 'driver@saptmarkets.com',
+      role: 'Driver'
+    });
+    
+    if (existingDriver) {
+      console.log('✅ Driver account already exists:');
+      console.log(`   Email: ${existingDriver.email}`);
+      console.log(`   Name: ${existingDriver.name?.en || 'Driver'}`);
+      console.log(`   Role: ${existingDriver.role}`);
+      console.log(`   Status: ${existingDriver.status}`);
+      return;
     }
     
+    // Hash password
+    const hashedPassword = await bcrypt.hash('password123', 12);
+    
+    // Create driver
     const driver = new Admin({
-      name: { en: 'Delivery Driver' },
+      name: {
+        en: 'Test Driver',
+        ar: 'سائق تجريبي'
+      },
       email: 'driver@saptmarkets.com',
-      password: await bcrypt.hash('password123', 10),
-      phone: '555-0123',
+      password: hashedPassword,
+      phone: '+966501234567',
       role: 'Driver',
       status: 'Active',
-      joiningData: new Date()
+      deliveryInfo: {
+        vehicleType: 'bike',
+        vehicleNumber: 'TEST-001',
+        licenseNumber: 'DL-123456',
+        phoneNumber: '+966501234567',
+        emergencyContact: {
+          name: 'Emergency Contact',
+          phone: '+966509876543'
+        },
+        workingHours: {
+          start: '09:00',
+          end: '18:00'
+        },
+        maxDeliveryRadius: 10,
+        isOnDuty: false,
+        availability: 'offline'
+      },
+      deliveryStats: {
+        totalDeliveries: 0,
+        completedToday: 0,
+        averageRating: 5.0,
+        totalRatings: 0,
+        successRate: 100,
+        averageDeliveryTime: 0,
+        totalEarnings: 0,
+        earningsToday: 0
+      }
     });
     
     await driver.save();
-    console.log('✅ Delivery driver added successfully!');
-    console.log('📧 Email: driver@saptmarkets.com');
-    console.log('🔐 Password: password123');
+    
+    console.log('✅ Driver account created successfully!');
+    console.log('📱 Login Credentials:');
+    console.log(`   Email: ${driver.email}`);
+    console.log(`   Password: password123`);
+    console.log(`   Name: ${driver.name.en}`);
+    console.log(`   Role: ${driver.role}`);
+    console.log(`   Status: ${driver.status}`);
+    
+  } catch (error) {
+    console.error('❌ Error creating driver:', error);
+  }
+};
+
+// Main function
+const main = async () => {
+  try {
+    await connectDB();
+    await createDriver();
+    console.log('🎉 Driver setup complete!');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ Setup failed:', error);
     process.exit(1);
   }
-}
+};
 
-addDriver(); 
+// Run the script
+main(); 

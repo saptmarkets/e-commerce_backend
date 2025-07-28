@@ -165,8 +165,8 @@ const Dashboard = () => {
   };
   const handleDeleteOrder = (order) => {
     // TODO: Implement delete logic (e.g., show confirmation, call API)
-    if (window.confirm(`Are you sure you want to delete order #${order.invoice}?`)) {
-      alert(`Order #${order.invoice} deleted!`);
+    if (window.confirm(`${t("AreYouSureDeleteOrder")} #${order.invoice}?`)) {
+      alert(`${t("OrderDeleted")} #${order.invoice}!`);
     }
   };
 
@@ -367,8 +367,33 @@ const Dashboard = () => {
         return "bg-blue-500/10 text-blue-600 border-blue-500/20"
       case "Pending":
         return "bg-amber-500/10 text-amber-600 border-amber-500/20"
+      case "Received":
+        return "bg-purple-500/10 text-purple-600 border-purple-500/20"
+      case "Out for Delivery":
+        return "bg-orange-500/10 text-orange-600 border-orange-500/20"
+      case "Cancelled":
+        return "bg-red-500/10 text-red-600 border-red-500/20"
       default:
         return "bg-gray-500/10 text-gray-600 border-gray-500/20"
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "Delivered":
+        return t("Delivered");
+      case "Processing":
+        return t("Processing");
+      case "Pending":
+        return t("Pending");
+      case "Received":
+        return t("Received");
+      case "Out for Delivery":
+        return t("OutForDelivery");
+      case "Cancelled":
+        return t("Cancelled");
+      default:
+        return status;
     }
   };
 
@@ -382,25 +407,25 @@ const Dashboard = () => {
           <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-gradient-to-br from-green-400 to-blue-500 rounded-full opacity-5 animate-pulse delay-500"></div>
         </div>
 
-        <div className="relative z-10 pb-8">
+        <div className="relative z-10 pb-8 pt-4">
           {/* Page Header */}
-          <div className="mx-6 mb-8">
+          <div className="mx-6 mb-12">
             <GlassCard className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
-                    SaptMarkets Analytics
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent leading-tight">
+                    {t("SaptMarketsAnalytics")}
                   </h1>
-                  <p className="text-gray-500 mt-2 text-lg">Real-time insights and performance metrics for your business</p>
+                  <p className="text-gray-500 mt-3 text-lg">{t("RealTimeInsights")}</p>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-gray-900">{dashboardOrderCount?.totalOrder || 0}</div>
-                    <div className="text-gray-500">Total Orders</div>
+                    <div className="text-gray-500">{t("TotalOrders")}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-emerald-600">{currency}{getNumberTwo(dashboardOrderAmount?.totalAmount || 0)}</div>
-                    <div className="text-gray-500">Total Revenue</div>
+                    <div className="text-gray-500">{t("TotalRevenue")}</div>
                   </div>
                 </div>
               </div>
@@ -431,7 +456,7 @@ const Dashboard = () => {
                 }
                 return (
                   <StatCard
-                    title="Today's Revenue"
+                    title={t("TodayRevenue")}
                     value={`${currency}${getNumberTwo(today)}`}
                     change={changeText}
                     changeType={changeType}
@@ -462,7 +487,7 @@ const Dashboard = () => {
                 }
                 return (
                   <StatCard
-                    title="Yesterday's Sales"
+                    title={t("YesterdaySales")}
                     value={`${currency}${getNumberTwo(yesterday)}`}
                     change={changeText}
                     changeType={changeType}
@@ -492,7 +517,7 @@ const Dashboard = () => {
                 }
                 return (
                   <StatCard
-                    title="Monthly Total"
+                    title={t("MonthlyTotal")}
                     value={`${currency}${getNumberTwo(thisMonth)}`}
                     change={changeText}
                     changeType={changeType}
@@ -509,32 +534,32 @@ const Dashboard = () => {
           <div className="mx-6 mb-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <MetricCard
-                title="Total Orders"
+                title={t("TotalOrders")}
                 value={dashboardOrderCount?.totalOrder || 0}
                 icon={FiPackage}
                 color="bg-gradient-to-r from-violet-500 to-purple-600"
-                trend="All time orders"
+                trend={t("AllTimeOrders")}
               />
               <MetricCard
-                title="Pending Orders"
+                title={t("PendingOrders")}
                 value={dashboardOrderCount?.totalPendingOrder?.count || 0}
                 icon={FiClock}
                 color="bg-gradient-to-r from-amber-500 to-orange-600"
-                trend="Awaiting processing"
+                trend={t("AwaitingProcessing")}
               />
               <MetricCard
-                title="Processing"
+                title={t("ProcessingOrders")}
                 value={dashboardOrderCount?.totalProcessingOrder || 0}
                 icon={FiActivity}
                 color="bg-gradient-to-r from-blue-500 to-cyan-600"
-                trend="Being prepared"
+                trend={t("BeingPrepared")}
               />
               <MetricCard
-                title="Completed"
+                title={t("CompletedOrders")}
                 value={dashboardOrderCount?.totalDeliveredOrder || 0}
                 icon={FiCheck}
                 color="bg-gradient-to-r from-emerald-500 to-green-600"
-                trend="Successfully delivered"
+                trend={t("SuccessfullyDelivered")}
               />
             </div>
           </div>
@@ -548,34 +573,34 @@ const Dashboard = () => {
                     <FiCheck className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900">Inventory Management</h3>
+                    <h3 className="text-2xl font-bold text-gray-900">{t("InventoryManagement")}</h3>
                     <p className={`font-semibold mt-2 text-lg ${lowStockProducts.length === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {lowStockProducts.length === 0
-                        ? "Excellent! All products are well stocked 🎉"
-                        : `⚠️ ${lowStockProducts.length} products require attention`}
+                        ? t("ExcellentStockStatus")
+                        : `⚠️ ${lowStockProducts.length} ${t("ProductsRequireAttention")}`}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-6">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-gray-900">128</p>
-                    <p className="text-gray-500">Total Products</p>
+                    <p className="text-gray-500">{t("TotalProducts")}</p>
                   </div>
                   <div className="text-center">
                     <p className={`text-3xl font-bold ${lowStockProducts.length === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {lowStockProducts.length === 0 ? '100%' : `${Math.round((128 - lowStockProducts.length) / 128 * 100)}%`}
                     </p>
-                    <p className="text-gray-500">Stock Health</p>
+                    <p className="text-gray-500">{t("StockHealth")}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-3xl font-bold text-blue-600">{lowStockProducts.length}</p>
-                    <p className="text-gray-500">Low Stock Alerts</p>
+                    <p className="text-gray-500">{t("LowStockAlerts")}</p>
                     {lowStockProducts.length > 0 && (
                       <button
                         onClick={() => setShowLowStockModal(true)}
                         className="mt-2 px-4 py-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg text-sm font-semibold transition-all transform hover:scale-105"
                       >
-                        View Details
+                        {t("ViewDetails")}
                       </button>
                     )}
                   </div>
@@ -592,18 +617,18 @@ const Dashboard = () => {
                   <div>
                     <div className="flex items-center space-x-3 mb-3">
                       <FiZap className="w-6 h-6 text-yellow-300" />
-                      <h2 className="text-2xl font-bold">Active Campaigns</h2>
+                      <h2 className="text-2xl font-bold">{t("ActiveCampaigns")}</h2>
                     </div>
                     <p className="mb-4 text-lg">
                       {fixedPriceCount + comboCount === 0
-                        ? 'No active promotions at the moment - Create engaging campaigns to boost your sales!'
-                        : `You have ${fixedPriceCount} fixed price and ${comboCount} combo promotions active.`}
+                        ? t("NoActivePromotions")
+                        : `You have ${fixedPriceCount} ${t("FixedPricePromotions")} and ${comboCount} ${t("ComboPromotions")} active.`}
                     </p>
                   </div>
                   <div className="flex items-center space-x-12">
                     <div className="text-center">
                       <div className="text-3xl font-bold mb-2">{fixedPriceCount}</div>
-                      <div className="text-white/70">Fixed Price</div>
+                      <div className="text-white/70">{t("FixedPrice")}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold mb-2">{comboCount}</div>
@@ -624,7 +649,7 @@ const Dashboard = () => {
                 <div className="w-full">
                   <div className="flex items-center justify-between w-full">
                     {/* Heading on the left, allow wrapping */}
-                    <h3 className="text-2xl font-bold text-gray-900 flex-1 break-words whitespace-normal">Weekly Performance</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 flex-1 break-words whitespace-normal">{t("WeeklyPerformance")}</h3>
                     {/* Tabs in the center */}
                     <div className="flex-1 flex justify-center">
                       <div className="flex space-x-4">
@@ -636,7 +661,7 @@ const Dashboard = () => {
                               : 'text-gray-500 hover:bg-gray-100'
                           }`}
                         >
-                          Sales
+                          {t("Sales")}
                         </button>
                         <button
                           onClick={() => setActiveChartTab('Orders')}
@@ -646,7 +671,7 @@ const Dashboard = () => {
                               : 'text-gray-500 hover:bg-gray-100'
                           }`}
                         >
-                          Orders
+                          {t("Orders")}
                         </button>
                       </div>
                     </div>
@@ -654,11 +679,11 @@ const Dashboard = () => {
                     <div className="flex-1 flex justify-end items-center space-x-4">
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
-                        <span className="font-medium text-gray-600">Revenue</span>
+                        <span className="font-medium text-gray-600">{t("Revenue")}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
-                        <span className="font-medium text-gray-600">Orders</span>
+                        <span className="font-medium text-gray-600">{t("Orders")}</span>
                       </div>
                     </div>
                   </div>
@@ -713,9 +738,9 @@ const Dashboard = () => {
               {/* Top Selling Products */}
               <GlassCard className="p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">Top Selling Products</h3>
+                  <h3 className="text-2xl font-bold text-gray-900">{t("TopSellingProducts")}</h3>
                   <button className="text-blue-600 hover:text-blue-700 font-semibold">
-                    View All Products
+                    {t("ViewAllProducts")}
                   </button>
                 </div>
                 {/* Product List with Scrollbar */}
@@ -726,7 +751,7 @@ const Dashboard = () => {
                       <FiStar className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">Mega Combo Deal</h4>
+                      <h4 className="font-semibold text-gray-900">{t("MegaComboDeal")}</h4>
                       <p className="text-sm text-gray-600">45% of total sales • {currency}25,420</p>
                     </div>
                     <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -740,7 +765,7 @@ const Dashboard = () => {
                       <FiStar className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">Britannia Sweets & Salt</h4>
+                      <h4 className="font-semibold text-gray-900">{t("BritanniaSweets")}</h4>
                       <p className="text-sm text-gray-600">30% of total sales • {currency}15,680</p>
                     </div>
                     <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -754,7 +779,7 @@ const Dashboard = () => {
                       <FiStar className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">Betty Crocker Vanilla Cake</h4>
+                      <h4 className="font-semibold text-gray-900">{t("BettyCrocker")}</h4>
                       <p className="text-sm text-gray-600">20% of total sales • {currency}8,940</p>
                     </div>
                     <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -768,7 +793,7 @@ const Dashboard = () => {
                       <FiStar className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">Smartline Water</h4>
+                      <h4 className="font-semibold text-gray-900">{t("SmartlineWater")}</h4>
                       <p className="text-sm text-gray-600">15% of total sales • {currency}4,320</p>
                     </div>
                     <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -784,13 +809,13 @@ const Dashboard = () => {
           <GlassCard className="overflow-hidden">
             <div className="p-8 pb-0">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-gray-900">Recent Order Activity</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{t("RecentOrderActivity")}</h3>
                 <div className="flex items-center space-x-3">
                   <button className="p-2 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-colors">
                     <FiFilter className="w-5 h-5 text-gray-600" />
                   </button>
                   <button className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-2xl font-semibold transition-colors">
-                    Export Data
+                    {t("ExportData")}
                   </button>
                 </div>
               </div>
@@ -826,7 +851,7 @@ const Dashboard = () => {
                           <TableCell className="px-6 py-4">{order.paymentMethod}</TableCell>
                           <TableCell className="px-6 py-4">{currency}{getNumberTwo(order.total)}</TableCell>
                           <TableCell className="px-6 py-4">
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>{order.status}</span>
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</span>
                           </TableCell>
                           <TableCell className="px-8 py-4 flex space-x-2">
                             <button
@@ -853,7 +878,7 @@ const Dashboard = () => {
               </div>
       ) : (
               <div className="p-8">
-        <NotFound title="Sorry, There are no orders right now." />
+        <NotFound title={t("SorryNoOrders")} />
               </div>
             )}
           </GlassCard>
@@ -861,11 +886,11 @@ const Dashboard = () => {
       </div>
       {/* Low Stock Modal */}
       <Modal isOpen={showLowStockModal} onClose={() => setShowLowStockModal(false)}>
-        <ModalHeader className="text-2xl font-bold text-gray-900">Low Stock Products</ModalHeader>
+        <ModalHeader className="text-2xl font-bold text-gray-900">{t("LowStockProducts")}</ModalHeader>
         <ModalBody className="max-h-96 overflow-y-auto">
           <div className="space-y-4">
             {lowStockProducts.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No low stock products found!</p>
+              <p className="text-center text-gray-500 py-8">{t("NoLowStockProducts")}</p>
             ) : (
               lowStockProducts.map((unit) => (
                 <div key={unit._id} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-200">
@@ -879,17 +904,17 @@ const Dashboard = () => {
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">{unit.title || unit.sku || "Unknown Product"}</h4>
-                    <p className="text-sm text-gray-600">SKU: {unit.sku || "N/A"} | Barcode: {unit.barcode || "N/A"}</p>
+                    <h4 className="font-semibold text-gray-900">{unit.title || unit.sku || t("UnknownProduct")}</h4>
+                    <p className="text-sm text-gray-600">{t("SKU")}: {unit.sku || t("NA")} | {t("Barcode")}: {unit.barcode || t("NA")}</p>
                     <div className="flex items-center space-x-4 mt-2">
-                      <span className="text-sm font-semibold text-red-600">Stock: {unit.stock}</span>
-                      <span className="text-sm text-gray-500">Pack Qty: {unit.packQty}</span>
-                      <span className="text-sm text-gray-500">Price: {currency}{unit.price}</span>
+                      <span className="text-sm font-semibold text-red-600">{t("StockTbl")}: {unit.stock}</span>
+                      <span className="text-sm text-gray-500">{t("PackQty")}: {unit.packQty}</span>
+                      <span className="text-sm text-gray-500">{t("Price")}: {currency}{unit.price}</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
-                      {unit.stock === 0 ? "Out of Stock" : "Low Stock"}
+                      {unit.stock === 0 ? t("OutOfStock") : t("LowStock")}
                     </span>
                   </div>
                 </div>
@@ -902,11 +927,11 @@ const Dashboard = () => {
             onClick={() => setShowLowStockModal(false)}
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
           >
-            Close
+            {t("Close")}
           </button>
         </ModalFooter>
       </Modal>
-      <style jsx global>{`
+      <style>{`
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
   background: transparent;

@@ -1,7 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
 import ProductCardModern from "@components/product/ProductCardModern";
+import ProductCardCarousel from "@components/carousel/ProductCardCarousel";
 import CMSkeleton from "@components/preloader/CMSkeleton";
+import useUtilsFunction from '@hooks/useUtilsFunction';
 
 const FeaturedProducts = ({ 
   products, 
@@ -9,6 +11,7 @@ const FeaturedProducts = ({
   error, 
   attributes, 
   promotions = [],
+  excludeProductIds = new Set(),
   title = "Top Picks", 
   description = "Discover our most popular products with amazing deals",
   viewAllLink = "/products", // Default to all products page
@@ -16,11 +19,18 @@ const FeaturedProducts = ({
   cardVariant = "simple", // Changed default from "enhanced" to "simple"
   gridCols = "lg:grid-cols-3" // Updated default grid for simple cards
 }) => {
+  const { tr } = useUtilsFunction();
   // Filter products with a discount
   const discountedProducts = products?.filter(product => product.discount > 0) || [];
   
-  // Use discounted products if available, otherwise use all products
-  const displayProducts = discountedProducts.length > 0 && !isPromotional ? discountedProducts : products;
+  let baseProducts = discountedProducts.length > 0 && !isPromotional ? discountedProducts : products;
+
+  // Exclude products present in excludeProductIds (used to hide special-offer products)
+  if (excludeProductIds && excludeProductIds.size > 0) {
+    baseProducts = baseProducts?.filter(p => !excludeProductIds.has(p._id || p.id));
+  }
+
+  const displayProducts = baseProducts;
 
   // If viewing discount products, set viewAllLink to /offer
   const isDiscountedSection = title === "Special Discounts" || title.toLowerCase().includes("discount");
@@ -47,16 +57,16 @@ const FeaturedProducts = ({
   // Determine the appropriate ProductCard component to use
   const renderProductCard = (product, productPromotion) => {
     const key = product._id;
+    const hasPromotion = !!productPromotion;
     const cardProps = {
       product: product,
       attributes: attributes || [],
       promotion: productPromotion,
-      compact: false,
+      compact: !hasPromotion, // smaller card if no promo
       showQuantitySelector: true,
       showFavorite: true
     };
 
-    // Use modern card to match All Products page - consistent implementation
     return <ProductCardModern key={key} {...cardProps} />;
   };
 
@@ -69,15 +79,15 @@ const FeaturedProducts = ({
   };
   
   return (
-    <div className={`${getBgColor()} py-10 md:py-12`}>
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-10">
-        <div className="text-center mb-8">
-          <h2 className={`text-3xl font-bold ${getTitleColor()} mb-2`}>{title}</h2>
-          <p className="text-gray-600">{description}</p>
+    <div className={`${getBgColor()} section-responsive`}>
+      <div className="max-w-screen-2xl mx-auto responsive-padding">
+        <div className="text-center mb-4 sm:mb-6 md:mb-8">
+          <h2 className={`heading-responsive ${getTitleColor()} mb-1 sm:mb-2`}>{title}</h2>
+          <p className="text-responsive-base text-gray-600">{description}</p>
           
           {/* Special promotional details */}
           {isPromotional && promotions && promotions.length > 0 && (
-            <div className="mt-3 text-sm text-gray-600 italic">
+            <div className="mt-2 sm:mt-3 text-responsive-sm text-gray-600 italic">
               Limited time offers valid until {new Date(promotions[0].endDate).toLocaleDateString()}
             </div>
           )}
@@ -92,28 +102,30 @@ const FeaturedProducts = ({
               loading={loading}
             />
           ) : (
-            <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6`}>
-              {displayProducts?.slice(0, isPromotional ? 8 : 10).map((product) => {
-                // Get matching promotion if this is a promotional section
-                const productPromotion = getPromotionForProduct(product._id);
-                
-                return renderProductCard(product, productPromotion);
-              })}
-            </div>
+            <>
+              {/* All screen sizes: horizontal carousel with infinite loop */}
+              <ProductCardCarousel
+                products={displayProducts?.slice(0, isPromotional ? 8 : 10)}
+                attributes={attributes}
+                slidesPerViewMobile={2}
+                fixedSlidesPerView={5}
+              />
+            </>
           )}
           
           {!loading && (!products || products?.length === 0) && (
-            <div className="text-center py-10">
-              <p className="text-lg text-gray-500">No products found</p>
+            <div className="text-center py-6 sm:py-8 md:py-10">
+              <p className="text-responsive-lg text-gray-500">No products found</p>
             </div>
           )}
           
-          <div className="text-center mt-10">
+          <div className="text-center mt-6 sm:mt-8 md:mt-10">
             <Link 
               href={linkDestination}
-              className={`px-6 py-2.5 ${isPromotional ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white rounded-md transition duration-200 font-medium inline-block`}
+              className={`inline-flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-white rounded-md transition duration-200 ${isPromotional ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} no-underline`}
+              style={{ minHeight: 'auto', lineHeight: '1.2' }}
             >
-              View All
+              {tr('View All', 'عرض الكل')}
             </Link>
           </div>
         </div>

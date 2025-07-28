@@ -7,12 +7,19 @@ import { FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
 import useAddToCart from "@hooks/useAddToCart";
 import useUtilsFunction from "@hooks/useUtilsFunction";
 import { SidebarContext } from "@context/SidebarContext";
+import { getLocalizedUnitName } from '@utils/unitUtils';
 
 const CartItem = ({ item, currency }) => {
   const { updateItemQuantity, removeItem } = useCart();
   const { closeCartDrawer } = useContext(SidebarContext);
   const { handleIncreaseQuantity } = useAddToCart();
-  const { tr } = useUtilsFunction();
+  const { tr, lang } = useUtilsFunction();
+
+  const formatPrice = (val) => {
+    const displayCurrency = lang === 'ar' ? 'ريال' : currency;
+    const value = parseFloat(val || 0).toFixed(2);
+    return lang === 'ar' ? `${value} ${displayCurrency}` : `${displayCurrency} ${value}`;
+  };
 
   // Calculate the correct item price based on promotion
   const calculateItemPrice = () => {
@@ -53,6 +60,12 @@ const CartItem = ({ item, currency }) => {
 
   // Handle quantity updates with promotion constraints
   const handleDecrease = () => {
+    // For combo deals, only allow removal, not quantity decrease
+    if (item.isCombo) {
+      removeItem(item.id);
+      return;
+    }
+    
     // If it's a promotional item with minQty and quantity equals minQty, remove the item
     if (item.promotion && item.minQty > 1 && item.quantity === item.minQty) {
       removeItem(item.id);
@@ -65,7 +78,7 @@ const CartItem = ({ item, currency }) => {
   const getUnitDisplayInfo = () => {
     if (!item.isMultiUnit && !item.packQty) return null;
     
-    const unitName = item.unitName || 'Unit';
+    const unitName = getLocalizedUnitName(item.unit, lang);
     const packQty = item.packQty || 1;
     const totalBaseUnits = item.quantity * packQty;
     
@@ -105,14 +118,14 @@ const CartItem = ({ item, currency }) => {
             <span className="font-medium">{unitInfo.displayText}</span>
             {unitInfo.packQty > 1 && (
               <span className="ml-2 text-gray-500">
-                Total: {unitInfo.totalBaseUnits} base units
+                {tr('Total:', 'الإجمالي:')} {unitInfo.totalBaseUnits} {tr('base units', 'وحدة أساسية')}
               </span>
             )}
           </div>
         )}
         
         <span className="text-xs text-gray-400 mb-1">
-          {tr('Item Price','سعر العنصر')} <span className="font-saudi_riyal">{currency}</span>{(calculateItemPrice() || 0).toFixed(2)}
+          {tr('Item Price','سعر العنصر')} {formatPrice(calculateItemPrice())}
           {item.promotion && (
             <span className="ml-1 text-green-500">
               ({tr('Special Offer','عرض خاص')})
@@ -121,28 +134,37 @@ const CartItem = ({ item, currency }) => {
         </span>
         {item.promotion && item.minQty > 1 && (
           <span className="text-xs text-orange-500 mb-1">
-            {tr('Min quantity','الحد الأدنى للكمية')}: {item.minQty} {tr('pcs','قطعة')}
+            {tr('Min quantity','الحد الأدنى للكمية')}: {item.minQty} {getLocalizedUnitName(item.unit, lang)}
           </span>
         )}
         <div className="flex items-center justify-between">
           <div className="font-bold text-sm md:text-base text-heading leading-5">
-            <span>
-              <span className="font-saudi_riyal">{currency}</span>
-              {calculateTotalPrice()}
-            </span>
+            <span>{formatPrice(calculateTotalPrice())}</span>
+            {item.isCombo && (
+              <div className="inline-block ml-2 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                {tr('Combo Deal','صفقة مجمعة')}
+              </div>
+            )}
           </div>
-          <div className="h-8 w-22 md:w-24 lg:w-24 flex flex-wrap items-center justify-evenly p-1 border border-gray-100 bg-white text-gray-600 rounded-md">
+          <div className={`h-8 w-22 md:w-24 lg:w-24 flex flex-wrap items-center justify-evenly p-1 border border-gray-100 bg-white text-gray-600 rounded-md ${item.isCombo ? 'bg-purple-50 border-purple-200' : ''}`}>
             <button
               onClick={handleDecrease}
+              disabled={item.isCombo}
+              className={item.isCombo ? 'opacity-50 cursor-not-allowed' : ''}
             >
               <span className="text-dark text-base">
                 <FiMinus />
               </span>
             </button>
-            <p className="text-sm font-semibold text-dark px-1">
+            <p className={`text-sm font-semibold px-1 ${item.isCombo ? 'text-purple-600' : 'text-dark'}`}>
               {item.quantity}
+              {item.isCombo && <span className="text-xs text-purple-500 ml-1">(fixed)</span>}
             </p>
-            <button onClick={() => handleIncreaseQuantity(item)}>
+            <button 
+              onClick={() => handleIncreaseQuantity(item)}
+              disabled={item.isCombo}
+              className={item.isCombo ? 'opacity-50 cursor-not-allowed' : ''}
+            >
               <span className="text-dark text-base">
                 <FiPlus />
               </span>

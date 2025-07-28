@@ -72,13 +72,13 @@ const Dashboard = ({ title, description, children }) => {
   } = useQuery({
     queryKey: ["orders", { currentPage }],
     queryFn: async () => {
-      console.log("🔍 Customer Dashboard: Fetching order data...");
+      // Fetching order data...
       try {
         const result = await OrderServices.getOrderCustomer({
           page: currentPage,
           limit: 10,
         });
-        console.log("✅ Customer Dashboard: Data fetched successfully", result);
+        // Data fetched successfully
         return result;
       } catch (error) {
         console.error("❌ Customer Dashboard: Error fetching data", error);
@@ -90,16 +90,7 @@ const Dashboard = ({ title, description, children }) => {
     retryDelay: 1000,
   });
 
-  console.log("📊 Customer Dashboard State:", {
-    userSessionValid,
-    loading,
-    error: error?.message,
-    dataExists: !!data,
-    totalDoc: data?.totalDoc,
-    pending: data?.pending,
-    processing: data?.processing,
-    delivered: data?.delivered
-  });
+  // Customer Dashboard State logged
 
   const handleLogOut = () => {
     handleLogout();

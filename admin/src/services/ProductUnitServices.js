@@ -4,25 +4,7 @@ const ProductUnitServices = {
   // Get all product units for a product
   getProductUnits: async (productId) => {
     try {
-      console.log('🔍 Fetching product units for product ID:', productId);
       const response = await requests.get(`product-units/product/${productId}`);
-      console.log('📊 ProductUnits API response:', response);
-      
-      // Debug the first unit to see its structure
-      if (response.data && response.data.length > 0) {
-        const firstUnit = response.data[0];
-        console.log('🔍 First unit structure:', {
-          id: firstUnit._id,
-          unit: firstUnit.unit,
-          unitName: firstUnit.unitName,
-          displayName: firstUnit.displayName,
-          unitDisplayName: firstUnit.unitDisplayName,
-          hasUnitObject: !!firstUnit.unit,
-          unitObjectName: firstUnit.unit?.name,
-          keys: Object.keys(firstUnit)
-        });
-      }
-      
       return response;
     } catch (error) {
       console.error('❌ Error fetching product units:', error);

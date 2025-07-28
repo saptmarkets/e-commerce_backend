@@ -7,8 +7,10 @@ import { HiRefresh, HiDownload, HiTrendingUp, HiTrendingDown, HiUsers, HiShoppin
 import requests from '@/services/httpService';
 import { SidebarContext } from '@/context/SidebarContext';
 import useUtilsFunction from '@/hooks/useUtilsFunction';
+import { useTranslation } from 'react-i18next';
 
 const SalesAnalytics = () => {
+  const { t } = useTranslation();
   const { currency, getNumberTwo } = useUtilsFunction();
   
   // 🎸 State Management
@@ -674,23 +676,23 @@ const SalesAnalytics = () => {
       <Card>
         <CardBody>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            📅 Report Filters
+            {t('ReportFilters')}
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Period Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Report Period
+                {t('ReportPeriod')}
               </label>
               <select
                 value={filters.period}
                 onChange={(e) => handlePeriodChange(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
-                <option value="daily">Daily (Last 30 days)</option>
-                <option value="weekly">Weekly (Last 12 weeks)</option>
-                <option value="monthly">Monthly (Specific month)</option>
+                <option value="daily">{t('DailyLast30Days')}</option>
+                <option value="weekly">{t('WeeklyLast12Weeks')}</option>
+                <option value="monthly">{t('MonthlySpecificMonth')}</option>
               </select>
             </div>
 
@@ -698,7 +700,7 @@ const SalesAnalytics = () => {
             {filters.period === 'monthly' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Month
+                  {t('SelectMonth')}
                 </label>
                 <select
                   value={filters.month}
@@ -718,7 +720,7 @@ const SalesAnalytics = () => {
             {filters.period === 'monthly' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Year
+                  {t('SelectYear')}
                 </label>
                 <select
                   value={filters.year}
@@ -742,7 +744,7 @@ const SalesAnalytics = () => {
                 className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <HiRefresh className={loading ? 'animate-spin' : ''} />
-                {loading ? 'Loading...' : 'Apply Filters'}
+                {loading ? t('Loading') : t('ApplyFilters')}
               </Button>
             </div>
           </div>
@@ -750,10 +752,10 @@ const SalesAnalytics = () => {
           {/* Current Filter Display */}
           <div className="mt-4 p-3 bg-purple-50 rounded-lg">
             <p className="text-sm text-purple-700">
-              <strong>Current Filter:</strong> {' '}
-              {filters.period === 'daily' && 'Daily reports for last 30 days'}
-              {filters.period === 'weekly' && 'Weekly reports for last 12 weeks'}
-              {filters.period === 'monthly' && `Monthly report for ${months.find(m => m.value === filters.month)?.label} ${filters.year}`}
+              <strong>{t('CurrentFilter')}:</strong> {' '}
+              {filters.period === 'daily' && t('DailyReportsLast30Days')}
+              {filters.period === 'weekly' && t('WeeklyReportsLast12Weeks')}
+              {filters.period === 'monthly' && `${t('MonthlyReport')} ${months.find(m => m.value === filters.month)?.label} ${filters.year}`}
             </p>
           </div>
         </CardBody>
@@ -768,10 +770,10 @@ const SalesAnalytics = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              📊 Sales Analytics Dashboard
+              {t('SalesAnalyticsDashboard')}
             </h1>
             <p className="text-gray-600">
-              Real-time sales performance insights with advanced filtering
+              {t('RealTimeSalesPerformanceInsights')}
             </p>
           </div>
           <div className="flex gap-3">
@@ -781,7 +783,7 @@ const SalesAnalytics = () => {
               className="flex items-center gap-2"
             >
               <HiRefresh className={loading ? 'animate-spin' : ''} />
-              {loading ? 'Refreshing...' : 'Refresh Data'}
+              {loading ? t('Refreshing') : t('RefreshData')}
             </Button>
             
             <Button
@@ -791,7 +793,7 @@ const SalesAnalytics = () => {
               className="flex items-center gap-2"
             >
               <HiDownload />
-              Export Report
+              {t('ExportReport')}
             </Button>
           </div>
         </div>
@@ -805,14 +807,14 @@ const SalesAnalytics = () => {
       {/* 🎸 Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <h4 className="text-red-800 font-semibold mb-2">Error Loading Data</h4>
+          <h4 className="text-red-800 font-semibold mb-2">{t('ErrorLoadingData')}</h4>
           <p className="text-red-700">{error}</p>
           <Button
             onClick={handleRefresh}
             size="small"
             className="mt-2"
           >
-            Try Again
+            {t('TryAgain')}
           </Button>
         </div>
       )}
@@ -825,7 +827,7 @@ const SalesAnalytics = () => {
               <HiCash className="w-6 h-6" />
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-600">Total Revenue</p>
+              <p className="mb-2 text-sm font-medium text-gray-600">{t('TotalRevenue')}</p>
               <div className="flex items-center">
                 <p className="text-2xl font-bold text-gray-700">
                   {kpis ? formatCurrency(kpis.totalRevenue) : '$0'}
@@ -852,7 +854,7 @@ const SalesAnalytics = () => {
               <HiShoppingCart className="w-6 h-6" />
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-600">Total Orders</p>
+              <p className="mb-2 text-sm font-medium text-gray-600">{t('TotalOrders')}</p>
               <div className="flex items-center">
                 <p className="text-2xl font-bold text-gray-700">
                   {kpis ? formatNumber(kpis.totalOrders) : '0'}
@@ -879,7 +881,7 @@ const SalesAnalytics = () => {
               <HiUsers className="w-6 h-6" />
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-600">Total Customers</p>
+              <p className="mb-2 text-sm font-medium text-gray-600">{t('TotalCustomers')}</p>
               <p className="text-2xl font-bold text-gray-700">
                 {kpis ? formatNumber(kpis.totalCustomers) : '0'}
               </p>
@@ -893,7 +895,7 @@ const SalesAnalytics = () => {
               <HiEye className="w-6 h-6" />
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-600">Avg Order Value</p>
+              <p className="mb-2 text-sm font-medium text-gray-600">{t('AvgOrderValue')}</p>
               <p className="text-2xl font-bold text-gray-700">
                 {kpis ? formatCurrency(kpis.avgOrderValue) : '$0'}
               </p>
@@ -908,21 +910,21 @@ const SalesAnalytics = () => {
         <Card>
           <CardBody>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              📈 Sales Trends Data
+              {t('SalesTrendsData')}
             </h3>
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading trends data...</p>
+                <p className="text-gray-600">{t('LoadingTrendsData')}</p>
               </div>
             ) : trendsData.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-600 border-b">
-                      <th className="pb-2">Date</th>
-                      <th className="pb-2">Revenue</th>
-                      <th className="pb-2">Orders</th>
+                      <th className="pb-2">{t('Date')}</th>
+                      <th className="pb-2">{t('Revenue')}</th>
+                      <th className="pb-2">{t('Orders')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -930,7 +932,7 @@ const SalesAnalytics = () => {
                       <tr key={index} className="border-b">
                         <td className="py-2">
                           {item.date ? new Date(item.date).toLocaleDateString() : 
-                           item.period ? item.period : `Day ${index + 1}`}
+                           item.period ? item.period : `${t('Day')} ${index + 1}`}
                         </td>
                         <td className="py-2">{formatCurrency(item.revenue || item.totalRevenue || 0)}</td>
                         <td className="py-2">{formatNumber(item.orders || item.totalOrders || 0)}</td>
@@ -942,7 +944,7 @@ const SalesAnalytics = () => {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <div className="text-4xl mb-2">📈</div>
-                <p>No trends data available</p>
+                <p>{t('NoTrendsDataAvailable')}</p>
               </div>
             )}
           </CardBody>
@@ -952,21 +954,21 @@ const SalesAnalytics = () => {
         <Card>
           <CardBody>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              💳 Payment Methods
+              {t('PaymentMethods')}
             </h3>
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading payment data...</p>
+                <p className="text-gray-600">{t('LoadingPaymentData')}</p>
               </div>
             ) : paymentMethodsData.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-600 border-b">
-                      <th className="pb-2">Method</th>
-                      <th className="pb-2">Revenue</th>
-                      <th className="pb-2">Orders</th>
+                      <th className="pb-2">{t('Method')}</th>
+                      <th className="pb-2">{t('Revenue')}</th>
+                      <th className="pb-2">{t('Orders')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -983,7 +985,7 @@ const SalesAnalytics = () => {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <div className="text-4xl mb-2">💳</div>
-                <p>No payment methods data available</p>
+                <p>{t('NoPaymentMethodsDataAvailable')}</p>
               </div>
             )}
           </CardBody>
@@ -994,22 +996,22 @@ const SalesAnalytics = () => {
       <Card>
         <CardBody>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            🏆 Top Products
+            {t('TopProducts')}
           </h3>
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading products data...</p>
+              <p className="text-gray-600">{t('LoadingProductsData')}</p>
             </div>
           ) : topProductsData.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-600 border-b">
-                    <th className="pb-2">Product</th>
-                    <th className="pb-2">Sales Qty</th>
-                    <th className="pb-2">Revenue</th>
-                    <th className="pb-2">Avg Price</th>
+                    <th className="pb-2">{t('Product')}</th>
+                    <th className="pb-2">{t('SalesQty')}</th>
+                    <th className="pb-2">{t('Revenue')}</th>
+                    <th className="pb-2">{t('AvgPrice')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1034,7 +1036,7 @@ const SalesAnalytics = () => {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <div className="text-4xl mb-2">🏆</div>
-              <p>No products data available</p>
+              <p>{t('NoProductsDataAvailable')}</p>
             </div>
           )}
         </CardBody>
@@ -1044,23 +1046,23 @@ const SalesAnalytics = () => {
       <Card>
         <CardBody>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            📦 Category Sales Performance
+            {t('CategorySalesPerformance')}
           </h3>
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading category sales data...</p>
+              <p className="text-gray-600">{t('LoadingCategorySalesData')}</p>
             </div>
           ) : categorySalesData.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-600 border-b">
-                    <th className="pb-2">Category</th>
-                    <th className="pb-2">Revenue</th>
-                    <th className="pb-2">Orders</th>
-                    <th className="pb-2">Products</th>
-                    <th className="pb-2">Market Share</th>
+                    <th className="pb-2">{t('Category')}</th>
+                    <th className="pb-2">{t('Revenue')}</th>
+                    <th className="pb-2">{t('Orders')}</th>
+                    <th className="pb-2">{t('Products')}</th>
+                    <th className="pb-2">{t('MarketShare')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1085,7 +1087,7 @@ const SalesAnalytics = () => {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <div className="text-4xl mb-2">📦</div>
-              <p>No category sales data available</p>
+              <p>{t('NoCategorySalesDataAvailable')}</p>
             </div>
           )}
         </CardBody>
@@ -1096,7 +1098,7 @@ const SalesAnalytics = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-90vh overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Export Sales Analytics</h3>
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">{t('ExportSalesAnalytics')}</h3>
               <button
                 onClick={() => setShowExportModal(false)}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -1109,7 +1111,7 @@ const SalesAnalytics = () => {
               {/* Format Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Export Format
+                  {t('ExportFormat')}
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {['csv', 'excel', 'pdf'].map(format => (
@@ -1124,9 +1126,9 @@ const SalesAnalytics = () => {
                     >
                       <div className="text-sm font-medium uppercase">{format}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {format === 'csv' && 'Comma Separated Values'}
-                        {format === 'excel' && 'Excel Spreadsheet'}
-                        {format === 'pdf' && 'HTML Report (printable)'}
+                        {format === 'csv' && t('CSVFormatDesc')}
+                        {format === 'excel' && t('ExcelFormatDesc')}
+                        {format === 'pdf' && t('PDFFormatDesc')}
                       </div>
                     </button>
                   ))}
@@ -1136,15 +1138,15 @@ const SalesAnalytics = () => {
               {/* Data Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Select Data to Export
+                  {t('SelectDataToExport')}
                 </label>
                 <div className="space-y-3">
                   {[
-                    { key: 'overview', label: 'Overview & KPIs', desc: 'Revenue, Orders, Customers, Growth rates' },
-                    { key: 'trends', label: 'Sales Trends', desc: 'Daily/Weekly/Monthly sales data' },
-                    { key: 'paymentMethods', label: 'Payment Methods', desc: 'Revenue breakdown by payment type' },
-                    { key: 'topProducts', label: 'Top Products', desc: 'Best-selling products and revenue' },
-                    { key: 'categories', label: 'Category Sales', desc: 'Revenue breakdown by product category' }
+                    { key: 'overview', label: t('OverviewKPIs'), desc: `${t('Revenue')}, ${t('Orders')}, ${t('Customers')}, ${t('GrowthRates')}` },
+                    { key: 'trends', label: t('SalesTrends'), desc: `${t('Daily')}/${t('Weekly')}/${t('Monthly')} ${t('SalesData')}` },
+                    { key: 'paymentMethods', label: t('PaymentMethods'), desc: `${t('RevenueBreakdownByPaymentType')}` },
+                    { key: 'topProducts', label: t('TopProducts'), desc: `${t('BestSellingProducts')} ${t('and')} ${t('Revenue')}` },
+                    { key: 'categories', label: t('CategorySales'), desc: `${t('RevenueBreakdownByProductCategory')}` }
                   ].map(item => (
                     <div key={item.key} className="flex items-center space-x-3">
                       <input
@@ -1173,17 +1175,17 @@ const SalesAnalytics = () => {
               {/* Date Range */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Date Range
+                  {t('DateRange')}
                 </label>
                 <select
                   value={exportOptions.dateRange}
                   onChange={(e) => setExportOptions(prev => ({ ...prev, dateRange: e.target.value }))}
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
+                  <option value="all">{t('AllTime')}</option>
+                  <option value="today">{t('Today')}</option>
+                  <option value="week">{t('ThisWeek')}</option>
+                  <option value="month">{t('ThisMonth')}</option>
                 </select>
               </div>
 
@@ -1197,12 +1199,12 @@ const SalesAnalytics = () => {
                   {exportLoading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                      Exporting...
+                      {t('Exporting')}...
                     </>
                   ) : (
                     <>
                       <HiDownload className="w-5 h-5 mr-2" />
-                      Export Selected Data
+                      {t('ExportSelectedData')}
                     </>
                   )}
                 </Button>
@@ -1211,7 +1213,7 @@ const SalesAnalytics = () => {
                   onClick={() => setShowExportModal(false)}
                   className="px-6"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </Button>
               </div>
             </div>

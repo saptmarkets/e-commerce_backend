@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { FiTruck, FiMapPin, FiInfo, FiTarget } from 'react-icons/fi';
+import useTranslation from 'next-translate/useTranslation';
 import DistanceService from '@services/DistanceService';
 
 const DistanceBasedShippingCalculator = ({ 
@@ -9,11 +11,24 @@ const DistanceBasedShippingCalculator = ({
   currency = 'SAR',
   storeSettings = null 
 }) => {
+  const { t, lang } = useTranslation();
   const [shippingCost, setShippingCost] = useState(0);
   const [distance, setDistance] = useState(null);
   const [shippingBreakdown, setShippingBreakdown] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Translation function
+  const tr = (en, ar) => {
+    const key = 'common:' + en.replace(/\s+/g, '').replace(/[^a-zA-Z]/g, '');
+    const translated = t(key);
+    // If translation missing, next-translate returns the key itself.
+    if (translated === key) {
+      // Fallback based on current locale (ar vs others)
+      return lang === 'ar' ? (ar || en) : en;
+    }
+    return translated;
+  };
 
   // Default shipping settings if not provided
   const defaultSettings = {
@@ -35,51 +50,24 @@ const DistanceBasedShippingCalculator = ({
   const settings = storeSettings || defaultSettings;
 
   useEffect(() => {
-    console.log('DistanceBasedShippingCalculator - useEffect triggered');
-    console.log('userLocation:', userLocation);
-    console.log('settings:', settings);
-    console.log('cartTotal:', cartTotal);
-    
-    // Add detailed settings debugging
-    console.log('Settings breakdown:');
-    console.log('- baseCost:', settings.pricing.baseCost);
-    console.log('- costPerKm:', settings.pricing.costPerKm);
-    console.log('- freeDelivery.radius:', settings.freeDelivery.radius);
-    console.log('- freeDelivery.enabled:', settings.freeDelivery.enabled);
-    
     // Calculate shipping even if cart is empty (for display purposes)
     if (userLocation && settings.storeLocation.latitude && settings.storeLocation.longitude) {
-      console.log('All conditions met, calculating shipping...');
       calculateShipping();
-    } else {
-      console.log('Conditions not met for shipping calculation');
-      console.log('userLocation exists:', !!userLocation);
-      console.log('userLocation type:', typeof userLocation);
-      console.log('userLocation details:', userLocation);
-      console.log('store latitude:', settings.storeLocation.latitude);
-      console.log('store longitude:', settings.storeLocation.longitude);
     }
   }, [userLocation, cartTotal, settings]);
 
   const calculateShipping = () => {
-    console.log('calculateShipping function called');
     setLoading(true);
     setError('');
 
     try {
       // Calculate distance from store to customer
-      console.log('Calculating distance between:');
-      console.log('Store:', settings.storeLocation.latitude, settings.storeLocation.longitude);
-      console.log('User:', userLocation.latitude, userLocation.longitude);
-      
       const calculatedDistance = DistanceService.calculateDistance(
         settings.storeLocation.latitude,
         settings.storeLocation.longitude,
         userLocation.latitude,
         userLocation.longitude
       );
-      
-      console.log('Calculated distance:', calculatedDistance, 'km');
 
       // Calculate shipping cost
       const shippingSettings = {
@@ -91,20 +79,11 @@ const DistanceBasedShippingCalculator = ({
         freeShippingEnabled: settings.freeDelivery.enabled !== false // Default to true if not specified
       };
       
-      console.log('Shipping settings being passed to DistanceService:');
-      console.log('- baseCost:', shippingSettings.baseCost, '(type:', typeof shippingSettings.baseCost, ')');
-      console.log('- costPerKm:', shippingSettings.costPerKm, '(type:', typeof shippingSettings.costPerKm, ')');
-      console.log('- freeDeliveryRadius:', shippingSettings.freeDeliveryRadius, '(type:', typeof shippingSettings.freeDeliveryRadius, ')');
-      console.log('- cartTotal:', cartTotal, '(type:', typeof cartTotal, ')');
-      
       const shippingResult = DistanceService.calculateShippingCost(
         calculatedDistance,
         shippingSettings,
         cartTotal
       );
-
-      console.log('Shipping calculation result:', shippingResult);
-      console.log('Breakdown details:', shippingResult.breakdown);
 
       if (shippingResult.error) {
         setError(shippingResult.error);
@@ -122,7 +101,7 @@ const DistanceBasedShippingCalculator = ({
         }
       }
     } catch (err) {
-      setError('Failed to calculate shipping cost. Please try again.');
+      setError(tr('Failed to calculate shipping cost. Please try again.', 'فشل في حساب تكلفة الشحن. يرجى المحاولة مرة أخرى.'));
       setShippingCost(0);
     } finally {
       setLoading(false);
@@ -135,19 +114,19 @@ const DistanceBasedShippingCalculator = ({
         <div className="flex items-center">
           <FiMapPin className="text-yellow-600 mr-2" />
           <span className="text-sm font-medium text-yellow-800">
-            📍 Please enable location to calculate shipping cost
+            📍 {tr('Please enable location to calculate shipping cost', 'يرجى تفعيل الموقع لحساب تكلفة الشحن')}
           </span>
         </div>
         <p className="text-xs text-yellow-700 mt-1">
-          Click "Get My Location for Delivery" button above to enable location-based shipping calculation.
+          {tr('Click the "Get My Location for Delivery" button above to enable location-based shipping', 'انقر على زر "الحصول على موقعي للتوصيل" أعلاه لتفعيل حساب الشحن حسب الموقع')}
         </p>
                   <div className="mt-2 text-xs text-gray-600">
-            <strong>Shipping rates:</strong> Base {settings.pricing.baseCost} {currency} + {settings.pricing.costPerKm} {currency}/km
+            <strong>{tr('Shipping rates:', 'أسعار الشحن:')}</strong> {tr('Base', 'قاعدة')} {settings.pricing.baseCost} {currency} + {settings.pricing.costPerKm} {currency}/{tr('km', 'كم')}
             <br />
             {settings.freeDelivery.enabled !== false ? (
-              <span><strong>Free delivery:</strong> Within {settings.freeDelivery.radius}km or orders over {settings.freeDelivery.minOrderAmount} {currency}</span>
+              <span><strong>{tr('Free Delivery:', 'توصيل مجاني:')}</strong> {tr('Within', 'ضمن')} {settings.freeDelivery.radius}{tr('km or orders over', 'كم أو طلبات أكثر من')} {settings.freeDelivery.minOrderAmount} {currency}</span>
             ) : (
-              <span className="text-orange-600"><strong>Note:</strong> Free delivery is currently disabled. All orders will be charged shipping cost.</span>
+                              <span className="text-orange-600"><strong>{tr('Note:', 'ملاحظة:')}</strong> {tr('Free delivery is currently disabled. All orders will incur a shipping charge.', 'التوصيل المجاني معطل حالياً. جميع الطلبات سيتم تحصيل تكلفة شحن منها.')}</span>
             )}
           </div>
       </div>
@@ -160,7 +139,7 @@ const DistanceBasedShippingCalculator = ({
         <div className="flex items-center">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
           <span className="text-sm font-medium text-blue-800">
-            Calculating shipping cost based on your location...
+            {tr('Calculating shipping cost based on your location...', 'جاري حساب تكلفة الشحن بناءً على موقعك...')}
           </span>
         </div>
       </div>
@@ -189,23 +168,23 @@ const DistanceBasedShippingCalculator = ({
             <FiTruck className="text-emerald-600 text-xl mr-3" />
             <div>
               <h6 className="font-serif font-medium text-sm text-gray-800">
-                🚚 Distance-Based Delivery
+                🚚 {tr('Distance-Based Delivery', 'التوصيل حسب المسافة')}
               </h6>
               <p className="text-xs text-gray-600">
-                {distance && `📍 ${distance}km from store • ${settings.pricing.costPerKm} ${currency}/km`}
+                {distance && `📍 ${distance}${tr('km from store', 'كم من المتجر')} • ${settings.pricing.costPerKm} ${currency}/${tr('km', 'كم')}`}
               </p>
             </div>
           </div>
           <div className="text-right">
             <div className="text-lg font-bold text-emerald-600">
               {shippingCost === 0 && settings.freeDelivery.enabled !== false ? (
-                <span className="text-green-600">FREE</span>
+                <span className="text-green-600">{tr('FREE', 'مجاني')}</span>
               ) : (
                 `${shippingCost} ${currency}`
               )}
             </div>
             <div className="text-xs text-gray-500">
-              {shippingCost === 0 && settings.freeDelivery.enabled !== false ? 'Free delivery' : 'Delivery charge'}
+              {shippingCost === 0 && settings.freeDelivery.enabled !== false ? tr('Free delivery', 'توصيل مجاني') : tr('Delivery charge', 'رسوم التوصيل')}
             </div>
           </div>
         </div>
@@ -217,7 +196,7 @@ const DistanceBasedShippingCalculator = ({
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center text-blue-700">
               <FiTarget className="mr-2" />
-              <span>Your location is <strong>{distance}km</strong> from our store</span>
+              <span>{tr('Your location is', 'موقعك على بعد')} <strong>{distance}{tr('km', 'كم')}</strong> {tr('from our store', 'من متجرنا')}</span>
             </div>
             <div className="text-blue-600 font-mono text-xs">
               📍 {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
@@ -230,7 +209,7 @@ const DistanceBasedShippingCalculator = ({
       {shippingBreakdown && (
         <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
           <h6 className="text-xs font-semibold text-gray-700 mb-2 block">
-            📊 Shipping Cost Breakdown:
+            📊 {tr('Shipping Cost Breakdown:', 'تفصيل تكلفة الشحن:')}
           </h6>
           
           {shippingBreakdown.freeReason ? (
@@ -240,16 +219,16 @@ const DistanceBasedShippingCalculator = ({
           ) : (
             <div className="space-y-1 text-xs text-gray-600">
               <div className="flex justify-between">
-                <span>Base shipping cost:</span>
+                <span>{tr('Base shipping cost:', 'تكلفة الشحن الأساسية:')}</span>
                 <span className="font-mono">{shippingBreakdown.baseCost} {currency}</span>
               </div>
               <div className="flex justify-between">
-                <span>Distance cost ({distance}km × {(shippingBreakdown.distanceCost / distance).toFixed(2)} {currency}/km):</span>
+                <span>{tr('Distance cost', 'تكلفة المسافة')} ({distance}{tr('km', 'كم')} × {(shippingBreakdown.distanceCost / distance).toFixed(2)} {currency}/{tr('km', 'كم')}):</span>
                 <span className="font-mono">{Number(shippingBreakdown.distanceCost).toFixed(2)} {currency}</span>
               </div>
               <hr className="border-gray-300" />
               <div className="flex justify-between font-semibold text-gray-800">
-                <span>Total shipping cost:</span>
+                <span>{tr('Total shipping cost:', 'إجمالي تكلفة الشحن:')}</span>
                 <span className="font-mono">{Number(shippingBreakdown.totalCost || shippingBreakdown.baseCost + shippingBreakdown.distanceCost).toFixed(2)} {currency}</span>
               </div>
             </div>
@@ -261,7 +240,7 @@ const DistanceBasedShippingCalculator = ({
       {settings.freeDelivery.enabled !== false && settings.freeDelivery.minOrderAmount && cartTotal < settings.freeDelivery.minOrderAmount && shippingCost > 0 && (
         <div className="p-3 bg-purple-50 rounded-md border border-purple-200">
           <div className="text-xs text-purple-700">
-            💡 <strong>Get Free Delivery!</strong> Add {currency}{(settings.freeDelivery.minOrderAmount - cartTotal).toFixed(2)} more to your order for free delivery!
+            💡 <strong>{tr('Get Free Delivery!', 'احصل على توصيل مجاني!')}</strong> {tr('Add', 'أضف')} {currency}{(settings.freeDelivery.minOrderAmount - cartTotal).toFixed(2)} {tr('more to your order for free delivery!', 'أكثر لطلبك للحصول على توصيل مجاني!')}
           </div>
         </div>
       )}
@@ -270,7 +249,7 @@ const DistanceBasedShippingCalculator = ({
       {settings.freeDelivery.enabled !== false && settings.freeDelivery.radius && distance && distance <= settings.freeDelivery.radius && shippingCost === 0 && (
         <div className="p-3 bg-green-50 rounded-md border border-green-200">
           <div className="text-xs text-green-700">
-            🎉 <strong>You're in our free delivery zone!</strong> Enjoy free delivery for being within {settings.freeDelivery.radius}km of our store.
+            🎉 <strong>{tr("You're in our free delivery zone!", 'أنت في منطقة التوصيل المجاني!')}</strong> {tr('Enjoy free delivery for being within', 'استمتع بالتوصيل المجاني لكونك ضمن')} {settings.freeDelivery.radius}{tr('km of our store.', 'كم من متجرنا.')}
           </div>
         </div>
       )}
@@ -279,7 +258,7 @@ const DistanceBasedShippingCalculator = ({
       {settings.freeDelivery.enabled === false && shippingCost > 0 && (
         <div className="p-3 bg-orange-50 rounded-md border border-orange-200">
           <div className="text-xs text-orange-700">
-            ℹ️ <strong>Free delivery is currently unavailable.</strong> All orders will be charged the calculated shipping cost.
+            ℹ️ <strong>{tr('Free delivery is currently unavailable.', 'التوصيل المجاني غير متوفر حالياً.')}</strong> {tr('All orders will be charged the calculated shipping cost.', 'جميع الطلبات سيتم تحصيل تكلفة الشحن المحسوبة منها.')}
           </div>
         </div>
       )}
@@ -288,7 +267,7 @@ const DistanceBasedShippingCalculator = ({
       {settings.pricing.maxDeliveryDistance && distance && (
         <div className="p-2 bg-gray-50 rounded-md border border-gray-200">
           <div className="text-xs text-gray-600 text-center">
-            📦 We deliver up to {settings.pricing.maxDeliveryDistance}km from our store • You're {distance}km away
+            📦 {tr('We deliver up to', 'نوصل حتى')} {settings.pricing.maxDeliveryDistance}{tr('km from our store', 'كم من متجرنا')} • {tr("You're", 'أنت على بعد')} {distance}{tr('km away', 'كم')}
           </div>
         </div>
       )}

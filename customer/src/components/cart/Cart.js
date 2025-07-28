@@ -15,7 +15,23 @@ const Cart = () => {
   const { t } = useTranslation();
   const { closeCartDrawer } = useContext(SidebarContext);
   const { isEmpty, items } = useCart();
-  const { currency } = useUtilsFunction();
+  const { currency, lang } = useUtilsFunction();
+
+  const formatPrice = (val) => {
+    const value = parseFloat(val || 0).toFixed(2);
+    if (lang === 'ar') {
+      return (
+        <span className="inline-flex items-center whitespace-nowrap">
+          {value}&nbsp;<span className="font-saudi_riyal">{currency}</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center whitespace-nowrap">
+        <span className="font-saudi_riyal">{currency}</span>&nbsp;{value}
+      </span>
+    );
+  };
 
   // Calculate the correct cart total with promotional prices
   const cartTotal = useMemo(() => {
@@ -84,10 +100,7 @@ const Cart = () => {
             <div className="font-medium">
               <p>{t("common:subtotal")}:</p>
             </div>
-            <div className="font-bold text-lg">
-              <span className="font-saudi_riyal">{currency}</span>
-              {(cartTotal || 0).toFixed(2)}
-            </div>
+            <div className="font-bold text-lg">{formatPrice(cartTotal)}</div>
           </div>
         )}
         <div className="flex items-center justify-between mt-4">

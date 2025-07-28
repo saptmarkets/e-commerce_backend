@@ -275,6 +275,11 @@ const InvoiceForDownload = ({
   getNumberTwo,
 }) => {
   const { t } = useTranslation();
+  
+  // Helper function to format price with Saudi Riyal symbol
+  const formatPrice = (value) => {
+    return `\uE900${getNumberTwo(value)}`;
+  };
 
   return (
     <>
@@ -534,62 +539,208 @@ const InvoiceForDownload = ({
                 </Text>
               </View>
             </View>
-            {data?.cart?.map((item, i) => (
-              <View key={i} style={styles.tableRow}>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>
-                    {item.title?.substring(0, 20)}
-                  </Text>
-                </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCellQuantity}>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontWeight: "bold",
-                        textAlign: "center",
-                        alignItems: "center",
-                        fontFamily: "Open Sans",
-                      }}
-                    >
-                      {item.quantity}
-                    </Text>
-                  </Text>
-                </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontWeight: "bold",
-                        textAlign: "left",
-                        fontFamily: "Open Sans",
-                      }}
-                    >
-                      {currency}
-                      {getNumberTwo(item.price)}
-                    </Text>
-                  </Text>
-                </View>
-
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        color: "#ef4444",
-                        fontWeight: "bold",
-                        textAlign: "right",
-                        fontFamily: "Open Sans",
-                      }}
-                    >
-                      {currency}
-                      {getNumberTwo(item.price * item.quantity)}
-                    </Text>
-                  </Text>
-                </View>
-              </View>
-            ))}
+            {(() => {
+              let rowIndex = 0;
+              const rows = [];
+              
+              data?.cart?.forEach((item, i) => {
+                const isCombo = item.comboDetails && item.comboDetails.productBreakdown;
+                
+                if (isCombo) {
+                  // Add combo header row
+                  rows.push(
+                    <View key={`${i}-header`} style={styles.tableRow}>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontWeight: 'bold', color: '#7c3aed' }}>
+                            {item.title?.substring(0, 20)}
+                          </Text>
+                          <Text style={{ fontSize: 8, color: '#6b7280' }}>
+                            Combo Deal • {item.comboDetails.productBreakdown?.length || 0} items
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCellQuantity}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "bold",
+                              textAlign: "center",
+                              alignItems: "center",
+                              fontFamily: "Open Sans",
+                            }}
+                          >
+                            {item.quantity}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "bold",
+                              textAlign: "left",
+                              fontFamily: "Open Sans",
+                            }}
+                          >
+                            {formatPrice(item.price)}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: "#ef4444",
+                              fontWeight: "bold",
+                              textAlign: "right",
+                              fontFamily: "Open Sans",
+                            }}
+                          >
+                            {formatPrice(item.price * item.quantity)}
+                          </Text>
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                  rowIndex++;
+                  
+                  // Add individual combo products
+                  item.comboDetails.productBreakdown?.forEach((comboProduct, j) => {
+                    rows.push(
+                      <View key={`${i}-combo-${j}`} style={[styles.tableRow, { backgroundColor: '#f9fafb' }]}>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>
+                              {comboProduct.productTitle}
+                            </Text>
+                            <Text style={{ fontSize: 7, color: '#9ca3af' }}>
+                              ({comboProduct.unit})
+                            </Text>
+                          </Text>
+                        </View>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCellQuantity}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>
+                              {comboProduct.quantity}
+                            </Text>
+                          </Text>
+                        </View>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>
+                              {formatPrice(comboProduct.unitPrice || 0)}
+                            </Text>
+                          </Text>
+                        </View>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>
+                              {formatPrice((comboProduct.unitPrice || 0) * comboProduct.quantity)}
+                            </Text>
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  });
+                  
+                  // Add combo total row
+                  rows.push(
+                    <View key={`${i}-total`} style={[styles.tableRow, { backgroundColor: '#f3f4f6', borderTopWidth: 1, borderColor: '#d1d5db' }]}>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            Combo Total ({item.comboDetails?.totalSelectedQty || item.quantity} items)
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCellQuantity}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            {item.quantity} combo{item.quantity > 1 ? 's' : ''}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            {formatPrice(item.comboDetails?.pricePerItem || item.price)}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            {formatPrice(item.comboDetails?.totalValue || (item.price * item.quantity))}
+                          </Text>
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                } else {
+                  // Regular product row
+                  rows.push(
+                    <View key={i} style={styles.tableRow}>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          {item.title?.substring(0, 20)}
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCellQuantity}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "bold",
+                              textAlign: "center",
+                              alignItems: "center",
+                              fontFamily: "Open Sans",
+                            }}
+                          >
+                            {item.quantity}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "bold",
+                              textAlign: "left",
+                              fontFamily: "Open Sans",
+                            }}
+                          >
+                            {formatPrice(item.price)}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: "#ef4444",
+                              fontWeight: "bold",
+                              textAlign: "right",
+                              fontFamily: "Open Sans",
+                            }}
+                          >
+                            {formatPrice(item.price * item.quantity)}
+                          </Text>
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                  rowIndex++;
+                }
+              });
+              
+              return rows;
+            })()}
           </View>
 
           <View style={styles.invoiceThird}>
@@ -608,9 +759,7 @@ const InvoiceForDownload = ({
               <Text style={styles.title}>
                 <Text style={{ textAlign: "left" }}>
                   <Text style={styles.infoCost}>
-                    {currency}
-
-                    {getNumberTwo(data?.subTotal)}
+                    {formatPrice(data?.subTotal)}
                   </Text>
                 </Text>
               </Text>
@@ -623,8 +772,7 @@ const InvoiceForDownload = ({
               <Text style={styles.title}>
                 <Text style={{ textAlign: "left" }}>
                   <Text style={styles.infoCost}>
-                    {currency}
-                    {getNumberTwo(data?.shippingCost)}
+                    {formatPrice(data?.shippingCost)}
                   </Text>
                 </Text>
               </Text>
@@ -637,8 +785,7 @@ const InvoiceForDownload = ({
                 <Text style={{ textAlign: "left" }}>
                   <Text style={styles.infoCost}>
                     {" "}
-                    {currency}
-                    {getNumberTwo(data?.discount)}
+                    {formatPrice(data?.discount)}
                   </Text>
                 </Text>
               </Text>
@@ -651,8 +798,7 @@ const InvoiceForDownload = ({
                 <Text style={styles.title}>
                   <Text style={{ textAlign: "left" }}>
                     <Text style={[styles.infoCost, { color: "#9333ea" }]}>
-                      -{currency}
-                      {getNumberTwo(data?.loyaltyDiscount)}
+                      -{formatPrice(data?.loyaltyDiscount)}
                     </Text>
                   </Text>
                 </Text>
@@ -673,9 +819,7 @@ const InvoiceForDownload = ({
               </Text>
               <Text style={styles.title}>
                 <Text style={styles.totalAmount}>
-                  {currency}
-
-                  {getNumberTwo(data?.total)}
+                  {formatPrice(data?.total)}
                 </Text>
               </Text>
             </View>

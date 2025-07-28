@@ -19,6 +19,7 @@ import { SidebarContext } from "@/context/SidebarContext";
 import useBulkActionSubmit from "@/hooks/useBulkActionSubmit";
 import ParentCategory from "@/components/category/ParentCategory";
 import useUtilsFunction from "@/hooks/useUtilsFunction";
+import { useTranslation } from "react-i18next";
 
 const BulkActionDrawer = ({
   ids,
@@ -29,6 +30,7 @@ const BulkActionDrawer = ({
   attributes,
   isCheck,
 }) => {
+  const { t } = useTranslation();
   const { toggleBulkDrawer, isBulkDrawerOpen, closeBulkDrawer } =
     useContext(SidebarContext);
 
@@ -144,8 +146,8 @@ const BulkActionDrawer = ({
         <div className="flex flex-col w-full h-full justify-between">
           <div className="w-full relative p-6 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
             <Title
-              title={`Update Selected ${title}`}
-              description={`Apply changes to the selected ${title} from the list`}
+              title={`${t('update_selected')} ${title}`}
+              description={`${t('apply_changes_to_selected')} ${title} ${t('from_the_list')}`}
             />
           </div>
           <Scrollbars className="w-full md:w-7/12 lg:w-8/12 xl:w-8/12 relative dark:bg-gray-700 dark:text-gray-200">
@@ -484,13 +486,13 @@ const BulkActionDrawer = ({
                     className=" text-red-500 hover:bg-red-50 hover:border-red-100 hover:text-red-600 dark:bg-gray-700 dark:border-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-red-700"
                     layout="outline"
                   >
-                    Cancel
+                    {t('cancel')}
                   </Button>
                 </div>
                 <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
                   <Button type="submit" className="h-12 w-full">
                     {" "}
-                    Bulk Update {title}
+                    {t('bulk_update')} {title}
                   </Button>
                 </div>
               </div>

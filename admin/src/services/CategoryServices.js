@@ -118,6 +118,19 @@ const CategoryServices = {
       throw error;
     }
   },
+
+  // Import all Odoo categories to store categories
+  importAllOdooCategories: async () => {
+    try {
+      console.log('Importing all Odoo categories to store...');
+      const response = await requests.post("/odoo-sync/import-categories");
+      console.log('Odoo categories import response:', response);
+      return response;
+    } catch (error) {
+      console.error('Error importing Odoo categories:', error);
+      throw error;
+    }
+  },
 };
 
 export default CategoryServices;

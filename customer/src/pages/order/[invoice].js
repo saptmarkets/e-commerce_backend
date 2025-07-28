@@ -30,9 +30,9 @@ const Order = ({ params }) => {
     queryFn: async () => await OrderServices.getOrderByInvoice(orderInvoice),
     enabled: !!orderInvoice,
     refetchInterval: (latestData) => {
-      // Poll every 10s only if order is not delivered or cancelled
-      if (!latestData) return 10000;
-      return ["Delivered", "Cancel", "Cancelled"].includes(latestData.status) ? false : 10000;
+      // Poll every 30s only if order is not delivered or cancelled (reduced frequency)
+      if (!latestData) return 30000;
+      return ["Delivered", "Cancel", "Cancelled"].includes(latestData.status) ? false : 30000;
     },
   });
 
@@ -91,20 +91,19 @@ const Order = ({ params }) => {
                     lang={lang}
                   />
                 }
-                fileName="Invoice"
+                fileName={lang === 'ar' ? 'فاتورة.pdf' : 'Invoice.pdf'}
+                className="mb-3 sm:mb-0 md:mb-0 lg:mb-0 flex items-center justify-center bg-emerald-500  text-white transition-all font-serif text-sm font-semibold h-10 py-2 px-5 rounded-md"
               >
-                {({ blob, url, loading, error }) =>
+                {({ loading }) =>
                   loading ? (
-                    "Loading..."
+                    'Loading...'
                   ) : (
-                    <button className="mb-3 sm:mb-0 md:mb-0 lg:mb-0 flex items-center justify-center bg-emerald-500  text-white transition-all font-serif text-sm font-semibold h-10 py-2 px-5 rounded-md">
-                      {showingTranslateValue(
-                        storeCustomizationSetting?.dashboard?.download_button
-                      )}{" "}
+                    <span className="flex items-center">
+                      {showingTranslateValue(storeCustomizationSetting?.dashboard?.download_button)}
                       <span className="ml-2 text-base">
                         <IoCloudDownloadOutline />
                       </span>
-                    </button>
+                    </span>
                   )
                 }
               </PDFDownloadLink>

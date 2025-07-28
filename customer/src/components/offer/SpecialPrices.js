@@ -7,9 +7,9 @@ import { IoPricetagOutline, IoArrowForward } from 'react-icons/io5';
 // Internal imports
 import PromotionServices from "@services/PromotionServices";
 import ProductUnitServices from "@services/ProductUnitServices";
-import ProductCardModern from "@components/product/ProductCardModern";
 import CMSkeleton from "@components/preloader/CMSkeleton";
 import useUtilsFunction from "@hooks/useUtilsFunction";
+import ProductCardCarousel from "@components/carousel/ProductCardCarousel";
 
 const SpecialPrices = ({ 
   title = "Special Prices", 
@@ -18,7 +18,7 @@ const SpecialPrices = ({
   attributes
 }) => {
   const router = useRouter();
-  const { showingTranslateValue, getNumberTwo, tr } = useUtilsFunction();
+  const { showingTranslateValue, getNumberTwo, tr, lang } = useUtilsFunction();
 
   // Fetch active promotions instead of general products
   const { data: activePromotions, error, isLoading } = useQuery({
@@ -30,8 +30,6 @@ const SpecialPrices = ({
   const displayProducts = useMemo(() => {
     if (!activePromotions || !Array.isArray(activePromotions)) return [];
     
-    console.log('SpecialPrices: Active promotions received:', activePromotions);
-    
     // Filter for fixed price promotions and extract products
     const fixedPricePromotions = activePromotions.filter(promotion => {
       const isFixedPrice = promotion.type === 'fixed_price';
@@ -42,20 +40,8 @@ const SpecialPrices = ({
                                promotion.promotionList.name && 
                                promotion.promotionList.name.toLowerCase().includes('fixed price');
       
-      console.log(`SpecialPrices: Checking promotion ${promotion._id}:`, {
-        type: promotion.type,
-        isFixedPrice,
-        isActive,
-        promotionListName: promotion.promotionList?.name,
-        hasFixedPriceList,
-        hasProductUnit: !!promotion.productUnit,
-        productUnitDetails: promotion.productUnit
-      });
-      
       return isFixedPrice && isActive;
     });
-    
-    console.log('SpecialPrices: Fixed price promotions found:', fixedPricePromotions.length);
     
     // Convert promotions to product objects with promotion data
     const productsWithPromotions = [];
@@ -108,18 +94,7 @@ const SpecialPrices = ({
       };
       
       productsWithPromotions.push(productWithPromotion);
-      
-      console.log('SpecialPrices: Added product with promotion:', {
-        productId: product._id,
-        productTitle: product.title,
-        originalPrice: promotionalUnit.price,
-        promotionalPrice: primaryPromotion.value,
-        savings: promotionalUnit.price - primaryPromotion.value,
-        promotionsCount: promotions.length
-      });
     });
-    
-    console.log('SpecialPrices: Final products with promotions:', productsWithPromotions.length);
     
     return productsWithPromotions.slice(0, maxItems);
   }, [activePromotions, maxItems]);
@@ -132,64 +107,52 @@ const SpecialPrices = ({
   const pillText = `${displayProducts.length} ${tr('products with special prices','منتجات بسعر خاص')}`;
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-12 md:py-16">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-10">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3 flex items-center justify-center">
-            <IoPricetagOutline className="text-blue-600 mr-3" />
+    <div 
+      className="bg-gradient-to-br from-blue-50 to-indigo-50 section-responsive"
+    >
+      <div className="max-w-screen-2xl mx-auto responsive-padding">
+        <div className="mb-6 sm:mb-8 md:mb-10 text-center">
+          <h2 className="heading-responsive text-gray-800 mb-2 sm:mb-3 flex items-center justify-center">
+            <IoPricetagOutline className="text-blue-600 mr-2 sm:mr-3 text-responsive-lg" />
             {title}
           </h2>
-          <p className="text-gray-600 text-center max-w-xl mx-auto">{description}</p>
+          <p className="text-responsive-base text-gray-600 text-center max-w-xl mx-auto">{description}</p>
           
           {/* Show total savings if products available */}
           {displayProducts.length > 0 && (
-            <div className="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
+            <div className="mt-3 sm:mt-4 inline-block bg-blue-100 text-blue-800 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-responsive-sm font-medium">
               {pillText}
             </div>
           )}
         </div>
         
         {isLoading ? (
-          <CMSkeleton count={8} height={300} error={error} loading={isLoading} />
+          <CMSkeleton count={8} height={250} error={error} loading={isLoading} />
         ) : displayProducts.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-              {displayProducts.map((product) => {
-                console.log('SpecialPrices: Rendering ProductCardModern with product:', {
-                  id: product._id,
-                  title: product.title,
-                  hasPromotion: !!product.promotion,
-                  promotionValue: product.promotion?.value
-                });
-                return (
-                  <ProductCardModern
-                    key={product._id}
-                    product={product}
-                    attributes={attributes || []}
-                    compact={false}
-                    showQuantitySelector={true}
-                    showFavorite={true}
-                    promotion={product.promotion}
-                  />
-                );
-              })}
-            </div>
+            {/* Product listing */}
+            <ProductCardCarousel
+              products={displayProducts}
+              attributes={attributes || []}
+              slidesPerViewMobile={1}
+              fixedSlidesPerView={6}
+            />
             
             {/* View More Button */}
-            <div className="mt-10 text-center">
+            <div className="mt-6 sm:mt-8 md:mt-10 text-center">
               <Link 
                 href="/promotions?tab=special-prices"
-                className="inline-flex items-center px-8 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition duration-200 shadow-md"
+                className="btn-responsive inline-flex items-center bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition duration-200 shadow-md"
               >
                 {tr('View All Special Prices','عرض جميع الأسعار الخاصة')}
-                <IoArrowForward className="ml-2" />
+                <IoArrowForward className="ml-2 text-responsive-xs" />
               </Link>
             </div>
           </>
         ) : (
-          <div className="text-center py-10">
-            <div className="text-gray-500 text-lg mb-4">{tr('No special price offers at the moment','لا توجد عروض أسعار خاصة في الوقت الحالي')}</div>
-            <p className="text-gray-400">{tr('Check back soon for amazing fixed price deals!','عد قريبًا للحصول على عروض أسعار ثابتة مذهلة!')}</p>
+          <div className="text-center py-6 sm:py-8 md:py-10">
+            <div className="text-responsive-lg text-gray-500 mb-3 sm:mb-4">{tr('No special price offers at the moment','لا توجد عروض أسعار خاصة في الوقت الحالي')}</div>
+            <p className="text-responsive-base text-gray-400">{tr('Check back soon for amazing fixed price deals!','عد قريبًا للحصول على عروض أسعار ثابتة مذهلة!')}</p>
           </div>
         )}
       </div>

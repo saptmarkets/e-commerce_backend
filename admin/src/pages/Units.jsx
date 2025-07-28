@@ -78,6 +78,11 @@ const Units = () => {
 
   const handleFormSubmit = async (data) => {
     try {
+      console.log('=== FORM SUBMIT DEBUG ===');
+      console.log('Form data:', data);
+      console.log('isBase value:', data.isBase);
+      console.log('Type of isBase:', typeof data.isBase);
+      
       const formData = {
         name: data.name,
         nameAr: data.nameAr || "", // Arabic name is optional
@@ -86,6 +91,8 @@ const Units = () => {
         isBase: data.isBase,
         status: data.status,
       };
+      
+      console.log('FormData to send:', formData);
 
       if (unitId) {
         await UnitServices.updateUnit(unitId, formData);
@@ -116,6 +123,11 @@ const Units = () => {
   };
 
   const handleEditUnit = (unit) => {
+    console.log('=== EDIT UNIT DEBUG ===');
+    console.log('Unit data from API:', unit);
+    console.log('Unit isBase:', unit.isBase);
+    console.log('Type of unit.isBase:', typeof unit.isBase);
+    
     setUnitId(unit._id);
     reset({
       name: unit.name || '',
@@ -125,6 +137,7 @@ const Units = () => {
       isBase: unit.isBase || false,
       status: unit.status || 'show'
     });
+    console.log('Form reset with isBase:', unit.isBase || false);
     toggleDrawer();
   };
 

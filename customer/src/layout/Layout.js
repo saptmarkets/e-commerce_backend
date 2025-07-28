@@ -25,8 +25,8 @@ const Layout = ({ title, description, children }) => {
         </Head>
         <NavBarTop />
         <Navbar />
-        <div className="bg-white">{children}</div>
-        <div className="max-w-screen-2xl mx-auto px-4 sm:px-10">
+        <div className="bg-white main-content-mobile">{children}</div>
+        <div className="max-w-screen-2xl mx-auto responsive-padding">
           <FooterBanner />
         </div>
         <MobileFooter />

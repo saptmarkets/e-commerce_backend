@@ -237,14 +237,22 @@ const useProductSubmit = (id) => {
     }
 
     try {
-      console.log('--------- FORM SUBMISSION START ---------');
-      console.log('Form submitted with:', JSON.stringify(data, null, 2));
-      console.log('Current product units:', JSON.stringify(productUnits, null, 2));
-      
-      setIsSubmitting(true);
+      // Build bilingual title and description objects
+      const titleObj = {
+        en: data.title || '',
+        ar: data.titleAr || '',
+      };
+      const descriptionObj = {
+        en: data.description || '',
+        ar: data.descriptionAr || '',
+      };
+      // Remove the flat fields so they don't overwrite the object
+      const { title, titleAr, description, descriptionAr, ...restData } = data;
       
       const productData = {
-        ...data,
+        ...restData,
+        title: titleObj,
+        description: descriptionObj,
         image: imageUrl,
         ...(defaultCategory && defaultCategory._id && { category: defaultCategory._id }),
       };

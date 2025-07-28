@@ -3,6 +3,7 @@ import Head from "next/head";
 import Layout from "@layout/Layout";
 import ProductCardModern from "@components/product/ProductCardModern";
 import ProductServices from "@services/ProductServices";
+import PromotionServices from "@services/PromotionServices";
 import AttributeServices from "@services/AttributeServices";
 import PageHeader from "@components/header/PageHeader";
 import ProductsHeroBanner from "@components/banner/ProductsHeroBanner";
@@ -10,48 +11,80 @@ import useGetSetting from "@hooks/useGetSetting";
 import CMSkeleton from "@components/preloader/CMSkeleton";
 import Loading from "@components/preloader/Loading";
 import { useRouter } from "next/router";
+import useUtilsFunction from "@hooks/useUtilsFunction";
 
 const AllProducts = ({ initialProducts, attributes }) => {
   const router = useRouter();
   const { storeCustomizationSetting } = useGetSetting();
-  const [products, setProducts] = useState(initialProducts || []);
-  const [loading, setLoading] = useState(!initialProducts);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 24; // Show more products per page
+  const productsPerPage = 16; // Set to 16 as per user's observation
+  const [totalProducts, setTotalProducts] = useState(0); // New state for total products
+  const [hasUsedInitialProducts, setHasUsedInitialProducts] = useState(false); // Track if we've used initial products
+  const { tr, lang } = useUtilsFunction();
 
   useEffect(() => {
     const fetchProducts = async () => {
-      if (initialProducts && initialProducts.length > 0) {
-        setProducts(initialProducts);
+      // Only use initialProducts on the very first load (page 1, no previous API calls)
+      if (initialProducts && initialProducts.products && initialProducts.products.length > 0 && 
+          !hasUsedInitialProducts && currentPage === 1) {
+        setProducts(initialProducts.products);
+        setTotalProducts(initialProducts.totalDoc);
+        setHasUsedInitialProducts(true);
         setLoading(false);
         return;
       }
       
       try {
         setLoading(true);
-        const data = await ProductServices.getShowingStoreProducts({});
-        console.log("API response:", data); // Log the response to see its structure
         
-        // Check for products from various properties of the response
+        // Fetch products with pagination parameters
+        const data = await ProductServices.getShowingStoreProducts({ page: currentPage, limit: productsPerPage });
+        // API response received for page
+        
         let productsData = [];
-        
+        let totalDocCount = 0;
+
         if (data && typeof data === 'object') {
-          // Check for products array
           if (Array.isArray(data.products) && data.products.length > 0) {
             productsData = data.products;
-          } 
-          // If no direct products, check for popularProducts
-          else if (Array.isArray(data.popularProducts) && data.popularProducts.length > 0) {
+          } else if (Array.isArray(data.popularProducts) && data.popularProducts.length > 0) {
             productsData = data.popularProducts;
-          }
-          // If data itself is an array, use it directly
-          else if (Array.isArray(data)) {
+          } else if (Array.isArray(data)) {
             productsData = data;
           }
+          totalDocCount = data.totalDoc || productsData.length;
         }
         
-        console.log(`Found ${productsData.length} products to display`);
-        setProducts(productsData);
+        const activePromotions = await PromotionServices.getActivePromotions();
+        console.log("Active promotions:", activePromotions);
+        
+        const productsWithPromotions = new Set();
+        
+        activePromotions.forEach(promotion => {
+          if (promotion.productUnit && promotion.productUnit.product) {
+            productsWithPromotions.add(promotion.productUnit.product._id);
+          }
+          if (promotion.productUnits && Array.isArray(promotion.productUnits)) {
+            promotion.productUnits.forEach(productUnit => {
+              if (productUnit.product) {
+                productsWithPromotions.add(productUnit.product._id);
+              }
+            });
+          }
+        });
+        
+        console.log("Products with promotions:", Array.from(productsWithPromotions));
+        
+        const regularProducts = productsData.filter(product => 
+          !productsWithPromotions.has(product._id)
+        );
+        
+        console.log(`Found ${productsData.length} total products, ${regularProducts.length} regular products (excluding ${productsData.length - regularProducts.length} promotional products)`);
+        
+        setProducts(regularProducts);
+        setTotalProducts(totalDocCount);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -60,46 +93,32 @@ const AllProducts = ({ initialProducts, attributes }) => {
     };
 
     fetchProducts();
-  }, [initialProducts]);
+  }, [currentPage, productsPerPage, initialProducts, hasUsedInitialProducts]); // Include hasUsedInitialProducts in dependencies
 
-  // Handle page query param if it exists
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    router.push(`?page=${pageNumber}`, undefined, { shallow: true });
+  };
+
+  // Handle page query param if it exists on initial load
   useEffect(() => {
     if (router.query.page) {
       const pageNumber = parseInt(router.query.page);
-      if (!isNaN(pageNumber) && pageNumber > 0) {
+      if (!isNaN(pageNumber) && pageNumber > 0 && pageNumber !== currentPage) {
         setCurrentPage(pageNumber);
       }
     }
   }, [router.query.page]);
 
-  // Calculate pagination
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(products.length / productsPerPage);
-
-  // Change page
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    
-    // Update URL with page number
-    router.push({
-      pathname: router.pathname,
-      query: { ...router.query, page: pageNumber },
-    }, undefined, { shallow: true });
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Calculate pagination based on totalProducts
+  const totalPages = Math.ceil(totalProducts / productsPerPage);
+  const currentProductsDisplay = products; // products state now holds the current page's products
 
   return (
     <>
       <Head>
-        <title>All Products | {storeCustomizationSetting?.store?.name || "SAPT Markets"}</title>
-        <meta 
-          name="description" 
-          content="Browse our complete collection of products. Find everything you need in one place."
-        />
+        <title>All Products</title>
+        <meta name="description" content="All products on SaptMarkets" />
       </Head>
 
       <Layout>
@@ -111,14 +130,19 @@ const AllProducts = ({ initialProducts, attributes }) => {
             {/* Page Title */}
             <div className="mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-                All Products
+                {tr("All Products", "جميع المنتجات")}
               </h1>
               <p className="text-gray-600 mb-4">
-                Discover our complete collection of premium products
+                {tr(
+                  "Discover our complete collection of premium products",
+                  "اكتشف مجموعتنا الكاملة من المنتجات المميزة"
+                )}
               </p>
               <p className="text-sm text-gray-500">
-                Showing {products.length > 0 ? indexOfFirstProduct + 1 : 0}-
-                {Math.min(indexOfLastProduct, products.length)} of {products.length} products
+                {lang === "ar"
+                  ? `عرض ${totalProducts > 0 ? (currentPage - 1) * productsPerPage + 1 : 0}-${Math.min(currentPage * productsPerPage, totalProducts)} من ${totalProducts} منتج`
+                  : `Showing ${totalProducts > 0 ? (currentPage - 1) * productsPerPage + 1 : 0}-${Math.min(currentPage * productsPerPage, totalProducts)} of ${totalProducts} products`
+                }
               </p>
             </div>
 
@@ -128,8 +152,8 @@ const AllProducts = ({ initialProducts, attributes }) => {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-                {currentProducts && currentProducts.length > 0 ? (
-                  currentProducts.map((product) => (
+                {currentProductsDisplay && currentProductsDisplay.length > 0 ? (
+                  currentProductsDisplay.map((product) => (
                     <ProductCardModern
                       key={product._id}
                       product={product}
@@ -160,7 +184,7 @@ const AllProducts = ({ initialProducts, attributes }) => {
                         : 'bg-white text-gray-700 hover:bg-green-50'
                     }`}
                   >
-                    Previous
+                    {tr('Previous', 'السابق')}
                   </button>
                   
                   {/* Show limited page numbers with ellipsis for better UX */}
@@ -177,7 +201,7 @@ const AllProducts = ({ initialProducts, attributes }) => {
                           key={pageNumber}
                           onClick={() => paginate(pageNumber)}
                           className={`px-3 py-1 border-t border-b ${
-                            currentPage === pageNumber
+                            pageNumber === currentPage
                               ? 'bg-green-600 text-white'
                               : 'bg-white text-gray-700 hover:bg-green-50'
                           }`}
@@ -209,7 +233,7 @@ const AllProducts = ({ initialProducts, attributes }) => {
                         : 'bg-white text-gray-700 hover:bg-green-50'
                     }`}
                   >
-                    Next
+                    {tr('Next', 'التالي')}
                   </button>
                 </nav>
               </div>
@@ -221,39 +245,63 @@ const AllProducts = ({ initialProducts, attributes }) => {
   );
 };
 
-export const getServerSideProps = async () => {
+export const getServerSideProps = async (context) => {
+  const { query } = context;
+  const page = parseInt(query.page) || 1;
+  const limit = 16; // Set to 16 for SSR initial load consistent with frontend
   try {
-    console.log("Fetching products in getServerSideProps");
-    const [productsData, attributes] = await Promise.all([
-      ProductServices.getShowingStoreProducts({}),
+    console.log(`Fetching products in getServerSideProps for page ${page}, limit ${limit}`);
+    const [productsDataResponse, attributes, activePromotions] = await Promise.all([
+      ProductServices.getShowingStoreProducts({ page, limit }), // Pass page and limit here
       AttributeServices.getShowingAttributes(),
+      PromotionServices.getActivePromotions(),
     ]);
     
-    console.log("Products API response:", JSON.stringify(productsData).substring(0, 200) + "...");
+    // Products API response (SSR) logged
     
-    // Extract products from the response with better fallbacks
     let products = [];
+    let totalDoc = 0; // Initialize totalDoc
     
-    if (productsData && typeof productsData === 'object') {
-      // First try products array
-      if (Array.isArray(productsData.products) && productsData.products.length > 0) {
-        products = productsData.products;
-      } 
-      // Then try popularProducts array
-      else if (Array.isArray(productsData.popularProducts) && productsData.popularProducts.length > 0) {
-        products = productsData.popularProducts;
+    if (productsDataResponse && typeof productsDataResponse === 'object') {
+      if (Array.isArray(productsDataResponse.products) && productsDataResponse.products.length > 0) {
+        products = productsDataResponse.products;
+      } else if (Array.isArray(productsDataResponse.popularProducts) && productsDataResponse.popularProducts.length > 0) {
+        products = productsDataResponse.popularProducts;
+      } else if (Array.isArray(productsDataResponse)) {
+        products = productsDataResponse;
       }
-      // If productsData itself is an array, use it directly
-      else if (Array.isArray(productsData)) {
-        products = productsData;
-      }
+      totalDoc = productsDataResponse.totalDoc || products.length; // Capture totalDoc from response
     }
     
-    console.log(`Found ${products.length} products to return from server props`);
+    const productsWithPromotions = new Set();
+    
+    if (activePromotions && Array.isArray(activePromotions)) {
+      activePromotions.forEach(promotion => {
+        if (promotion.productUnit && promotion.productUnit.product) {
+          productsWithPromotions.add(promotion.productUnit.product._id);
+        }
+        if (promotion.productUnits && Array.isArray(promotion.productUnits)) {
+          promotion.productUnits.forEach(productUnit => {
+            if (productUnit.product) {
+              productsWithPromotions.add(productUnit.product._id);
+            }
+          });
+        }
+      });
+    }
+    
+    const regularProducts = products.filter(product => 
+      !productsWithPromotions.has(product._id)
+    );
+    
+    console.log(`Found ${products.length} total products from API, ${regularProducts.length} regular products (SSR)`);
     
     return {
       props: {
-        initialProducts: products || [],
+        initialProducts: {
+          products: regularProducts || [],
+          totalDoc: totalDoc, // Pass totalDoc to frontend
+        },
         attributes: attributes || [],
       },
     };
@@ -261,7 +309,7 @@ export const getServerSideProps = async () => {
     console.error("Error in getServerSideProps:", error);
     return {
       props: {
-        initialProducts: [],
+        initialProducts: { products: [], totalDoc: 0 },
         attributes: [],
       },
     };

@@ -145,7 +145,7 @@ const Orders = () => {
                     ref={searchRef}
                     type="search"
                     name="search"
-                    placeholder="Search by Customer Name"
+                    placeholder={t("SearchByCustomerName")}
                   />
                 </div>
 
@@ -199,7 +199,7 @@ const Orders = () => {
                         height={10}
                       />{" "}
                       <span className="font-serif ml-2 font-light">
-                        Processing
+                        {t("Processing")}
                       </span>
                     </Button>
                   ) : (
@@ -212,7 +212,7 @@ const Orders = () => {
                         "opacity-50 cursor-not-allowed bg-emerald-600"
                       } flex items-center justify-center text-sm leading-5 h-12 w-full text-center transition-colors duration-150 font-medium px-6 py-2 rounded-md text-white bg-emerald-500 border border-transparent active:bg-emerald-600 hover:bg-emerald-600 `}
                     >
-                      Download All Orders
+                      {t("DownloadAllOrders")}
                       <span className="ml-2 text-base">
                         <IoCloudDownloadOutline />
                       </span>
@@ -223,7 +223,7 @@ const Orders = () => {
 
               <div className="grid gap-4 lg:gap-6 xl:gap-6 lg:grid-cols-3 xl:grid-cols-3 md:grid-cols-3 sm:grid-cols-1 py-2">
                 <div>
-                  <Label>Start Date</Label>
+                  <Label>{t("StartDate")}</Label>
                   <Input
                     type="date"
                     name="startDate"
@@ -232,7 +232,7 @@ const Orders = () => {
                 </div>
 
                 <div>
-                  <Label>End Date</Label>
+                  <Label>{t("EndDate")}</Label>
                   <Input
                     type="date"
                     name="startDate"
@@ -246,7 +246,7 @@ const Orders = () => {
                       type="submit"
                       className="h-12 w-full bg-emerald-700"
                     >
-                      Filter
+                      {t("Filter")}
                     </Button>
                   </div>
 

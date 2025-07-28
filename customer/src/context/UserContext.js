@@ -76,7 +76,7 @@ export const UserProvider = ({ children }) => {
     }
   }, [state.userInfo]);
 
-  // Check cookie expiry periodically
+  // Check cookie expiry periodically (reduced frequency to prevent excessive requests)
   useEffect(() => {
     const checkCookie = () => {
       const userInfo = Cookies.get("userInfo");
@@ -86,8 +86,8 @@ export const UserProvider = ({ children }) => {
       }
     };
 
-    // Check every minute
-    const interval = setInterval(checkCookie, 60000);
+    // Check every 5 minutes instead of every minute to reduce server load
+    const interval = setInterval(checkCookie, 300000);
     return () => clearInterval(interval);
   }, [state.userInfo]);
 

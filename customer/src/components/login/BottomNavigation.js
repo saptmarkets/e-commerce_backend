@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ImFacebook, ImGithub, ImGoogle } from "react-icons/im";
 import { signIn } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
+import useTranslation from "next-translate/useTranslation";
 
 //internal imports
 import SettingServices from "@services/SettingServices";
@@ -13,6 +14,7 @@ const BottomNavigation = ({
   pageName = "Sign Up", 
   loginTitle = "Login" 
 }) => {
+  const { t } = useTranslation('common');
   const buttonStyles = `
     text-sm inline-flex items-center cursor-pointer transition ease-in-out duration-300 font-semibold text-center justify-center rounded-md focus:outline-none shadow-sm
     px-3 py-4 h-12 w-full mb-6 mr-2
@@ -32,7 +34,7 @@ const BottomNavigation = ({
     <>
       {or && (
         <div className="my-4 text-center font-medium">
-          <div className="after:bg-gray-100 before:bg-gray-100">OR</div>
+          <div className="after:bg-gray-100 before:bg-gray-100">{t('or')}</div>
         </div>
       )}
 
@@ -91,12 +93,12 @@ const BottomNavigation = ({
 
       <div className="text-center text-sm text-gray-900 mt-4">
         <div className="text-gray-500 mt-2.5">
-          {desc ? "Already have an account?" : "Don't have an account?"}
+          {desc ? t('alreadyHaveAccount') : t('dontHaveAccount')}
           <Link
             href={route || "/auth/signup"}
             className="text-gray-800 hover:text-cyan-500 font-bold mx-2"
           >
-            <span className="capitalize">{pageName}</span>
+            <span className="capitalize">{pageName === "Sign Up" ? t('signUp') : t('Login')}</span>
           </Link>
         </div>
       </div>

@@ -14,7 +14,7 @@ const MainModal = ({ modalOpen, setModalOpen, children }) => {
           onClose={() => setModalOpen(false)}
           initialFocus={cancelButtonRef}
         >
-          <div className="min-h-screen px-4">
+          <div className="min-h-screen px-4 flex items-center justify-center">
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-300"
@@ -40,9 +40,11 @@ const MainModal = ({ modalOpen, setModalOpen, children }) => {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
+              <div className="max-h-[90vh] w-full overflow-auto">
               {children}
+              </div>
             </Transition.Child>
-            <div className="absolute right-5 top-5">
+            <div className="absolute right-5 top-5 sm:static sm:sticky sm:top-2 sm:z-50 sm:bg-white sm:pt-2 sm:pb-2">
               <button
                 onClick={() => setModalOpen(false)}
                 type="button"

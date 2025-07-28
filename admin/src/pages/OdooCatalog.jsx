@@ -22,6 +22,7 @@ import { notifySuccess, notifyError, notifyInfo } from "@/utils/toast";
 import OdooCatalogServices from "@/services/OdooCatalogServices";
 import Select from "react-select";
 import useUtilsFunction from "@/hooks/useUtilsFunction";
+import requests from "@/services/httpService";
 
 const OdooCatalog = () => {
   const [loading, setLoading] = useState(false);
@@ -41,6 +42,7 @@ const OdooCatalog = () => {
   const [importStatusFilter, setImportStatusFilter] = useState(null);
   const [showAllPages, setShowAllPages] = useState(false); // New state for "show all" mode
   const [customPageSize, setCustomPageSize] = useState(20); // New state for custom page size
+  const [importedIds, setImportedIds] = useState([]);
   const { currency, getNumberTwo } = useUtilsFunction();
 
   // Import status filter options
@@ -60,6 +62,23 @@ const OdooCatalog = () => {
     { value: 500, label: "500 per page" },
   ];
 
+  // Fetch live import status for visible products
+  const fetchImportStatus = async (productList) => {
+    try {
+      const odooProductIds = productList.map((p) => p.id);
+      if (odooProductIds.length === 0) {
+        setImportedIds([]);
+        return;
+      }
+      const res = await requests.post("/products/check-imported", { odooProductIds });
+      setImportedIds(res.imported || []);
+    } catch (err) {
+      setImportedIds([]);
+      console.error("Error fetching import status:", err);
+    }
+  };
+
+  // Fetch products and then fetch import status
   const fetchProducts = async (page = 1, pageSize = null) => {
     try {
       setLoading(true);
@@ -79,12 +98,18 @@ const OdooCatalog = () => {
       });
       
       const data = res.data?.data || res.data;
-      setProducts(data?.products || []);
+      const productsData = data?.products || [];
+      
+
+      
+      setProducts(productsData);
       setPagination({
         ...data?.pagination,
         per_page: actualPageSize,
         current_page: showAllPages ? 1 : (data?.pagination?.current_page || page)
       });
+      // Fetch live import status after products are loaded
+      await fetchImportStatus(productsData);
     } catch (err) {
       console.error('Error fetching products:', err);
       notifyError(err?.response?.data?.message || err.message || 'Failed to fetch products');
@@ -95,7 +120,7 @@ const OdooCatalog = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [importStatusFilter, showAllPages]);
+  }, [importStatusFilter, showAllPages, selectedCat]);
 
   useEffect(() => {
     (async () => {
@@ -114,16 +139,32 @@ const OdooCatalog = () => {
   }, []);
 
   const toggleSelect = (pid) => {
-    setSelectedIds((prev) =>
-      prev.includes(pid) ? prev.filter((id) => id !== pid) : [...prev, pid]
-    );
+    setSelectedIds((prev) => {
+      return prev.includes(pid) 
+        ? prev.filter((id) => id !== pid) 
+        : [...prev, pid];
+    });
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.length === products.length) {
-      setSelectedIds([]);
+    // Check if all current products are selected
+    const allCurrentProductsSelected = products.every(p => selectedIds.includes(p.id));
+    
+    if (allCurrentProductsSelected) {
+      // If all are selected, deselect all current products
+      setSelectedIds(prev => prev.filter(id => !products.some(p => p.id === id)));
     } else {
-      setSelectedIds(products.map(p => p.product_id));
+      // If not all are selected, select all current products (add to existing selection)
+      const currentProductIds = products.map(p => p.id);
+      setSelectedIds(prev => {
+        const newSelection = [...prev];
+        currentProductIds.forEach(id => {
+          if (!newSelection.includes(id)) {
+            newSelection.push(id);
+          }
+        });
+        return newSelection;
+      });
     }
   };
 
@@ -156,7 +197,7 @@ const OdooCatalog = () => {
       const results = res.data?.data || res.data;
       
       notifySuccess(
-        `Import completed successfully! Products: ${results?.products || 0}, Categories: ${results?.categories || 0}`
+        `${t("ImportCompletedSuccessfully")} Products: ${results?.products || 0}, Categories: ${results?.categories || 0}`
       );
       
       setSelectedIds([]);
@@ -197,8 +238,9 @@ const OdooCatalog = () => {
     return stock !== undefined && stock !== null ? stock : 'N/A';
   };
 
-  const getImportStatusDisplay = (syncStatus, storeProductId) => {
-    if (storeProductId) {
+  // Updated import status display logic
+  const getImportStatusDisplay = (product) => {
+    if (importedIds.includes(product.id)) {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <FiCheck className="w-3 h-3 mr-1" />
@@ -206,31 +248,12 @@ const OdooCatalog = () => {
         </span>
       );
     }
-    
-    switch (syncStatus) {
-      case 'imported':
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <FiCheck className="w-3 h-3 mr-1" />
-            Imported
-          </span>
-        );
-      case 'failed':
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            <FiX className="w-3 h-3 mr-1" />
-            Failed
-          </span>
-        );
-      case 'pending':
-      default:
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            <FiRefreshCw className="w-3 h-3 mr-1" />
-            Not Imported
-          </span>
-        );
-    }
+    return (
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        <FiRefreshCw className="w-3 h-3 mr-1" />
+        Not Imported
+      </span>
+    );
   };
 
   // Generate page numbers for pagination
@@ -330,7 +353,14 @@ const OdooCatalog = () => {
           <div className="flex items-center gap-4">
             <div className="text-sm text-gray-600">
               {selectedIds.length > 0 ? (
-                `${selectedIds.length} product${selectedIds.length > 1 ? 's' : ''} selected`
+                <span>
+                  <span className="font-medium text-blue-600">{selectedIds.length}</span> product{selectedIds.length > 1 ? 's' : ''} selected total
+                  {products.length > 0 && (
+                    <span className="text-gray-500 ml-1">
+                      ({products.filter(p => selectedIds.includes(p.id)).length} on this page)
+                    </span>
+                  )}
+                </span>
               ) : (
                 `${pagination.total || 0} products found`
               )}
@@ -370,6 +400,15 @@ const OdooCatalog = () => {
             </div>
           </div>
           
+          <div className="flex items-center gap-2">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 text-sm"
+              >
+                Clear All
+              </button>
+            )}
           <button
             onClick={runImport}
             disabled={selectedIds.length === 0 || importLoading}
@@ -378,6 +417,7 @@ const OdooCatalog = () => {
             <FiDownload className={importLoading ? 'animate-spin' : ''} />
             {importLoading ? 'Importing...' : `Import Selected (${selectedIds.length})`}
           </button>
+          </div>
         </div>
       </div>
 
@@ -389,7 +429,7 @@ const OdooCatalog = () => {
               <th className="px-3 py-3 text-left">
                 <input
                   type="checkbox"
-                  checked={selectedIds.length === products.length && products.length > 0}
+                  checked={products.length > 0 && products.every(p => selectedIds.includes(p.id))}
                   onChange={toggleSelectAll}
                   className="rounded"
                 />
@@ -407,18 +447,23 @@ const OdooCatalog = () => {
           </thead>
           <tbody>
             {products.map((product) => (
-              <React.Fragment key={product.product_id}>
+              <React.Fragment key={product.id}>
                 {/* Main Product Row */}
                 <tr className="border-b hover:bg-gray-50">
                   <td className="px-3 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedIds.includes(product.product_id)}
-                      onChange={() => toggleSelect(product.product_id)}
+                      checked={selectedIds.includes(product.id)}
+                      onChange={() => toggleSelect(product.id)}
                       className="rounded"
+                      data-product-id={product.id}
+                      data-product-name={product.name}
                     />
+                    <span className="text-xs text-gray-500 ml-1">
+                      ID: {product.id}
+                    </span>
                   </td>
-                  <td className="px-3 py-3 font-mono text-xs">{product.product_id}</td>
+                  <td className="px-3 py-3 font-mono text-xs">{product.id}</td>
                   <td className="px-3 py-3">
                     <div className="font-medium">{product.name}</div>
                     {product.barcode && (
@@ -446,14 +491,14 @@ const OdooCatalog = () => {
                     {product.barcode_units?.length || 0} units
                   </td>
                   <td className="px-3 py-3">
-                    {getImportStatusDisplay(product._sync_status, product.store_product_id)}
+                    {getImportStatusDisplay(product)}
                   </td>
                   <td className="px-3 py-3">
                     <button
-                      onClick={() => toggleExpanded(product.product_id)}
+                      onClick={() => toggleExpanded(product.id)}
                       className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
                     >
-                      {expandedRows.has(product.product_id) ? (
+                      {expandedRows.has(product.id) ? (
                         <FiChevronDown />
                       ) : (
                         <FiChevronRight />
@@ -464,7 +509,7 @@ const OdooCatalog = () => {
                 </tr>
 
                 {/* Expanded Details Row */}
-                {expandedRows.has(product.product_id) && (
+                {expandedRows.has(product.id) && (
                   <tr className="bg-blue-50">
                     <td colSpan={10} className="px-3 py-4">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -483,7 +528,7 @@ const OdooCatalog = () => {
                             <div><strong>Cost Price:</strong> {formatPrice(product.standard_price)}</div>
                             <div><strong>Sale Price:</strong> {formatPrice(product.list_price)}</div>
                             <div><strong>Available Qty:</strong> {formatStock(product.qty_available)}</div>
-                            <div><strong>Import Status:</strong> {getImportStatusDisplay(product._sync_status, product.store_product_id)}</div>
+                            <div><strong>Import Status:</strong> {getImportStatusDisplay(product)}</div>
                             {product.store_product_id && (
                               <div><strong>Store Product ID:</strong> <span className="font-mono text-xs">{product.store_product_id}</span></div>
                             )}
@@ -536,8 +581,8 @@ const OdooCatalog = () => {
                                 Stock by Location ({product.stock_records.length})
                               </h4>
                               <div className="space-y-2 max-h-32 overflow-y-auto">
-                                {product.stock_records.map((stock, idx) => (
-                                  <div key={idx} className="bg-white p-2 rounded border flex justify-between">
+                                {product.stock_records.map((stock) => (
+                                  <div key={`${product.id}-${stock.location_id}`} className="bg-white p-2 rounded border flex justify-between">
                                     <span className="text-xs">Location {stock.location_id}</span>
                                     <span className="text-xs font-medium">{formatStock(stock.quantity)}</span>
                                   </div>
@@ -615,8 +660,8 @@ const OdooCatalog = () => {
 
                 {/* Page Numbers */}
                 <div className="flex items-center gap-1 mx-2">
-                  {generatePageNumbers().map((page, index) => (
-                    <React.Fragment key={index}>
+                  {generatePageNumbers().map((page) => (
+                    <React.Fragment key={`page-${page}`}>
                       {page === '...' ? (
                         <span className="px-2 py-1 text-gray-400">...</span>
                       ) : (

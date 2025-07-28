@@ -2,11 +2,63 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/router";
 
 //internal import
 import BannerServices from "@services/BannerServices";
 
 const CategoryTopBanner = () => {
+  const router = useRouter();
+  const lang = router.locale || 'en';
+  
+  // Helper function to safely extract text from object or string
+  const getLocalizedText = (field, fallback = '') => {
+    if (!field) return fallback;
+    
+    // If it's already a string, return as is
+    if (typeof field === 'string') return field;
+    
+    // If it's an object with en/ar keys
+    if (typeof field === 'object' && field !== null) {
+      // Handle nested structure: {en: {en: "...", ar: "..."}, ar: "..."}
+      if (lang === 'ar') {
+        if (field.ar) {
+          // If ar is a string, return it
+          if (typeof field.ar === 'string') return field.ar;
+          // If ar is an object, try to get the ar value from it
+          if (typeof field.ar === 'object' && field.ar.ar) return field.ar.ar;
+        }
+        // Fallback to en.ar if ar is not available
+        if (field.en && typeof field.en === 'object' && field.en.ar) return field.en.ar;
+      }
+      
+      if (lang === 'en') {
+        if (field.en) {
+          // If en is a string, return it
+          if (typeof field.en === 'string') return field.en;
+          // If en is an object, try to get the en value from it
+          if (typeof field.en === 'object' && field.en.en) return field.en.en;
+        }
+        // Fallback to ar.en if en is not available
+        if (field.ar && typeof field.ar === 'object' && field.ar.en) return field.ar.en;
+      }
+      
+      // Final fallbacks
+      if (field.ar && typeof field.ar === 'string') return field.ar;
+      if (field.en && typeof field.en === 'string') return field.en;
+      if (field.ar && typeof field.ar === 'object' && field.ar.ar) return field.ar.ar;
+      if (field.en && typeof field.en === 'object' && field.en.en) return field.en.en;
+      
+      // If all else fails, try to get any string value from the object
+      const allValues = Object.values(field).flat();
+      const stringValue = allValues.find(val => typeof val === 'string');
+      if (stringValue) return stringValue;
+    }
+    
+    // If it's already a string, return as is
+    return field;
+  };
+
   // Fetch banners from API
   const { data: banners, isLoading, error } = useQuery({
     queryKey: ["category-top-banner"],
@@ -26,7 +78,7 @@ const CategoryTopBanner = () => {
       <div className="relative w-full h-[150px] md:h-[200px] rounded-lg overflow-hidden">
         <Image 
           src={banner.imageUrl}
-          alt={banner.title}
+          alt={getLocalizedText(banner.title, 'Banner')}
           fill
           className="object-cover"
           sizes="100vw"
@@ -39,9 +91,9 @@ const CategoryTopBanner = () => {
         {/* Content */}
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <div className="text-center text-white px-4">
-            <h2 className="text-lg md:text-2xl font-bold mb-2">{banner.title}</h2>
+            <h2 className="text-lg md:text-2xl font-bold mb-2">{getLocalizedText(banner.title, '')}</h2>
             {banner.description && (
-              <p className="text-sm md:text-base mb-4 max-w-2xl">{banner.description}</p>
+              <p className="text-sm md:text-base mb-4 max-w-2xl">{getLocalizedText(banner.description, '')}</p>
             )}
             {banner.linkUrl && banner.linkText && (
               <Link 
@@ -50,7 +102,7 @@ const CategoryTopBanner = () => {
                 rel={banner.openInNewTab ? "noopener noreferrer" : ""}
                 className="inline-block px-6 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition duration-200"
               >
-                {banner.linkText}
+                {getLocalizedText(banner.linkText, '')}
               </Link>
             )}
           </div>

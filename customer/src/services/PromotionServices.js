@@ -2,10 +2,10 @@ import requests from "./httpServices";
 
 const PromotionServices = {
   // Get all active promotions
-  getActivePromotions: async () => {
+  getActivePromotions: async (forceRefresh = false) => {
     try {
-      console.log('Fetching active promotions');
-      return await requests.get('/promotions/active');
+      const url = forceRefresh ? `/promotions/active?_=${Date.now()}` : '/promotions/active';
+      return await requests.get(url);
     } catch (error) {
       console.error('Error fetching active promotions:', error);
       return []; // Return empty array on error to prevent crashes
@@ -17,11 +17,24 @@ const PromotionServices = {
     try {
       // Skip fallback, default, and system-generated units
       if (productUnitId?.startsWith('fallback-') || productUnitId?.startsWith('default-')) {
-        console.log(`PromotionServices: Skipping promotion fetch for system unit: ${productUnitId}`);
         return [];
       }
       
-      console.log(`Fetching promotions for product unit: ${productUnitId}`);
+      return await requests.get(`/promotions/product-unit/${productUnitId}`);
+    } catch (error) {
+      console.error('Error fetching promotions for product unit:', error);
+      return [];
+    }
+  },
+
+  // Get product unit promotions (alias for backward compatibility)
+  getProductUnitPromotions: async (productUnitId) => {
+    try {
+      // Skip fallback, default, and system-generated units
+      if (productUnitId?.startsWith('fallback-') || productUnitId?.startsWith('default-')) {
+        return [];
+      }
+      
       return await requests.get(`/promotions/product-unit/${productUnitId}`);
     } catch (error) {
       console.error('Error fetching promotions for product unit:', error);
@@ -32,7 +45,6 @@ const PromotionServices = {
   // Get promotions for a specific product (all units)
   getPromotionsByProduct: async (productId) => {
     try {
-      console.log(`Fetching promotions for product: ${productId}`);
       return await requests.get(`/promotions/product/${productId}`);
     } catch (error) {
       console.error('Error fetching promotions for product:', error);
@@ -43,7 +55,6 @@ const PromotionServices = {
   // Get fixed price promotions
   getFixedPricePromotions: async () => {
     try {
-      console.log('Fetching fixed price promotions');
       const allPromotions = await requests.get('/promotions/active');
       // Filter for fixed price promotions
       return allPromotions.filter(promotion => promotion.type === 'fixed_price');
@@ -88,7 +99,7 @@ const PromotionServices = {
               promotionalPrice: promotion.value,
               savings: productUnit.price - promotion.value,
               savingsPercent: ((productUnit.price - promotion.value) / productUnit.price) * 100,
-              unit: productUnit
+              unit: productUnit.unit
             }
           });
         } else {
@@ -107,7 +118,18 @@ const PromotionServices = {
   // Get assorted items promotions
   getAssortedPromotions: async () => {
     try {
-      console.log('Fetching assorted items promotions');
+      const allPromotions = await requests.get('/promotions/active');
+      // Filter for assorted items promotions
+      return allPromotions.filter(promotion => promotion.type === 'assorted_items');
+    } catch (error) {
+      console.error('Error fetching assorted promotions:', error);
+      return [];
+    }
+  },
+
+  // Get assorted items promotions (alias for backward compatibility)
+  getAssortedItemsPromotions: async () => {
+    try {
       const allPromotions = await requests.get('/promotions/active');
       // Filter for assorted items promotions
       return allPromotions.filter(promotion => promotion.type === 'assorted_items');
@@ -130,38 +152,48 @@ const PromotionServices = {
       for (const promotion of assortedPromotions) {
         
         if (promotion.productUnits && promotion.productUnits.length > 0) {
+          // Filter out productUnits that don't have valid product data
+          const validProductUnits = promotion.productUnits.filter(productUnit => 
+            productUnit && productUnit.product && productUnit.product._id
+          );
+          
+          if (validProductUnits.length === 0) {
+            console.log('Assorted promotion has no valid product units:', promotion._id);
+            continue;
+          }
+          
           // Use requiredItemCount for price calculation, not productUnits.length
-          const requiredItems = promotion.requiredItemCount || promotion.productUnits.length;
+          const requiredItems = promotion.requiredItemCount || validProductUnits.length;
           const pricePerItem = promotion.value / requiredItems;
           
-          const products = promotion.productUnits.map(productUnit => ({
-            ...productUnit.product,
-            unit: productUnit,
-            promotionalPrice: pricePerItem,
-          }));
+          const products = validProductUnits.map(productUnit => {
+            // Ensure we have valid product data
+            if (!productUnit.product || !productUnit.product._id) {
+              console.warn('Invalid product unit found:', productUnit);
+              return null;
+            }
+            
+            return {
+              ...productUnit.product,
+              unit: productUnit,
+              promotionalPrice: pricePerItem,
+            };
+          }).filter(Boolean); // Remove any null products
           
-
+          if (products.length === 0) {
+            console.log('No valid products found for promotion:', promotion._id);
+            continue;
+          }
           
           promotionsWithProducts.push({
             ...promotion,
             products: products,
-            totalItems: promotion.productUnits.length,
+            totalItems: products.length,
             requiredItemCount: requiredItems,
             pricePerItem: pricePerItem
           });
         } else {
-          console.log('Assorted promotion missing productUnits:', promotion);
-          console.log('Promotion details:', {
-            id: promotion._id,
-            name: promotion.name,
-            type: promotion.type,
-            value: promotion.value,
-            requiredItemCount: promotion.requiredItemCount,
-            productUnits: promotion.productUnits,
-            isActive: promotion.isActive,
-            startDate: promotion.startDate,
-            endDate: promotion.endDate
-          });
+          console.log('Assorted promotion missing productUnits:', promotion._id);
         }
       }
       
@@ -175,7 +207,6 @@ const PromotionServices = {
   // Get bulk promotions
   getBulkPromotions: async () => {
     try {
-      console.log('Fetching bulk promotions');
       const allPromotions = await requests.get('/promotions/active');
       // Filter for bulk purchase promotions
       return allPromotions.filter(promotion => promotion.type === 'bulk_purchase');

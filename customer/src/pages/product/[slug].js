@@ -317,45 +317,29 @@ const ProductScreen = () => {
   return (
     <>
       <Layout>
-        {/* Modern Product Detail Page */}
-        <div className="min-h-screen bg-gray-50">
-          {/* Breadcrumb */}
-          <div className="bg-white border-b">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-              <nav className="flex items-center space-x-2 text-sm text-gray-600">
-                <Link href="/">
-                  <a className="hover:text-emerald-600 transition-colors">{t("common:home")}</a>
-                </Link>
-                <FiChevronRight className="w-4 h-4" />
-                <Link href={`/category/${product?.category?._id}`}>
-                  <a className="hover:text-emerald-600 transition-colors">{category_name}</a>
-                </Link>
-                <FiChevronRight className="w-4 h-4" />
-                <span className="text-gray-900 font-medium">{showingTranslateValue(product?.title)}</span>
-              </nav>
-            </div>
+        {/* 🧪 TEST BANNER - REMOVE AFTER TESTING */}
+        <div className="bg-red-500 text-white text-center py-4 font-bold text-lg">
+          🧪 TESTING: Fixed Price Promotion Logic - {new Date().toLocaleTimeString()}
           </div>
 
           {/* Main Product Section */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-                
                 {/* Product Images Section */}
                 <div className="space-y-4">
                   {/* Main Image */}
                   <div className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden">
                     {renderPromotionalInfo()}
                     <img
-                      src={img || product?.image?.[0] || '/images/placeholder.png'}
+                      src={img || product?.image?.[0] || '/images/placeholder.svg'}
                       alt={showingTranslateValue(product?.title)}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.src = '/images/placeholder.png';
+                        e.target.src = '/images/placeholder.svg';
                       }}
                     />
                   </div>
-                  
                   {/* Image Thumbnails */}
                   {product?.image?.length > 1 && (
                     <div className="flex space-x-3 overflow-x-auto pb-2">
@@ -379,7 +363,6 @@ const ProductScreen = () => {
                     </div>
                   )}
                 </div>
-
                 {/* Product Info Section */}
                 <div className="space-y-6">
                   {/* Product Title */}
@@ -399,7 +382,6 @@ const ProductScreen = () => {
                       </div>
                     </div>
                   </div>
-
                   {/* Enhanced Multi-Unit Selection */}
                   {hasMultipleUnits && unitComparisonData?.length > 0 && (
                     <div className="bg-gray-50 rounded-xl p-6 space-y-4">
@@ -409,12 +391,10 @@ const ProductScreen = () => {
                           <NeonSpinner size="sm" />
                         )}
                       </div>
-                      
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {unitComparisonData.map((unit) => {
                           const isSelected = selectedUnit?._id === unit._id;
                           const pricePerBase = unit.packQty > 1 ? unit.price / unit.packQty : unit.price;
-                          
                           return (
                             <button
                               key={unit._id}
@@ -432,7 +412,6 @@ const ProductScreen = () => {
                                   </svg>
                                 </div>
                               )}
-                              
                               <div className="space-y-1">
                                 <div className="font-semibold text-gray-900">
                                   {unit.displayName || getUnitDisplayName(unit)}
@@ -457,8 +436,8 @@ const ProductScreen = () => {
                       </div>
                     </div>
                   )}
-
-                  {/* Dynamic Pricing Section */}
+                {/* Dynamic Pricing Section - COMMENTED OUT FOR TESTING */}
+                {/* 
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
                     <div 
                       key={priceUpdateKey}
@@ -500,7 +479,78 @@ const ProductScreen = () => {
                       )}
                     </div>
                   </div>
-
+                */}
+                {/* TEST: Fixed Price Promotion Logic */}
+                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-6">
+                  <div className="text-center mb-4">
+                    <h3 className="text-lg font-bold text-yellow-800">🧪 TESTING FIXED PRICE PROMOTION LOGIC</h3>
+                    <p className="text-sm text-yellow-700">This is a test implementation to verify the logic</p>
+                  </div>
+                  {/* Test Data Display */}
+                  <div className="space-y-3 text-sm">
+                    <div className="bg-white p-3 rounded border">
+                      <strong>Active Promotion:</strong> {activePromotion ? 'YES' : 'NO'}
+                      {activePromotion && (
+                        <div className="mt-2 space-y-1 text-xs">
+                          <div>Type: {activePromotion.type}</div>
+                          <div>Min Qty: {activePromotion.minQty || 'N/A'}</div>
+                          <div>Fixed Price: {activePromotion.fixedPrice || 'N/A'}</div>
+                          <div>Value: {activePromotion.value || 'N/A'}</div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-white p-3 rounded border">
+                      <strong>Current Pricing:</strong>
+                      <div className="mt-2 space-y-1 text-xs">
+                        <div>Base Price: {currency}{currentPricing.basePrice.toFixed(2)}</div>
+                        <div>Final Price: {currency}{currentPricing.finalPrice.toFixed(2)}</div>
+                        <div>Is Promotional: {currentPricing.isPromotional ? 'YES' : 'NO'}</div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* NEW LOGIC: Fixed Price Promotion Display */}
+                  <div className="mt-4 bg-white p-4 rounded border">
+                    <h4 className="font-bold text-gray-800 mb-3">🎯 NEW FIXED PRICE DISPLAY LOGIC:</h4>
+                    {activePromotion && activePromotion.type === 'fixed_price' && activePromotion.fixedPrice ? (
+                      <div className="space-y-2">
+                        {/* Main Price Display - Shows minimum total price */}
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl font-bold text-red-600">
+                            {currency}{(activePromotion.fixedPrice * (activePromotion.minQty || 1)).toFixed(2)}
+                          </span>
+                          <span className="text-sm text-gray-500">for {activePromotion.minQty || 1} units</span>
+                        </div>
+                        {/* Per-unit price in smaller text */}
+                        <div className="text-sm text-gray-600">
+                          {currency}{activePromotion.fixedPrice.toFixed(2)} per unit
+                        </div>
+                        {/* Original price comparison */}
+                        <div className="text-sm text-gray-500 line-through">
+                          Regular price: {currency}{(currentPricing.basePrice * (activePromotion.minQty || 1)).toFixed(2)}
+                        </div>
+                        {/* Savings */}
+                        <div className="text-sm text-green-600 font-medium">
+                          Save {currency}{((currentPricing.basePrice * (activePromotion.minQty || 1)) - (activePromotion.fixedPrice * (activePromotion.minQty || 1))).toFixed(2)}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {/* Regular price display */}
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl font-bold text-emerald-600">
+                            {currency}{currentPricing.finalPrice.toFixed(2)}
+                          </span>
+                          <span className="text-sm text-gray-500">per unit</span>
+                        </div>
+                        {activePromotion && (
+                          <div className="text-sm text-blue-600">
+                            ⚠️ Promotion exists but not fixed_price type: {activePromotion.type}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
                   {/* Quantity Selector */}
                   <div className="space-y-3">
                     <label className="block text-sm font-semibold text-gray-900">Quantity</label>
@@ -533,7 +583,6 @@ const ProductScreen = () => {
                       </div>
                     </div>
                   </div>
-
                   {/* Total Price */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between">
@@ -548,7 +597,6 @@ const ProductScreen = () => {
                       </div>
                     )}
                   </div>
-
                   {/* Add to Cart Button */}
                   <button
                     onClick={handleAddToCart}
@@ -580,7 +628,7 @@ const ProductScreen = () => {
                         <a className="block bg-gray-50 rounded-xl overflow-hidden transition-all duration-200 group-hover:shadow-md">
                           <div className="aspect-square relative">
                             <img
-                              src={relatedProduct.image?.[0] || '/images/placeholder.png'}
+                              src={relatedProduct.image?.[0] || '/images/placeholder.svg'}
                               alt={showingTranslateValue(relatedProduct?.title)}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                             />

@@ -39,52 +39,52 @@ const SignUp = () => {
           <main className="flex items-center justify-center p-6 sm:p-12 md:w-1/2">
             <div className="w-full">
               <h1 className="mb-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
-                {t("CreateAccount")}
+                {t("CreateAccountTitle")}
               </h1>
               <form onSubmit={handleSubmit(onSubmit)}>
-                <LabelArea label="Name" />
+                <LabelArea label={t("Name")} />
                 <InputArea
                   required={true}
                   register={register}
-                  label="Name"
+                  label={t("Name")}
                   name="name"
                   type="text"
-                  placeholder="Admin"
+                  placeholder={t("Name")}
                 />
                 <Error errorName={errors.name} />
-                <LabelArea label="Email" />
+                <LabelArea label={t("Email")} />
                 <InputArea
                   required={true}
                   register={register}
-                  label="Email"
+                  label={t("Email")}
                   name="email"
                   type="email"
-                  placeholder="john@doe.com"
+                  placeholder={t("Email")}
                 />
                 <Error errorName={errors.email} />
 
-                <LabelArea label="Password" />
+                <LabelArea label={t("Password")} />
                 <InputArea
                   required={true}
                   register={register}
-                  label="Password"
+                  label={t("Password")}
                   name="password"
                   type="password"
                   autocomplete="current-password"
-                  placeholder="***************"
+                  placeholder={t("Password")}
                 />
                 <Error errorName={errors.password} />
 
-                <LabelArea label="Staff Role" />
+                <LabelArea label={t("StaffRole")}/>
                 <div className="col-span-8 sm:col-span-4">
-                  <SelectRole register={register} label="Role" name="role" />
+                  <SelectRole register={register} label={t("StaffRole") } name="role" />
                   <Error errorName={errors.role} />
                 </div>
 
                 <Label className="mt-6" check>
                   <Input type="checkbox" />
                   <span className="ml-2">
-                    {t("Iagree")}{" "}
+                    {t("Iagree")} {" "}
                     <span className="underline">{t("privacyPolicy")}</span>
                   </span>
                 </Label>

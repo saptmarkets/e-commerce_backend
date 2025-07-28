@@ -64,7 +64,7 @@ const Faq = () => {
               <Image
                     width={400}
                     height={300}
-                src={storeCustomizationSetting?.faq?.left_img || "/faq.svg"}
+                src={storeCustomizationSetting?.faq?.left_img || "/faq.png"}
                     alt="FAQ Illustration"
                     className="w-full h-auto"
                   />

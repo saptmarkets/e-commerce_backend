@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { t } from "i18next";
 import { FiZoomIn, FiInfo } from "react-icons/fi";
 import { FiChevronDown, FiChevronRight } from "react-icons/fi";
@@ -75,7 +75,7 @@ const ProductTable = ({ products, isCheck, setIsCheck }) => {
 
       <SimpleTableBody>
         {products?.map((product, i) => (
-          <>
+          <React.Fragment key={product._id}>
             <SimpleTableRow 
               key={i + 1}
               className={`transition-colors duration-150 hover:bg-gray-50 ${expandedProducts[product._id] ? "bg-blue-50 border-b-0 shadow-sm" : ""}`}
@@ -114,7 +114,7 @@ const ProductTable = ({ products, isCheck, setIsCheck }) => {
                     <div className="hidden p-1 mr-2 md:block bg-gray-50 shadow-none w-10 h-10 rounded-full overflow-hidden">
                       <img
                         className="w-full h-full object-cover"
-                        src={`https://res.cloudinary.com/ahossain/image/upload/v1655097002/placeholder_kvepfp.png`}
+                        src={`https://res.cloudinary.com/dxjobesyt/image/upload/v1752706908/placeholder_kvepfp_wkyfut.png`}
                         alt="product"
                       />
                     </div>
@@ -281,7 +281,7 @@ const ProductTable = ({ products, isCheck, setIsCheck }) => {
                 </SimpleTableCell>
               </SimpleTableRow>
             )}
-          </>
+          </React.Fragment>
         ))}
       </SimpleTableBody>
     </>

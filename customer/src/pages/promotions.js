@@ -15,7 +15,7 @@ import { IoGiftOutline, IoFlashOutline, IoPricetagOutline, IoBasketOutline } fro
 
 const Promotions = ({ attributes }) => {
   const { storeCustomizationSetting } = useGetSetting();
-  const { showingTranslateValue, getNumberTwo } = useUtilsFunction();
+  const { showingTranslateValue, getNumberTwo, tr, lang } = useUtilsFunction();
   
   const [bulkPromotions, setBulkPromotions] = useState([]);
   const [assortedPromotions, setAssortedPromotions] = useState([]);
@@ -145,11 +145,13 @@ const Promotions = ({ attributes }) => {
         
         // Fetch other promotion types (not fixed price products since we get those from store data)
         console.log('Fetching other promotion types...');
-        const [bulk, assorted, comboDeals] = await Promise.all([
+        const [bulk, assorted] = await Promise.all([
           PromotionServices.getBulkPromotions(),
-          PromotionServices.getAssortedPromotions(),
           PromotionServices.getAssortedPromotionsWithProducts()
         ]);
+        
+        // Combo deals are the same as assorted items promotions with products
+        const comboDeals = assorted;
         
         console.log('Combo deals received:', comboDeals);
         
@@ -168,9 +170,9 @@ const Promotions = ({ attributes }) => {
   }, []);
 
   const tabs = [
-    { id: 'all', label: 'All Offers', icon: IoGiftOutline },
-    { id: 'special-prices', label: 'Special Prices', icon: IoPricetagOutline },
-    { id: 'combo-deals', label: 'Combo Deals', icon: IoFlashOutline }
+    { id: 'all', label: tr('All Offers', 'جميع العروض'), icon: IoGiftOutline },
+    { id: 'special-prices', label: tr('Special Prices', 'أسعار خاصة'), icon: IoPricetagOutline },
+    { id: 'combo-deals', label: tr('Combo Deals', 'عروض كومبو'), icon: IoFlashOutline }
   ];
 
   const PromotionCard = ({ promotion, type }) => {
@@ -186,31 +188,31 @@ const Promotions = ({ attributes }) => {
               {type === 'fixed' && <IoPricetagOutline className="text-red-600 text-xl mr-2" />}
               {type === 'bulk' && <IoBasketOutline className="text-blue-600 text-xl mr-2" />}
               {type === 'combo' && <IoFlashOutline className="text-purple-600 text-xl mr-2" />}
-              <h3 className="font-semibold text-gray-800">{promotion.title}</h3>
+              <h3 className="font-semibold text-gray-800">{showingTranslateValue(promotion.title)}</h3>
             </div>
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
               type === 'fixed' ? 'bg-red-100 text-red-800' :
               type === 'bulk' ? 'bg-blue-100 text-blue-800' :
               'bg-purple-100 text-purple-800'
             }`}>
-              {type === 'fixed' ? 'Special Price' :
-               type === 'bulk' ? 'Bulk Deal' : 'Combo Deal'}
+              {type === 'fixed' ? tr('Special Price', 'سعر خاص') :
+               type === 'bulk' ? tr('Bulk Deal', 'صفقة بالجملة') : tr('Combo Deal', 'عرض كومبو')}
             </span>
           </div>
         </div>
         
         <div className="p-4">
-          <p className="text-gray-600 text-sm mb-3">{promotion.description}</p>
+          <p className="text-gray-600 text-sm mb-3">{showingTranslateValue(promotion.description)}</p>
           
           {type === 'fixed' && (
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Special Price:</span>
+                <span className="text-sm text-gray-500">{tr('Special Price:', 'سعر خاص:')}</span>
                 <span className="font-bold text-red-600">${getNumberTwo(promotion.value)}</span>
               </div>
               {promotion.minQty > 1 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Minimum Quantity:</span>
+                  <span className="text-sm text-gray-500">{tr('Minimum Quantity:', 'الحد الأدنى للكمية:')}</span>
                   <span className="font-medium">{promotion.minQty}</span>
                 </div>
               )}
@@ -220,16 +222,16 @@ const Promotions = ({ attributes }) => {
           {type === 'bulk' && (
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Buy:</span>
-                <span className="font-medium">{promotion.requiredQty} items</span>
+                <span className="text-sm text-gray-500">{tr('Buy:', 'اشترِ:')}</span>
+                <span className="font-medium">{promotion.requiredQty} {tr('items', 'عنصر')}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Get Free:</span>
-                <span className="font-bold text-green-600">{promotion.freeQty} items</span>
+                <span className="text-sm text-gray-500">{tr('Get Free:', 'احصل على مجاناً:')}</span>
+                <span className="font-bold text-green-600">{promotion.freeQty} {tr('items', 'عنصر')}</span>
               </div>
               {promotion.minPurchaseAmount > 0 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Min Purchase:</span>
+                  <span className="text-sm text-gray-500">{tr('Min Purchase:', 'الحد الأدنى للشراء:')}</span>
                   <span className="font-medium">${getNumberTwo(promotion.minPurchaseAmount)}</span>
                 </div>
               )}
@@ -238,11 +240,11 @@ const Promotions = ({ attributes }) => {
           
           <div className="mt-4 pt-3 border-t border-gray-100">
             <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Valid until: {new Date(promotion.endDate).toLocaleDateString()}</span>
+              <span>{tr('Valid until:', 'صالح حتى:')} {new Date(promotion.endDate).toLocaleDateString()}</span>
               <span className={`px-2 py-1 rounded ${
                 promotion.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
               }`}>
-                {promotion.isActive ? 'Active' : 'Inactive'}
+                {promotion.isActive ? tr('Active', 'نشط') : tr('Inactive', 'غير نشط')}
               </span>
             </div>
           </div>
@@ -253,8 +255,8 @@ const Promotions = ({ attributes }) => {
 
   return (
     <Layout 
-      title="Promotions & Deals" 
-      description="Discover amazing promotions, bulk deals, and combo offers"
+      title={tr("Promotions & Deals", "العروض والتخفيضات")}
+      description={tr("Discover amazing promotions, bulk deals, and combo offers", "اكتشف العروض المذهلة، وصفقات الجملة، وعروض الكومبو")}
     >
       <div className="mx-auto max-w-screen-2xl px-4 py-2 sm:px-10">
         {/* Promotions Hero Banner */}
@@ -287,18 +289,17 @@ const Promotions = ({ attributes }) => {
               <div className="mb-12">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                   <IoPricetagOutline className="text-red-600 mr-3" />
-                  Special Price Offers ({normalizedProductsWithFixedPrices.length} products)
+                  {tr('Special Price Offers', 'عروض الأسعار الخاصة')} ({normalizedProductsWithFixedPrices.length} {lang === 'ar' ? 'منتج' : 'products'})
                 </h2>
-                <div className="grid auto-cols-max gap-3 sm:gap-4 md:gap-6 justify-start" style={{gridTemplateColumns:'repeat(auto-fill,minmax(18rem,1fr))'}}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
                   {normalizedProductsWithFixedPrices.map((product) => (
                     <ProductCardModern
                       key={product._id}
                       product={product}
-                      attributes={attributes}
+                      attributes={attributes || []}
                       compact={false}
                       showQuantitySelector={true}
                       showFavorite={true}
-                      promotion={product.promotion}
                     />
                   ))}
                 </div>
@@ -310,7 +311,7 @@ const Promotions = ({ attributes }) => {
               <div className="mb-12">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                   <IoFlashOutline className="text-purple-600 mr-3" />
-                  Combo Deals ({comboPromotions.length} available)
+                  {tr('Combo Deals', 'عروض كومبو')} ({comboPromotions.length} {lang === 'ar' ? 'متوفر' : 'available'})
                 </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                   {comboPromotions.map((promotion) => (
@@ -327,9 +328,9 @@ const Promotions = ({ attributes }) => {
             {normalizedProductsWithFixedPrices.length === 0 && bulkPromotions.length === 0 && assortedPromotions.length === 0 && comboPromotions.length === 0 && (
               <div className="text-center py-16">
                 <IoGiftOutline className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">No Promotions Available</h3>
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">{tr('No Promotions Available', 'لا توجد عروض متاحة')}</h3>
                 <p className="text-gray-500">
-                  There are no active promotions at the moment. Check back soon for amazing deals!
+                  {tr('There are no active promotions at the moment. Check back soon for amazing deals!', 'لا توجد عروض نشطة في الوقت الحالي. عد قريبًا للحصول على صفقات مذهلة!')}
                 </p>
               </div>
             )}

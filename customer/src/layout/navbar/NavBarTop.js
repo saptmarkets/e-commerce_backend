@@ -17,9 +17,10 @@ import useLoginSubmit from "@hooks/useLoginSubmit";
 import { UserContext } from "@context/UserContext";
 
 const NavBarTop = () => {
-  const userInfo = getUserSession();
+  // Use userInfo from context for reactivity
+  const { state, dispatch } = useContext(UserContext);
+  const userInfo = state.userInfo;
   const router = useRouter();
-  const { dispatch } = useContext(UserContext);
   const { handleLogout } = useLoginSubmit();
   const { t } = useTranslation("common"); // Use common namespace for translations
 
@@ -81,72 +82,66 @@ const NavBarTop = () => {
             </div>
             
             {/* Right - Navigation Links */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                {storeCustomizationSetting?.navbar?.about_menu_status && (
-                  <Link
-                    href="/about-us"
-                    className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
-                  >
-                    {t("common:About Us")}
-                  </Link>
-                )}
-                
-                {storeCustomizationSetting?.navbar?.contact_menu_status && (
-                  <Link
-                    href="/contact-us"
-                    className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
-                  >
-                    {t("common:Contact Us")}
-                  </Link>
-                )}
-                
-                {storeCustomizationSetting?.navbar?.privacy_policy_status && (
-                  <Link
-                    href="/privacy-policy"
-                    className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
-                  >
-                    {t("common:Privacy Policy")}
-                  </Link>
-                )}
-                
-                {storeCustomizationSetting?.navbar?.term_and_condition_status && (
-                  <Link
-                    href="/terms-and-conditions"
-                    className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
-                  >
-                    {t("common:Terms & Conditions")}
-                  </Link>
-                )}
-                
+            <div className="flex items-center gap-x-2">
+              {storeCustomizationSetting?.navbar?.about_menu_status && (
                 <Link
-                  href="/user/my-account"
-                  className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
+                  href="/about-us"
+                  className="bg-gray-100 border border-gray-200 rounded px-3 py-1 text-gray-600 hover:text-purple-600 transition-colors font-medium flex items-center min-w-max"
                 >
-                  {t("common:My account")}
+                  {t("common:About Us")}
                 </Link>
-                
-                {userInfo?.email ? (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600">{t("common:Welcome")}, {userInfo.name || userInfo.email}</span>
-                    <button
-                      onClick={handleLogOut}
-                      className="flex items-center text-gray-600 hover:text-purple-600 transition-colors font-medium"
-                    >
-                      <IoLockOpenOutline className="w-4 h-4 mr-1" />
-                      {t("common:logout")}
-                    </button>
-                  </div>
-                ) : (
-                  <Link
-                    href="/auth/login"
-                    className="flex items-center text-gray-600 hover:text-purple-600 transition-colors font-medium"
+              )}
+              {storeCustomizationSetting?.navbar?.contact_menu_status && (
+                <Link
+                  href="/contact-us"
+                  className="bg-gray-100 border border-gray-200 rounded px-3 py-1 text-gray-600 hover:text-purple-600 transition-colors font-medium flex items-center min-w-max"
+                >
+                  {t("common:Contact Us")}
+                </Link>
+              )}
+              {storeCustomizationSetting?.navbar?.privacy_policy_status && (
+                <Link
+                  href="/privacy-policy"
+                  className="bg-gray-100 border border-gray-200 rounded px-3 py-1 text-gray-600 hover:text-purple-600 transition-colors font-medium flex items-center min-w-max"
+                >
+                  {t("common:Privacy Policy")}
+                </Link>
+              )}
+              {storeCustomizationSetting?.navbar?.term_and_condition_status && (
+                <Link
+                  href="/terms-and-conditions"
+                  className="bg-gray-100 border border-gray-200 rounded px-3 py-1 text-gray-600 hover:text-purple-600 transition-colors font-medium flex items-center min-w-max"
+                >
+                  {t("common:Terms & Conditions")}
+                </Link>
+              )}
+
+              <Link
+                href="/user/my-account"
+                className="bg-gray-100 border border-gray-200 rounded px-3 py-1 text-gray-600 hover:text-purple-600 transition-colors font-medium flex items-center min-w-max"
+              >
+                {t("common:My account")}
+              </Link>
+              {userInfo?.email ? (
+                <div className="flex items-center gap-x-2">
+                  <span className="text-gray-600 bg-gray-200 border border-gray-200 rounded px-3 py-1 min-w-max">{t("common:Welcome")}, {userInfo.name || userInfo.email}</span>
+                  <button
+                    onClick={handleLogOut}
+                    className="flex items-center bg-gray-200 border border-gray-200 rounded px-3 py-1 text-gray-600 hover:text-purple-600 transition-colors font-medium min-w-max"
                   >
-                    <FiUser className="w-4 h-4 mr-1" />
-                    {t("common:Login")}
-                  </Link>
-                )}
-              </div>
+                    <IoLockOpenOutline className="w-4 h-4 mr-1" />
+                    {t("common:logout")}
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="flex items-center bg-gray-100 border border-gray-200 rounded px-3 py-1 text-gray-600 hover:text-purple-600 transition-colors font-medium min-w-max"
+                >
+                  <FiUser className="w-4 h-4 mr-1" />
+                  {t("common:Login")}
+                </Link>
+              )}
             </div>
           </div>
         </div>

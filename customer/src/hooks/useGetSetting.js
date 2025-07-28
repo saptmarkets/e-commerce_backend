@@ -30,13 +30,21 @@ const useGetSetting = () => {
     gcTime: 25 * 60 * 1000,
   });
 
+  // Debug error if any
+  useEffect(() => {
+    if (error) {
+      console.error("API Error in useGetSetting:", error);
+    }
+  }, [error]);
+
   // console.log("data", Object.keys(data)?.length > 0, "isFetched", isFetched);
 
   useEffect(() => {
     if (isFetched && data) {
-      // console.log("Data is available:", data);
       setStoreCustomizationSetting(data);
-    } else {
+    } else if (isFetched && !data) {
+      // Only log once when API fails
+      console.log("Using fallback data - no API data available");
       setStoreCustomizationSetting(storeCustomization);
     }
 

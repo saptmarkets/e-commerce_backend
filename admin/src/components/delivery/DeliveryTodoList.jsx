@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, Button, Badge } from '@windmill/react-ui';
 import { FiPackage, FiCheck, FiX, FiTruck, FiMapPin, FiUser, FiPhone } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import DeliveryServices from '@/services/DeliveryServices';
 import { notifySuccess, notifyError } from '@/utils/toast';
 
 const DeliveryTodoList = ({ orderId, onStatusChange }) => {
+  const { t } = useTranslation();
   const [orderData, setOrderData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -121,6 +123,25 @@ const DeliveryTodoList = ({ orderId, onStatusChange }) => {
     }
   };
 
+  const getStatusText = (status) => {
+    switch (status) {
+      case "Delivered":
+        return "Delivered";
+      case "Processing":
+        return "Processing";
+      case "Pending":
+        return "Pending";
+      case "Received":
+        return "Received";
+      case "Out for Delivery":
+        return "OutForDelivery";
+      case "Cancelled":
+        return "Cancelled";
+      default:
+        return status;
+    }
+  };
+
   // Get product checklist from the API response
   const productChecklist = orderData.productChecklist || [];
   const collectedCount = productChecklist.filter(item => item.collected).length;
@@ -159,7 +180,7 @@ const DeliveryTodoList = ({ orderId, onStatusChange }) => {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-lg font-semibold">Order #{orderData.invoice}</h3>
-              <Badge type={getStatusColor(orderData.status)}>{orderData.status}</Badge>
+                              <Badge type={getStatusColor(orderData.status)}>{t(getStatusText(orderData.status))}</Badge>
               {/* Debug info for troubleshooting */}
               {process.env.NODE_ENV === 'development' && (
                 <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
@@ -342,7 +363,7 @@ const DeliveryTodoList = ({ orderId, onStatusChange }) => {
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
                     <FiTruck className="mr-2" />
-                    {updating ? 'Processing...' : 'Mark as Out for Delivery'}
+                    {updating ? t("Processing") : 'Mark as Out for Delivery'}
                   </Button>
                 ) : (
                   <div className="text-center py-4">

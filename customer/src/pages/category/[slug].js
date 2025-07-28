@@ -18,11 +18,12 @@ import PageLoader from "@components/preloader/PageLoader";
 const CategoryPage = ({ category, products, attributes, subcategories }) => {
   const router = useRouter();
   const { storeCustomizationSetting } = useGetSetting();
-  const { showingTranslateValue } = useUtilsFunction();
+  const { tr, lang, showingTranslateValue } = useUtilsFunction();
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeSubcategory, setActiveSubcategory] = useState(null);
   const [filteredProducts, setFilteredProducts] = useState(products);
+  const [allProducts, setAllProducts] = useState(products); // Always keep the original products
   const productsPerPage = 24;
 
   // Fetch active promotions for category products
@@ -34,11 +35,7 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
 
   // Merge products with promotion data
   const productsWithPromotions = useMemo(() => {
-    if (!products || !activePromotions) return products || [];
-    
-    console.log('Category: Merging products with promotions');
-    console.log('Category: Products received:', products?.length);
-    console.log('Category: Active promotions received:', activePromotions?.length);
+    if (!filteredProducts || !activePromotions) return filteredProducts || [];
     
     // Create a map of promotional units for quick lookup
     const promotionalUnitsMap = new Map();
@@ -55,10 +52,8 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
       }
     });
     
-    console.log('Category: Promotional units map:', promotionalUnitsMap.size, 'products with promotions');
-    
     // Enhance products with promotion data
-    const enhancedProducts = products.map(product => {
+    const enhancedProducts = filteredProducts.map(product => {
       const productId = product._id || product.id;
       const productPromotions = promotionalUnitsMap.get(productId);
       
@@ -66,13 +61,6 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
         // Use the first promotion as the primary one
         const primaryPromotion = productPromotions[0];
         const promotionalUnit = primaryPromotion.productUnit;
-        
-        console.log('Category: Enhancing product with promotion:', {
-          productId,
-          productTitle: product.title,
-          promotionValue: primaryPromotion.value,
-          originalPrice: promotionalUnit.price
-        });
         
         return {
           ...product,
@@ -91,24 +79,59 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
       return product;
     });
     
-    console.log('Category: Enhanced products:', enhancedProducts.filter(p => p.promotion).length, 'with promotions');
-    
     return enhancedProducts;
-  }, [products, activePromotions]);
+  }, [filteredProducts, activePromotions]);
 
-  // Filter products based on active subcategory
-  useEffect(() => {
-    if (activeSubcategory) {
-      const filtered = productsWithPromotions?.filter(product => 
-        product.categories?.includes(activeSubcategory._id) || 
-        product.category === activeSubcategory._id
+  // Fetch products for a subcategory from backend
+  const fetchProductsForSubcategory = async (subcategory) => {
+    setLoading(true);
+    try {
+      const res = await ProductServices.getShowingStoreProducts({ category: subcategory._id });
+      if (res && Array.isArray(res.products)) {
+        setFilteredProducts(res.products);
+        setAllProducts(res.products); // For fallback filtering if needed
+      } else {
+        // fallback to client-side filtering
+        const filtered = allProducts?.filter(product => 
+          product.categories?.some(cat => cat._id === subcategory._id) || 
+          product.category?._id === subcategory._id
+        ) || [];
+        setFilteredProducts(filtered);
+      }
+    } catch (err) {
+      // fallback to client-side filtering
+      const filtered = allProducts?.filter(product => 
+        product.categories?.some(cat => cat._id === subcategory._id) || 
+        product.category?._id === subcategory._id
       ) || [];
       setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts(productsWithPromotions);
     }
-    setCurrentPage(1); // Reset to first page when filtering
-  }, [activeSubcategory, productsWithPromotions]);
+    setLoading(false);
+    setCurrentPage(1);
+  };
+
+  // Handle subcategory tab click
+  const handleSubcategoryTab = (subcat) => {
+    setActiveSubcategory(subcat);
+    if (subcat) {
+      fetchProductsForSubcategory(subcat);
+    } else {
+      // All tab: show parent category products
+      setFilteredProducts(allProducts);
+      setCurrentPage(1);
+    }
+  };
+
+  // On mount, always show all products for the parent category
+  useEffect(() => {
+    setFilteredProducts(products);
+    setAllProducts(products);
+    setActiveSubcategory(null);
+    setCurrentPage(1);
+  }, [products]);
+
+  // Remove the conflicting useEffect that was causing infinite loops
+  // The filtering logic is now handled in handleSubcategoryTab and fetchProductsForSubcategory
 
   // Calculate pagination
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -190,7 +213,7 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
             <ol className="inline-flex items-center space-x-1 md:space-x-3">
               <li className="inline-flex items-center">
                 <Link href="/" className="text-gray-700 hover:text-green-600 text-sm">
-                  Home
+                  {tr('Home', 'الرئيسية')}
                 </Link>
               </li>
               <li>
@@ -199,7 +222,7 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
                   </svg>
                   <Link href="/categories" className="ml-1 text-gray-700 hover:text-green-600 text-sm">
-                    Categories
+                    {tr('Categories', 'الفئات')}
                   </Link>
                 </div>
               </li>
@@ -237,7 +260,7 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
                 <div className="flex flex-wrap justify-center gap-2 bg-gray-50 p-2 rounded-lg">
                   {/* All Products Tab */}
                   <button
-                    onClick={() => setActiveSubcategory(null)}
+                    onClick={() => handleSubcategoryTab(null)}
                     className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                       !activeSubcategory
                         ? 'bg-green-600 text-white shadow-md'
@@ -253,14 +276,14 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
                         className="mr-2 object-contain"
                       />
                     )}
-                    All {showingTranslateValue(category.name)}
+                    {tr('All', 'الكل')} {showingTranslateValue(category.name)}
                   </button>
 
                   {/* Subcategory Tabs */}
                   {subcategories.map((subcat) => (
                     <button
                       key={subcat._id}
-                      onClick={() => setActiveSubcategory(subcat)}
+                      onClick={() => handleSubcategoryTab(subcat)}
                       className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                         activeSubcategory?._id === subcat._id
                           ? 'bg-green-600 text-white shadow-md'
@@ -291,12 +314,14 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
                 <h2 className="text-xl font-semibold text-gray-800">
                   {activeSubcategory 
                     ? showingTranslateValue(activeSubcategory.name) 
-                    : 'Products'
+                    : tr('Products', 'المنتجات')
                   }
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Showing {filteredProducts?.length > 0 ? indexOfFirstProduct + 1 : 0}-
-                  {Math.min(indexOfLastProduct, filteredProducts?.length || 0)} of {filteredProducts?.length || 0} products
+                  {lang === 'ar'
+                    ? `عرض ${filteredProducts?.length > 0 ? indexOfFirstProduct + 1 : 0}-${Math.min(indexOfLastProduct, filteredProducts?.length || 0)} من ${filteredProducts?.length || 0} منتج`
+                    : `Showing ${filteredProducts?.length > 0 ? indexOfFirstProduct + 1 : 0}-${Math.min(indexOfLastProduct, filteredProducts?.length || 0)} of ${filteredProducts?.length || 0} products`
+                  }
                 </p>
               </div>
             </div>
@@ -322,11 +347,19 @@ const CategoryPage = ({ category, products, attributes, subcategories }) => {
                     <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
-                    <h3 className="text-xl font-semibold text-gray-600 mb-2">No Products Found</h3>
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                      {tr('No Products Found', 'لا توجد منتجات')}
+                    </h3>
                     <p className="text-gray-500">
-                      {activeSubcategory 
-                        ? `No products are available in ${showingTranslateValue(activeSubcategory.name)} at the moment.`
-                        : 'No products are available in this category at the moment.'
+                      {activeSubcategory
+                        ? tr(
+                            `No products are available in ${showingTranslateValue(activeSubcategory.name)} at the moment.`,
+                            `لا توجد منتجات متاحة في ${showingTranslateValue(activeSubcategory.name)} حالياً.`
+                          )
+                        : tr(
+                            'No products are available in this category at the moment.',
+                            'لا توجد منتجات متاحة في هذه الفئة حالياً.'
+                          )
                       }
                     </p>
                   </div>
@@ -427,10 +460,24 @@ export const getServerSideProps = async (context) => {
     }
 
     // Get subcategories from the category's children property
-    const subcategories = category.children || [];
+    let subcategories = category.children || [];
+    
+    // Filter subcategories to only include those with products
+    const subcategoriesWithProducts = [];
+    for (const subcategory of subcategories) {
+      try {
+        const hasProducts = await ProductServices.checkCategoryHasProducts(subcategory._id);
+        if (hasProducts) {
+          subcategoriesWithProducts.push(subcategory);
+        }
+      } catch (error) {
+        console.error(`Error checking products for subcategory ${subcategory._id}:`, error);
+        // If we can't check, don't include the subcategory to be safe
+      }
+    }
     
     // Get products for this category and its subcategories
-    const allCategoryIds = [category._id, ...subcategories.map(sub => sub._id)];
+    const allCategoryIds = [category._id, ...subcategoriesWithProducts.map(sub => sub._id)];
     
     const productsData = await ProductServices.getShowingStoreProducts({
       category: category._id,
@@ -444,7 +491,7 @@ export const getServerSideProps = async (context) => {
         category,
         products: productsData.products || [],
         attributes: attributes || [],
-        subcategories: subcategories || [],
+        subcategories: subcategoriesWithProducts || [],
       },
     };
   } catch (error) {

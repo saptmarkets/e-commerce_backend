@@ -18,14 +18,27 @@ const ImageCarousel = ({ images, handleChangeImage }) => {
         spaceBetween={1}
         navigation={true}
         allowTouchMove={false}
-        loop={true}
+        loop={false} // Disable built-in loop to implement custom behavior
         autoplay={{
-          delay: 1000,
+          delay: 4000, // Increased delay to match other carousels
           disableOnInteraction: false,
         }}
         slidesPerView={4}
         modules={[Autoplay, Navigation, Pagination, Controller]}
-        className="mySwiper image-carousel"
+        className="mySwiper image-carousel swiper-ltr"
+        dir="ltr"
+        onSlideChange={(swiper) => {
+          // Custom loop behavior for image carousel
+          const currentIndex = swiper.activeIndex;
+          const totalSlides = images?.length || 0;
+          
+          // If we've reached the last slide, reset to the first slide
+          if (currentIndex >= totalSlides - 1) {
+            setTimeout(() => {
+              swiper.slideTo(0, 0, false);
+            }, 100);
+          }
+        }}
       >
         {images?.map((img, i) => (
           <SwiperSlide key={i + 1} className="group">

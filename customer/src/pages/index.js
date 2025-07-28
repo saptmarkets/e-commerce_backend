@@ -102,7 +102,7 @@ const Home = () => {
     const img = new Image();
     const imgUrl =
       storeCustomizationSetting?.home?.first_img ||
-      "https://res.cloudinary.com/ahossain/image/upload/v1697162326/settings/slider-image_kkqnzu.webp";
+      "";
     img.src = imgUrl;
 
     const loadingTimeout = setTimeout(() => {
@@ -173,7 +173,7 @@ const Home = () => {
           property="og:image"
           content={
             storeCustomizationSetting?.seo?.og_image ||
-            "https://res.cloudinary.com/ahossain/image/upload/v1697262249/storeCustomizationSetting/saptmarkets-og-image.webp"
+            ""
           }
         />
 
@@ -199,7 +199,7 @@ const Home = () => {
           name="twitter:image"
           content={
             storeCustomizationSetting?.seo?.twitter_image ||
-            "https://res.cloudinary.com/ahossain/image/upload/v1697262249/storeCustomizationSetting/saptmarkets-og-image.webp"
+            ""
           }
         />
       </Head>

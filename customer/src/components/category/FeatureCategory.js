@@ -51,10 +51,11 @@ const FeatureCategory = () => {
                       />
                     ) : (
                       <Image
-                        src="https://res.cloudinary.com/ahossain/image/upload/v1655097002/placeholder_kvepfp.png"
+                        src="https://res.cloudinary.com/dxjobesyt/image/upload/v1752706908/placeholder_kvepfp_wkyfut.png"
                         alt="category"
                         width={35}
                         height={35}
+                        style={{ width: 'auto', height: 'auto' }}
                       />
                     )}
                   </div>

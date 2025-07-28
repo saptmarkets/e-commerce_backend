@@ -40,32 +40,32 @@ const Login = () => {
             <main className="flex items-center justify-center p-6 sm:p-12 md:w-1/2">
               <div className="w-full">
                 <h1 className="mb-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
-                  Login
+                  {t("LoginTitle")}
                 </h1>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                  <LabelArea label="Email" />
+                  <LabelArea label={t("Email")} />
                   <InputArea
                     required={true}
                     register={register}
                     defaultValue="admin@gmail.com"
-                    label="Email"
+                    label={t("Email")}
                     name="email"
                     type="email"
                     autoComplete="username"
-                    placeholder="john@doe.com"
+                    placeholder={t("Email")}
                   />
                   <Error errorName={errors.email} />
                   <div className="mt-6"></div>
-                  <LabelArea label="Password" />
+                  <LabelArea label={t("Password")} />
                   <InputArea
                     required={true}
                     register={register}
                     defaultValue="12345678"
-                    label="Password"
+                    label={t("Password")}
                     name="password"
-                    type="password"
                     autocomplete="current-password"
-                    placeholder="***************"
+                    type="password"
+                    placeholder={t("Password")}
                   />
                   <Error errorName={errors.password} />
 

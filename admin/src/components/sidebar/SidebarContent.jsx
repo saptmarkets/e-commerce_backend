@@ -63,6 +63,15 @@ const SidebarContent = () => {
     })
     .filter(Boolean);
 
+  // Debug logging for troubleshooting
+  console.log("Sidebar filtering result:", {
+    originalSidebarLength: sidebar.length,
+    filteredSidebarLength: updatedSidebar.length,
+    isSuperAdmin,
+    accessList,
+    catalogRoute: updatedSidebar.find(route => route.name === "Catalog")
+  });
+
   return (
     <div className="sidebar py-4 text-gray-500 dark:text-gray-400">
       <a className=" text-gray-900 dark:text-gray-200" href="/dashboard">

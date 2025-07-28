@@ -65,15 +65,16 @@ const useLoginSubmit = () => {
           
           notifySuccess("Login Successful!");
           
-          // Handle redirect
+          // Handle redirect immediately without delay
           const redirectUrl = router.query.redirectUrl;
-          setTimeout(() => {
-            if (redirectUrl && redirectUrl !== "undefined") {
-              router.push(`/${decodeURIComponent(redirectUrl)}`);
-            } else {
-              router.push("/");
-            }
-          }, 300);
+          if (redirectUrl && redirectUrl !== "undefined") {
+            router.replace(`/${decodeURIComponent(redirectUrl)}`);
+          } else {
+            router.replace("/");
+          }
+          
+          // Set loading to false after redirect is initiated
+          setLoading(false);
           
         } catch (error) {
           console.error("Login error:", error);
@@ -91,15 +92,13 @@ const useLoginSubmit = () => {
           });
           
           notifySuccess("Please check your email to complete registration!");
-          setTimeout(() => {
-            router.push("/auth/login");
-          }, 1000);
+          router.replace("/auth/login");
+          setLoading(false);
         } catch (error) {
+          setLoading(false);
           notifyError(error?.response?.data?.message || "Registration failed!");
         }
       }
-      
-      setLoading(false);
     } catch (err) {
       setLoading(false);
       notifyError(err?.response?.data?.message || err?.message || "Something went wrong!");

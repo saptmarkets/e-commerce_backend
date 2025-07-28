@@ -340,7 +340,7 @@ const ImageCropper = ({
               {isProcessing ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  <span>Processing...</span>
+                  <span>{t("Processing")}</span>
                 </>
               ) : (
                 <>

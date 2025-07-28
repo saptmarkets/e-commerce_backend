@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@windmill/react-ui';
-import { FiDownload, FiUpload, FiRefreshCw, FiCheckCircle, FiXCircle, FiInfo, FiAlertTriangle } from 'react-icons/fi';
+import { FiDownload, FiUpload, FiRefreshCw, FiCheckCircle, FiXCircle, FiInfo, FiAlertTriangle, FiDatabase } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
 
 // Internal imports
@@ -29,6 +29,8 @@ const CategoryImportExport = () => {
   const [importResults, setImportResults] = useState(null);
   const [templateType, setTemplateType] = useState('basic');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [odooImporting, setOdooImporting] = useState(false); // New state for Odoo import
+  const [odooImportResults, setOdooImportResults] = useState(null); // New state for Odoo import results
   const fileInputRef = useRef(null);
 
   // Debug function to reset states
@@ -37,6 +39,8 @@ const CategoryImportExport = () => {
     setExporting(false);
     setSelectedFile(null);
     setImportResults(null);
+    setOdooImporting(false);
+    setOdooImportResults(null);
     console.log('🔧 All states reset');
   };
 
@@ -407,6 +411,51 @@ const CategoryImportExport = () => {
     }
   };
 
+  // Import all Odoo categories
+  const handleImportOdooCategories = async () => {
+    try {
+      setOdooImporting(true);
+      setOdooImportResults(null);
+      
+      console.log('🚀 Starting Odoo categories import...');
+      const result = await CategoryServices.importAllOdooCategories();
+      
+      console.log('✅ Odoo import completed:', result);
+      
+      setOdooImportResults({
+        success: true,
+        imported: result.data?.imported || 0,
+        errors: result.data?.errors || [],
+        total: result.data?.total || 0,
+        message: result.message || t("ImportCompletedSuccessfully")
+      });
+      
+      if (result.data?.imported > 0) {
+        notifySuccess(`Successfully imported ${result.data.imported} categories from Odoo!`);
+      }
+      
+      if (result.data?.errors && result.data.errors.length > 0) {
+        notifyError(`Import completed with ${result.data.errors.length} errors. Check results below.`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Odoo import error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to import Odoo categories';
+      
+      setOdooImportResults({
+        success: false,
+        imported: 0,
+        errors: [errorMessage],
+        total: 0,
+        message: errorMessage
+      });
+      
+      notifyError(errorMessage);
+    } finally {
+      setOdooImporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -424,6 +473,86 @@ const CategoryImportExport = () => {
       <PageTitle>Category Import/Export</PageTitle>
       
       <AnimatedContent>
+        {/* Odoo Import Section - NEW */}
+        <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5">
+          <CardBody>
+            <h4 className="mb-4 font-semibold text-gray-600 dark:text-gray-300">
+              🔄 Import Categories from Odoo
+            </h4>
+            <div className="grid gap-4 lg:gap-6 xl:gap-6 md:grid-cols-2">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Import all categories from your Odoo system into the store. This will create the proper hierarchy with bilingual names (English/Arabic) as configured in your Odoo system.
+                </p>
+                <div className="text-sm text-blue-600 dark:text-blue-400">
+                  <p className="mb-1">• Preserves parent/child relationships</p>
+                  <p className="mb-1">• Supports bilingual category names</p>
+                  <p>• Skips already imported categories</p>
+                </div>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={handleImportOdooCategories}
+                  disabled={odooImporting}
+                  className="w-full h-12 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {odooImporting ? (
+                    <>
+                      <FiRefreshCw className="mr-2 animate-spin" />
+                      Importing from Odoo...
+                    </>
+                  ) : (
+                    <>
+                      <FiDatabase className="mr-2" />
+                      Import All Odoo Categories
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Odoo Import Results */}
+            {odooImportResults && (
+              <div className="mt-6">
+                <h5 className="mb-3 font-medium text-gray-700 dark:text-gray-300">
+                  Odoo Import Results
+                </h5>
+                <div className={`p-4 rounded-lg ${odooImportResults.success ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
+                  <div className="flex items-start">
+                    {odooImportResults.success ? (
+                      <FiCheckCircle className="mr-2 mt-1 text-green-500" />
+                    ) : (
+                      <FiXCircle className="mr-2 mt-1 text-red-500" />
+                    )}
+                    <div className={`text-sm ${odooImportResults.success ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                      <p className="font-medium mb-2">{odooImportResults.message}</p>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <span className="font-medium">Categories Imported:</span> {odooImportResults.imported}
+                        </div>
+                        <div>
+                          <span className="font-medium">Total Processed:</span> {odooImportResults.total}
+                        </div>
+                      </div>
+                      
+                      {odooImportResults.errors && odooImportResults.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="font-medium mb-2">Errors ({odooImportResults.errors.length}):</p>
+                          <div className="max-h-32 overflow-y-auto">
+                            {odooImportResults.errors.map((error, index) => (
+                              <p key={index} className="text-xs mb-1">• {error}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
         {/* Template Generation Section */}
         <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5">
           <CardBody>
@@ -504,7 +633,7 @@ const CategoryImportExport = () => {
                   >
                     <div className="flex items-center justify-center">
                       {importing ? (
-                        <span className="text-gray-500 text-sm">Processing...</span>
+                        <span className="text-gray-500 text-sm">{t("Processing")}</span>
                       ) : selectedFile ? (
                         <div className="text-center">
                           <span className="text-green-600 text-sm font-medium">✓ {selectedFile.name}</span>
@@ -522,7 +651,7 @@ const CategoryImportExport = () => {
                 </div>
                 {importing && (
                   <p className="mt-2 text-sm text-blue-600">
-                    🔄 Processing... please wait
+                    🔄 {t("ProcessingPleaseWait")}
                   </p>
                 )}
                 {selectedFile && (

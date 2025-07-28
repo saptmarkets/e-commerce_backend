@@ -9,6 +9,7 @@ const ProductServices = {
     category = "",
     title = "",
     price = "",
+    searchType = "all",
   }) => {
     const searchTitle = title !== null ? title : "";
     const searchPrice = price !== null ? price : "";
@@ -18,9 +19,10 @@ const ProductServices = {
     const categoryQuery = categoryId !== "" ? `category=${categoryId}&` : "";
     const priceQuery = searchPrice !== "" ? `price=${searchPrice}&` : "";
     const limitQuery = limit !== "" ? `limit=${limit}&` : "limit=8&";
+    const searchTypeQuery = searchType !== "all" ? `searchType=${searchType}&` : "";
 
     return requests.get(
-      `/products?${searchQuery}${categoryQuery}${priceQuery}${limitQuery}page=${page}`,
+      `/products?${searchQuery}${categoryQuery}${priceQuery}${limitQuery}${searchTypeQuery}page=${page}`,
       body,
       headers
     );

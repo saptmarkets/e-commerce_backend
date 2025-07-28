@@ -16,6 +16,27 @@ import { SidebarContext } from "@/context/SidebarContext";
 import BannerServices from "@/services/BannerServices";
 import { notifyError, notifySuccess } from "@/utils/toast";
 
+// Helper function to extract multilingual content safely
+const extractMultilingualContent = (field, defaultValue = '') => {
+  if (!field) return { en: defaultValue, ar: defaultValue };
+  
+  // If it's already an object with en/ar keys
+  if (typeof field === 'object' && field !== null) {
+    return {
+      en: field.en || defaultValue,
+      ar: field.ar || defaultValue
+    };
+  }
+  
+  // If it's a string, treat as English content
+  if (typeof field === 'string') {
+    return { en: field, ar: defaultValue };
+  }
+  
+  // Fallback
+  return { en: defaultValue, ar: defaultValue };
+};
+
 // Banner location configurations with dimensions
 const BANNER_LOCATIONS = {
   'home-hero': {
@@ -71,7 +92,7 @@ const BANNER_LOCATIONS = {
 const BannerDrawer = ({ id }) => {
   const { isDrawerOpen, closeDrawer } = useContext(SidebarContext);
   const queryClient = useQueryClient();
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState([]);
   const [leftImageUrl, setLeftImageUrl] = useState("");
   const [rightImageUrl, setRightImageUrl] = useState("");
   const [leftImageUrl1, setLeftImageUrl1] = useState("");
@@ -112,34 +133,45 @@ const BannerDrawer = ({ id }) => {
   // Fetch banner data when editing
   useEffect(() => {
     if (id) {
+      console.log('Loading banner with ID:', id);
       setLoading(true);
       BannerServices.getBannerById(id)
         .then((response) => {
+          console.log('Raw banner response:', response);
+          
           // Handle different possible response structures
           let banner = null;
           
           // Direct banner object
           if (response && response.title) {
             banner = response;
+            console.log('Using direct banner object');
           }
           // Wrapped in data property
           else if (response && response.data && response.data.title) {
             banner = response.data;
+            console.log('Using response.data');
           }
           // Axios response structure
           else if (response && response.data && response.data.data && response.data.data.title) {
             banner = response.data.data;
+            console.log('Using response.data.data');
           }
           
           if (banner && banner.title) {
-            setValue('title', banner.title || '');
-            setValue('titleAr', banner.titleAr || '');
-            setValue('description', banner.description || '');
-            setValue('descriptionAr', banner.descriptionAr || '');
+            // Handle multilingual content using the helper function
+            const titleObj = extractMultilingualContent(banner.title);
+            const descriptionObj = extractMultilingualContent(banner.description);
+            const linkTextObj = extractMultilingualContent(banner.linkText);
+            
+            setValue('title', titleObj.en);
+            setValue('titleAr', titleObj.ar);
+            setValue('description', descriptionObj.en);
+            setValue('descriptionAr', descriptionObj.ar);
             setValue('location', banner.location || 'home-hero');
             setValue('linkUrl', banner.linkUrl || '');
-            setValue('linkText', banner.linkText || '');
-            setValue('linkTextAr', banner.linkTextAr || '');
+            setValue('linkText', linkTextObj.en);
+            setValue('linkTextAr', linkTextObj.ar);
             setValue('status', banner.status || 'active');
             setValue('sortOrder', banner.sortOrder || 0);
             setValue('startDate', banner.startDate ? banner.startDate.split('T')[0] : '');
@@ -150,7 +182,7 @@ const BannerDrawer = ({ id }) => {
             setValue('rightImageAnimation', banner.rightImageAnimation || 'slideUp');
             setValue('centerImageAnimation', banner.centerImageAnimation || 'slideRight');
             
-            setImageUrl(banner.imageUrl || '');
+            setImageUrl(Array.isArray(banner.imageUrl) ? banner.imageUrl : (banner.imageUrl ? [banner.imageUrl] : [])); // Ensure it's always an array
             setLeftImageUrl(banner.leftImageUrl || '');
             setRightImageUrl(banner.rightImageUrl || '');
             setLeftImageUrl1(banner.leftImageUrl1 || '');
@@ -159,6 +191,27 @@ const BannerDrawer = ({ id }) => {
             setRightImageUrl2(banner.rightImageUrl2 || '');
             setSelectedLocation(banner.location || 'home-hero');
             setLayoutType(banner.layoutType || 'single');
+            
+            console.log('Banner data loaded successfully:', {
+              title: titleObj,
+              description: descriptionObj,
+              linkText: linkTextObj,
+              location: banner.location,
+              layoutType: banner.layoutType,
+              imageUrl: banner.imageUrl
+            });
+            
+            // Force form re-render to ensure values are displayed
+            setTimeout(() => {
+              console.log('Form values after setValue:', {
+                title: titleObj.en,
+                titleAr: titleObj.ar,
+                description: descriptionObj.en,
+                descriptionAr: descriptionObj.ar,
+                linkText: linkTextObj.en,
+                linkTextAr: linkTextObj.ar
+              });
+            }, 100);
           } else {
             console.error('No valid banner data found in response:', response);
             notifyError('Failed to load banner data - invalid response structure');
@@ -177,8 +230,9 @@ const BannerDrawer = ({ id }) => {
   // Reset form when drawer closes
   useEffect(() => {
     if (!isDrawerOpen) {
+      console.log('Drawer closed, resetting form');
       reset();
-      setImageUrl('');
+      setImageUrl([]);
       setLeftImageUrl('');
       setRightImageUrl('');
       setLeftImageUrl1('');
@@ -196,7 +250,7 @@ const BannerDrawer = ({ id }) => {
       setLoading(true);
 
       // Validate image upload based on layout type
-      if (!imageUrl) {
+      if (!imageUrl || imageUrl.length === 0) {
         notifyError('Please upload a center/main banner image');
         return;
       }
@@ -212,10 +266,29 @@ const BannerDrawer = ({ id }) => {
         }
       }
 
+      // Prepare multilingual fields
+      const titleObj = {
+        en: data.title || '',
+        ar: data.titleAr || '',
+      };
+      const descriptionObj = {
+        en: data.description || '',
+        ar: data.descriptionAr || '',
+      };
+      const linkTextObj = {
+        en: data.linkText || '',
+        ar: data.linkTextAr || '',
+      };
+      // Remove flat fields so they don't overwrite the object
+      const { title, titleAr, description, descriptionAr, linkText, linkTextAr, ...restData } = data;
+
       // Prepare banner data
       const bannerData = {
-        ...data,
-        imageUrl,
+        ...restData,
+        title: titleObj,
+        description: descriptionObj,
+        linkText: linkTextObj,
+        imageUrl: imageUrl[0] || '',
         leftImageUrl: data.layoutType === 'triple' ? leftImageUrl : null,
         rightImageUrl: data.layoutType === 'triple' ? rightImageUrl : null,
         leftImageUrl1: data.layoutType === 'triple' ? leftImageUrl1 : null,
@@ -243,7 +316,7 @@ const BannerDrawer = ({ id }) => {
       queryClient.invalidateQueries({ queryKey: ['home-middle-banner'] });
 
       reset();
-      setImageUrl('');
+      setImageUrl([]);
       setLeftImageUrl('');
       setRightImageUrl('');
       setLeftImageUrl1('');
@@ -339,6 +412,8 @@ const BannerDrawer = ({ id }) => {
                       layoutType={layoutType}
                       folder="banners"
                       title="Upload Banner Image"
+                      product={true} // Enable multi-image upload for center banner
+                      enableCropper={false} // Disable cropper for banner uploads
                     />
                   </div>
                 </div>
@@ -374,6 +449,7 @@ const BannerDrawer = ({ id }) => {
                               context="banner-side"
                               folder="banners/sides"
                               title="Upload Left Top Image"
+                              enableCropper={false} // Disable cropper for side banner uploads
                             />
                           </div>
                         </div>
@@ -397,6 +473,7 @@ const BannerDrawer = ({ id }) => {
                               context="banner-side"
                               folder="banners/sides"
                               title="Upload Left Bottom Image"
+                              enableCropper={false} // Disable cropper for side banner uploads
                             />
                           </div>
                         </div>
@@ -425,6 +502,7 @@ const BannerDrawer = ({ id }) => {
                               context="banner-side"
                               folder="banners/sides"
                               title="Upload Right Top Image"
+                              enableCropper={false} // Disable cropper for side banner uploads
                             />
                           </div>
                         </div>
@@ -448,6 +526,7 @@ const BannerDrawer = ({ id }) => {
                               context="banner-side"
                               folder="banners/sides"
                               title="Upload Right Bottom Image"
+                              enableCropper={false} // Disable cropper for side banner uploads
                             />
                           </div>
                         </div>

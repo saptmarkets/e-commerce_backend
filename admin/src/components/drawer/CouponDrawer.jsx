@@ -73,7 +73,7 @@ const CouponDrawer = ({ id }) => {
                 <InputArea
                   required={true}
                   register={register}
-                  label="Coupon title"
+                  label={t("CouponTitle")}
                   name="title"
                   type="text"
                   placeholder={t("CampaignName")}
@@ -88,7 +88,7 @@ const CouponDrawer = ({ id }) => {
                 <InputArea
                   required={true}
                   register={register}
-                  label="Coupon Code"
+                  label={t("CouponCode")}
                   name="couponCode"
                   type="text"
                   placeholder={t("CampaignCode")}
@@ -104,7 +104,7 @@ const CouponDrawer = ({ id }) => {
                   {...register(`endTime`, {
                     required: "Coupon Validation End Time",
                   })}
-                  label="Coupon Validation End Time"
+                  label={t("CouponValidationEndTime")}
                   name="endTime"
                   type="datetime-local"
                   placeholder={t("CouponValidityTime")}
@@ -134,10 +134,10 @@ const CouponDrawer = ({ id }) => {
                   register={register}
                   maxValue={discountType ? 99 : 1000}
                   minValue={1}
-                  label="Discount"
+                  label={t("Discount")}
                   name="discountPercentage"
                   type="number"
-                  placeholder={discountType ? "Percentage" : "Fixed Amount"}
+                  placeholder={discountType ? t("Percentage") : t("FixedAmount")}
                   currency={discountType ? "%" : currency}
                 />
 
@@ -154,7 +154,7 @@ const CouponDrawer = ({ id }) => {
                   register={register}
                   maxValue={200000}
                   minValue={100}
-                  label="Minimum Amount"
+                  label={t("MinimumAmount")}
                   name="minimumAmount"
                   type="number"
                   placeholder={t("MinimumAmountPlasholder")}
@@ -176,7 +176,7 @@ const CouponDrawer = ({ id }) => {
             </div>
           </div>
 
-          <DrawerButton id={id} title="Coupon" isSubmitting={isSubmitting} />
+          <DrawerButton id={id} title={t("Coupon")} isSubmitting={isSubmitting} />
         </form>
       </Scrollbars>
     </>

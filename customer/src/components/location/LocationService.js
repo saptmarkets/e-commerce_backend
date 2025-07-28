@@ -73,11 +73,16 @@ const LocationService = ({ onLocationUpdate, className = '', initialLocation = n
   // Free reverse geocoding using OpenStreetMap Nominatim API
   const reverseGeocode = async (lat, lng) => {
     try {
+      // Use a CORS proxy to avoid CORS issues
+      const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        `${corsProxy}${nominatimUrl}`,
         {
           headers: {
-            'User-Agent': 'SaptMarkets-App'
+            'User-Agent': 'SaptMarkets-App',
+            'Origin': window.location.origin
           }
         }
       );
@@ -117,7 +122,6 @@ const LocationService = ({ onLocationUpdate, className = '', initialLocation = n
         throw new Error('Geocoding API request failed');
       }
     } catch (error) {
-      console.log('Reverse geocoding failed:', error);
       // Set basic address if reverse geocoding fails
       const fallbackAddress = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       setAddress(fallbackAddress);
@@ -129,7 +133,13 @@ const LocationService = ({ onLocationUpdate, className = '', initialLocation = n
           longitude: lng,
           address: fallbackAddress,
           city: '',
-          addressComponents: {},
+          addressComponents: {
+            streetAddress: fallbackAddress,
+            city: '',
+            country: 'Saudi Arabia',
+            googleMapsLink: `https://www.google.com/maps?q=${lat},${lng}`,
+            googleMapsAddressLink: `https://www.google.com/maps?q=${lat},${lng}`
+          },
           googleMapsLink: `https://www.google.com/maps?q=${lat},${lng}`,
           googleMapsAddressLink: `https://www.google.com/maps?q=${lat},${lng}`
         });

@@ -34,13 +34,13 @@ const MyOrders = () => {
         limit: 10,
         page: currentPage,
       }),
-    // Poll every 15 seconds if there are non-delivered orders
+    // Poll every 45 seconds if there are non-delivered orders (reduced frequency)
     refetchInterval: (latestData) => {
-      if (!latestData) return 15000;
+      if (!latestData) return 45000;
       const hasPending = latestData.orders?.some(
         (o) => !["Delivered", "Cancel", "Cancelled"].includes(o.status)
       );
-      return hasPending ? 15000 : false;
+      return hasPending ? 45000 : false;
     },
   });
 

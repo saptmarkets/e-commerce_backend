@@ -1,0 +1,19 @@
+@media (max-width: 640px) {
+  .product-modal-content {
+    max-width: 95vw !important;
+    min-width: 0 !important;
+    padding: 0.75rem !important;
+    font-size: 0.92rem !important;
+  }
+  .product-modal-content * {
+    font-size: 0.92rem !important;
+  }
+  .product-modal-content .sticky-close {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #fff;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+} 

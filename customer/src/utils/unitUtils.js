@@ -10,29 +10,32 @@
  * @returns {string} - Localized unit name
  */
 export const getLocalizedUnitName = (unit, language = 'en') => {
-  if (!unit) return 'Unit';
-  
-  // If Arabic is requested and Arabic name exists, use it
+  if (!unit) return language === 'ar' ? 'وحدة' : 'Unit';
+
+  // Prefer explicit name fields
   if (language === 'ar' && unit.nameAr && unit.nameAr.trim() !== '') {
     return unit.nameAr;
   }
+  if (language !== 'ar' && unit.name && unit.name.trim() !== '') {
+    return unit.name;
+  }
 
-  // Fallback map for common shortCodes to Arabic names
-  if (language === 'ar') {
+  // Fallback: try shortCode (case-insensitive)
+  if (unit.shortCode) {
+    const code = unit.shortCode.toLowerCase();
     const shortCodeMap = {
       pcs: 'قطعة',
-      CTN: 'كرتون',
-      ctn: 'كرتون',
       kg: 'كيلو',
       g: 'جرام'
     };
-    if (unit.shortCode && shortCodeMap[unit.shortCode]) {
-      return shortCodeMap[unit.shortCode] + (unit.unitValue && unit.unitValue > 1 ? ` ${unit.unitValue}` : '');
+    if (language === 'ar' && shortCodeMap[code]) {
+      return shortCodeMap[code];
     }
+    return unit.shortCode;
   }
-  
-  // Fallback to English name or shortCode
-  return unit.name || unit.shortCode || 'Unit';
+
+  // Final fallback
+  return language === 'ar' ? 'وحدة' : 'Unit';
 };
 
 /**
@@ -61,13 +64,33 @@ export const getShortUnitName = (unit, language = 'en') => {
   
   const unitObj = unit.unit || unit;
   
-  // For Arabic, if we have Arabic name, use it, otherwise fallback to shortCode
+  // For Arabic, if we have Arabic name, use it, otherwise fallback to name
   if (language === 'ar' && unitObj.nameAr && unitObj.nameAr.trim() !== '') {
     return unitObj.nameAr;
   }
   
-  // For English or when no Arabic name, prefer shortCode for compactness
-  return unitObj.shortCode || unitObj.name || 'pc';
+  // For Arabic, if no Arabic name but we have shortCode, try to map it
+  if (language === 'ar' && unitObj.shortCode) {
+    const code = unitObj.shortCode.toLowerCase();
+    const shortCodeMap = {
+      pcs: 'قطعة',
+      kg: 'كيلو',
+      g: 'جرام'
+    };
+    
+    if (shortCodeMap[code]) {
+      return shortCodeMap[code];
+    }
+  }
+  
+  // For English or when no Arabic name, prioritize name over shortCode
+  // This handles cases where shortCode is incorrect (like "pcs" for "kg")
+  if (unitObj.name && unitObj.name.trim() !== '') {
+    return unitObj.name;
+  }
+  
+  // Only fallback to shortCode if name is not available
+  return unitObj.shortCode || 'pc';
 };
 
 /**
@@ -82,14 +105,19 @@ export const getBilingualUnitDisplay = (unit, primaryLanguage = 'en') => {
   const unitObj = unit.unit || unit;
   const hasArabicName = unitObj.nameAr && unitObj.nameAr.trim() !== '';
   
+  // Get the primary English name, prioritizing name over shortCode
+  const primaryEnglishName = unitObj.name && unitObj.name.trim() !== '' 
+    ? unitObj.name 
+    : (unitObj.shortCode || 'Unit');
+  
   if (primaryLanguage === 'ar') {
     return {
-      primary: hasArabicName ? unitObj.nameAr : (unitObj.name || unitObj.shortCode || 'Unit'),
-      secondary: hasArabicName ? (unitObj.name || unitObj.shortCode) : null
+      primary: hasArabicName ? unitObj.nameAr : primaryEnglishName,
+      secondary: hasArabicName ? primaryEnglishName : null
     };
   } else {
     return {
-      primary: unitObj.name || unitObj.shortCode || 'Unit',
+      primary: primaryEnglishName,
       secondary: hasArabicName ? unitObj.nameAr : null
     };
   }

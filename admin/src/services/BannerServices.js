@@ -39,7 +39,7 @@ const BannerServices = {
     return requests.put(`/admin/banners/status/${id}`, body);
   },
 
-  // Get banners by location for frontend
+  // Get banners by location
   getBannersByLocation: async (location) => {
     return requests.get(`/banners/location/${location}`);
   },

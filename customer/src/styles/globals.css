@@ -375,4 +375,12 @@ html[dir="rtl"] .border-l {
 html[dir="rtl"] .border-r {
   border-right-width: 0 !important;
   border-left-width: 1px !important;
+}
+
+/* Override RTL direction for main carousel to ensure consistent LTR animation */
+html[dir="rtl"] .main-carousel,
+html[dir="rtl"] .main-carousel .swiper,
+html[dir="rtl"] .main-carousel .swiper-wrapper,
+html[dir="rtl"] .main-carousel .swiper-slide {
+  direction: ltr !important;
 } 

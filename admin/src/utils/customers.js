@@ -94,7 +94,7 @@ const customers = [
     updatedAt: '2021-11-25T22:43:28.326Z',
     address: 'Las Vegas, NV 89101',
     image:
-      'http://res.cloudinary.com/ahossain/image/upload/v1637880199/ymwffpd8hlc1ifg0m1ss.jpg',
+      '',
   },
   {
     _id: '619f77b553cc5a1858ef366a',
@@ -115,7 +115,7 @@ const customers = [
     updatedAt: '2021-11-26T12:30:30.340Z',
     address: 'l705 Pine Barren Rd, Poole',
     image:
-      'http://res.cloudinary.com/ahossain/image/upload/v1637929773/nhln9pld5evjhym457d0.jpg',
+      '',
   },
   {
     _id: '619f77b553cc5a1858ef366e',

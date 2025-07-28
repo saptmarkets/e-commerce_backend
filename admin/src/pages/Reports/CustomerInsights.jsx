@@ -329,11 +329,11 @@ const CustomerInsights = () => {
   const TabNavigation = () => (
     <div className="flex flex-wrap space-x-1 mb-6">
       {[
-        { id: 'overview', label: 'Overview', icon: FiUsers },
-        { id: 'clv', label: 'Lifetime Value', icon: FiDollarSign },
-        { id: 'rfm', label: 'RFM Analysis', icon: FiStar },
-        { id: 'behavior', label: 'Purchase Behavior', icon: FiTrendingUp },
-        { id: 'geographic', label: 'Geographic', icon: FiMapPin }
+        { id: 'overview', label: t('customerInsights.overview'), icon: FiUsers },
+        { id: 'clv', label: t('customerInsights.lifetimeValue'), icon: FiDollarSign },
+        { id: 'rfm', label: t('customerInsights.rfmAnalysis'), icon: FiStar },
+        { id: 'behavior', label: t('customerInsights.purchaseBehavior'), icon: FiTrendingUp },
+        { id: 'geographic', label: t('customerInsights.geographic'), icon: FiMapPin }
       ].map(tab => (
         <button
           key={tab.id}
@@ -355,27 +355,27 @@ const CustomerInsights = () => {
   const FiltersSection = () => (
     <Card className="mb-6">
       <CardBody>
-        <h4 className="text-lg font-semibold mb-4">📊 Filters & Controls</h4>
+        <h4 className="text-lg font-semibold mb-4">{t('customerInsights.filters')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <Label>📅 Period (Days)</Label>
+            <Label>{t('customerInsights.period')}</Label>
             <Select
               value={filters.period}
               onChange={(e) => handleFilterChange('period', parseInt(e.target.value))}
               className="mt-1"
             >
-              <option value={7}>Last 7 Days</option>
-              <option value={30}>Last 30 Days</option>
-              <option value={90}>Last 90 Days</option>
-              <option value={180}>Last 6 Months</option>
-              <option value={365}>Last Year</option>
+              <option value={7}>{t('customerInsights.last7Days')}</option>
+              <option value={30}>{t('customerInsights.last30Days')}</option>
+              <option value={90}>{t('customerInsights.last90Days')}</option>
+              <option value={180}>{t('customerInsights.last6Months')}</option>
+              <option value={365}>{t('customerInsights.lastYear')}</option>
             </Select>
           </div>
           
           <div>
-            <Label>🏙️ City Filter</Label>
+            <Label>{t('customerInsights.cityFilter')}</Label>
             <Input
-              placeholder="Enter city name"
+              placeholder={t('customerInsights.enterCityName')}
               value={filters.city}
               onChange={(e) => handleFilterChange('city', e.target.value)}
               className="mt-1"
@@ -383,17 +383,17 @@ const CustomerInsights = () => {
           </div>
           
           <div>
-            <Label>👥 Customer Segment</Label>
+            <Label>{t('customerInsights.customerSegment')}</Label>
             <Select
               value={filters.segment}
               onChange={(e) => handleFilterChange('segment', e.target.value)}
               className="mt-1"
             >
-              <option value="">All Segments</option>
-              <option value="VIP">VIP Customers</option>
-              <option value="Premium">Premium Customers</option>
-              <option value="Regular">Regular Customers</option>
-              <option value="New">New Customers</option>
+              <option value="">{t('customerInsights.allSegments')}</option>
+              <option value="VIP">{t('customerInsights.vipCustomers')}</option>
+              <option value="Premium">{t('customerInsights.premiumCustomers')}</option>
+              <option value="Regular">{t('customerInsights.regularCustomers')}</option>
+              <option value="New">{t('customerInsights.newCustomers')}</option>
             </Select>
           </div>
           
@@ -403,7 +403,7 @@ const CustomerInsights = () => {
               className="bg-blue-500 hover:bg-blue-600 text-white"
               disabled={isLoading}
             >
-              {isLoading ? "Loading..." : "🔄 Refresh"}
+              {isLoading ? t('customerInsights.loading') : t('customerInsights.refresh')}
             </Button>
           </div>
         </div>
@@ -443,7 +443,7 @@ const CustomerInsights = () => {
                 <FiUsers className="w-6 h-6" />
               </div>
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-600">Total Customers</p>
+                <p className="mb-2 text-sm font-medium text-gray-600">{t('customerInsights.totalCustomers')}</p>
                 <p className="text-2xl font-bold text-gray-700">{overview.totalCustomers?.toLocaleString() || 0}</p>
               </div>
             </CardBody>
@@ -455,7 +455,7 @@ const CustomerInsights = () => {
                 <FiDollarSign className="w-6 h-6" />
               </div>
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="mb-2 text-sm font-medium text-gray-600">{t('customerInsights.totalRevenue')}</p>
                 <p className="text-2xl font-bold text-gray-700">{formatCurrency(overview.totalSpent)}</p>
               </div>
             </CardBody>
@@ -467,7 +467,7 @@ const CustomerInsights = () => {
                 <FiTrendingUp className="w-6 h-6" />
               </div>
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-600">Avg. Lifetime Value</p>
+                <p className="mb-2 text-sm font-medium text-gray-600">{t('customerInsights.avgLifetimeValue')}</p>
                 <p className="text-2xl font-bold text-gray-700">{formatCurrency(overview.averageLifetimeValue)}</p>
               </div>
             </CardBody>
@@ -479,7 +479,7 @@ const CustomerInsights = () => {
                 <FiUsers className="w-6 h-6" />
               </div>
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-600">Active Customers</p>
+                <p className="mb-2 text-sm font-medium text-gray-600">{t('customerInsights.activeCustomers')}</p>
                 <p className="text-2xl font-bold text-gray-700">{overview.activeCustomers?.toLocaleString() || 0}</p>
               </div>
             </CardBody>
@@ -497,8 +497,8 @@ const CustomerInsights = () => {
                     <FiUsers className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-gray-800">Customer Segments</h4>
-                    <p className="text-sm text-gray-500">Distribution by customer value</p>
+                    <h4 className="text-xl font-bold text-gray-800">{t('customerInsights.customerSegments')}</h4>
+                    <p className="text-sm text-gray-500">{t('customerInsights.distributionByCustomerValue')}</p>
                   </div>
                 </div>
                 <Button
@@ -507,7 +507,7 @@ const CustomerInsights = () => {
                   className="bg-green-500 hover:bg-green-600 text-white shadow-md transition-all duration-200"
                 >
                   <FiDownload className="w-4 h-4 mr-2" />
-                  Export
+                  {t('customerInsights.export')}
                 </Button>
               </div>
               
@@ -516,8 +516,8 @@ const CustomerInsights = () => {
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
                       <FiUsers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg font-medium text-gray-600">No Data Available</p>
-                      <p className="text-sm text-gray-500">Customer segments will appear here</p>
+                      <p className="text-lg font-medium text-gray-600">{t('customerInsights.noDataAvailable')}</p>
+                      <p className="text-sm text-gray-500">{t('customerInsights.customerSegmentsWillAppearHere')}</p>
                     </div>
                   </div>
                 ) : (
@@ -583,8 +583,8 @@ const CustomerInsights = () => {
                   <FiStar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-800">Segment Details</h4>
-                  <p className="text-sm text-gray-500">Customer distribution breakdown</p>
+                  <h4 className="text-xl font-bold text-gray-800">{t('customerInsights.segmentDetails')}</h4>
+                  <p className="text-sm text-gray-500">{t('customerInsights.customerDistributionBreakdown')}</p>
                 </div>
               </div>
               
@@ -657,7 +657,7 @@ const CustomerInsights = () => {
                             <FiUsers className="w-4 h-4 text-gray-400 mr-1" />
                             <p className="font-bold text-2xl text-gray-800">{segment.count.toLocaleString()}</p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">customers</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('customerInsights.customers')}</p>
                         </div>
                       </div>
                       
@@ -690,8 +690,8 @@ const CustomerInsights = () => {
                   <FiStar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-800">Top Customers</h4>
-                  <p className="text-sm text-gray-500">Your most valuable customers</p>
+                  <h4 className="text-xl font-bold text-gray-800">{t('customerInsights.topCustomers')}</h4>
+                  <p className="text-sm text-gray-500">{t('customerInsights.yourMostValuableCustomers')}</p>
                 </div>
               </div>
               <Button
@@ -700,7 +700,7 @@ const CustomerInsights = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-200"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
-                Export List
+                {t('customerInsights.exportList')}
               </Button>
             </div>
             
@@ -708,13 +708,13 @@ const CustomerInsights = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-gray-100">
-                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Customer</th>
-                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Contact</th>
-                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Location</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Total Spent</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Orders</th>
-                    <th className="px-4 py-4 text-center font-semibold text-gray-700">Segment</th>
-                    <th className="px-4 py-4 text-center font-semibold text-gray-700">Actions</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">{t('customerInsights.customer')}</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">{t('customerInsights.contact')}</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">{t('customerInsights.location')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.totalSpent')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.orders')}</th>
+                    <th className="px-4 py-4 text-center font-semibold text-gray-700">{t('customerInsights.segment')}</th>
+                    <th className="px-4 py-4 text-center font-semibold text-gray-700">{t('customerInsights.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -727,7 +727,7 @@ const CustomerInsights = () => {
                           </div>
                           <div>
                             <p className="font-semibold text-gray-800">{customer.name}</p>
-                            <p className="text-xs text-gray-500">Customer ID: {customer._id}</p>
+                            <p className="text-xs text-gray-500">{t('customerInsights.customerId')}: {customer._id}</p>
                           </div>
                         </div>
                       </td>
@@ -746,13 +746,13 @@ const CustomerInsights = () => {
                       <td className="px-4 py-4 text-right">
                         <div>
                           <p className="font-bold text-lg text-gray-800">{formatCurrency(customer.totalSpent)}</p>
-                          <p className="text-xs text-gray-500">Lifetime Value</p>
+                          <p className="text-xs text-gray-500">{t('customerInsights.lifetimeValue')}</p>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div>
                           <p className="font-semibold text-gray-800">{customer.totalOrders}</p>
-                          <p className="text-xs text-gray-500">orders</p>
+                          <p className="text-xs text-gray-500">{t('customerInsights.orders')}</p>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-center">
@@ -775,7 +775,7 @@ const CustomerInsights = () => {
                           className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm transition-all duration-200"
                         >
                           <FiEye className="w-3 h-3 mr-1" />
-                          View
+                          {t('customerInsights.view')}
                         </Button>
                       </td>
                     </tr>
@@ -786,8 +786,8 @@ const CustomerInsights = () => {
               {(!overviewData.topCustomers || overviewData.topCustomers.length === 0) && (
                 <div className="text-center py-12">
                   <FiUsers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="text-lg font-medium text-gray-600">No Customers Found</p>
-                  <p className="text-sm text-gray-500">Customer data will appear here</p>
+                  <p className="text-lg font-medium text-gray-600">{t('customerInsights.noCustomersFound')}</p>
+                  <p className="text-sm text-gray-500">{t('customerInsights.customerDataWillAppearHere')}</p>
                 </div>
               )}
             </div>
@@ -811,15 +811,15 @@ const CustomerInsights = () => {
                 <h4 className="text-lg font-semibold mb-2">{segment._id} Segment</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Customers:</span>
+                    <span className="text-gray-600">{t('customerInsights.customers')}:</span>
                     <span className="font-medium">{segment.customerCount?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Avg. CLV:</span>
+                    <span className="text-gray-600">{t('customerInsights.avgClv')}:</span>
                     <span className="font-medium">{formatCurrency(segment.averageClv)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total CLV:</span>
+                    <span className="text-gray-600">{t('customerInsights.totalClv')}:</span>
                     <span className="font-medium">{formatCurrency(segment.totalClv)}</span>
                   </div>
                 </div>
@@ -832,28 +832,28 @@ const CustomerInsights = () => {
         <Card>
           <CardBody>
             <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold">💰 Customer Lifetime Value Analysis</h4>
+              <h4 className="text-lg font-semibold">{t('customerInsights.customerLifetimeValueAnalysis')}</h4>
               <Button
                 size="sm"
                 onClick={() => exportToCSV('clv')}
                 className="bg-green-500 hover:bg-green-600 text-white"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
-                Export CLV Data
+                {t('customerInsights.exportClvData')}
               </Button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left">Customer</th>
-                    <th className="px-4 py-2 text-left">City</th>
-                    <th className="px-4 py-2 text-right">Current CLV</th>
-                    <th className="px-4 py-2 text-right">Predicted CLV</th>
-                    <th className="px-4 py-2 text-right">Orders</th>
-                    <th className="px-4 py-2 text-right">AOV</th>
-                    <th className="px-4 py-2 text-center">Segment</th>
-                    <th className="px-4 py-2 text-center">Actions</th>
+                    <th className="px-4 py-2 text-left">{t('customerInsights.customer')}</th>
+                    <th className="px-4 py-2 text-left">{t('customerInsights.city')}</th>
+                    <th className="px-4 py-2 text-right">{t('customerInsights.currentClv')}</th>
+                    <th className="px-4 py-2 text-right">{t('customerInsights.predictedClv')}</th>
+                    <th className="px-4 py-2 text-right">{t('customerInsights.orders')}</th>
+                    <th className="px-4 py-2 text-right">{t('customerInsights.aov')}</th>
+                    <th className="px-4 py-2 text-center">{t('customerInsights.segment')}</th>
+                    <th className="px-4 py-2 text-center">{t('customerInsights.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -882,7 +882,7 @@ const CustomerInsights = () => {
                           className="bg-blue-500 hover:bg-blue-600 text-white"
                         >
                           <FiEye className="w-3 h-3 mr-1" />
-                          View Details
+                          {t('customerInsights.viewDetails')}
                         </Button>
                       </td>
                     </tr>
@@ -905,7 +905,7 @@ const CustomerInsights = () => {
         {/* RFM Summary Chart */}
         <Card>
           <CardBody>
-            <h4 className="text-lg font-semibold mb-4">🎯 RFM Segments Distribution</h4>
+            <h4 className="text-lg font-semibold mb-4">{t('customerInsights.rfmSegmentsDistribution')}</h4>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rfmData.rfmSummary || []}>
@@ -925,28 +925,28 @@ const CustomerInsights = () => {
         <Card>
           <CardBody>
             <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold">📊 RFM Customer Analysis</h4>
+              <h4 className="text-lg font-semibold">{t('customerInsights.rfmCustomerAnalysis')}</h4>
               <Button
                 size="sm"
                 onClick={() => exportToCSV('rfm')}
                 className="bg-green-500 hover:bg-green-600 text-white"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
-                Export RFM Data
+                {t('customerInsights.exportRfmData')}
               </Button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left">Customer</th>
-                    <th className="px-4 py-2 text-left">City</th>
-                    <th className="px-4 py-2 text-right">Recency</th>
-                    <th className="px-4 py-2 text-right">Frequency</th>
-                    <th className="px-4 py-2 text-right">Monetary</th>
-                    <th className="px-4 py-2 text-center">RFM Score</th>
-                    <th className="px-4 py-2 text-center">Segment</th>
-                    <th className="px-4 py-2 text-center">Actions</th>
+                    <th className="px-4 py-2 text-left">{t('customerInsights.customer')}</th>
+                    <th className="px-4 py-2 text-left">{t('customerInsights.city')}</th>
+                    <th className="px-4 py-2 text-right">{t('customerInsights.recency')}</th>
+                    <th className="px-4 py-2 text-right">{t('customerInsights.frequency')}</th>
+                    <th className="px-4 py-2 text-right">{t('customerInsights.monetary')}</th>
+                    <th className="px-4 py-2 text-center">{t('customerInsights.rfmScore')}</th>
+                    <th className="px-4 py-2 text-center">{t('customerInsights.segment')}</th>
+                    <th className="px-4 py-2 text-center">{t('customerInsights.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -976,7 +976,7 @@ const CustomerInsights = () => {
                           className="bg-blue-500 hover:bg-blue-600 text-white"
                         >
                           <FiEye className="w-3 h-3 mr-1" />
-                          View Details
+                          {t('customerInsights.viewDetails')}
                         </Button>
                       </td>
                     </tr>
@@ -1024,8 +1024,8 @@ const CustomerInsights = () => {
                   <FiUsers className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-800">Customer Purchase Patterns</h4>
-                  <p className="text-sm text-gray-500">Customer behavior analysis</p>
+                  <h4 className="text-xl font-bold text-gray-800">{t('customerInsights.customerPurchasePatterns')}</h4>
+                  <p className="text-sm text-gray-500">{t('customerInsights.customerBehaviorAnalysis')}</p>
                 </div>
               </div>
               <Button
@@ -1034,7 +1034,7 @@ const CustomerInsights = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-all duration-200"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
-                Export Behavior Data
+                {t('customerInsights.exportBehaviorData')}
               </Button>
             </div>
             
@@ -1042,14 +1042,14 @@ const CustomerInsights = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-gray-100">
-                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Customer</th>
-                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Location</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Orders</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Products</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Total Spent</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Categories</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Frequency</th>
-                    <th className="px-4 py-4 text-center font-semibold text-gray-700">Actions</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">{t('customerInsights.customer')}</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">{t('customerInsights.location')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.orders')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.products')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.totalSpent')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.categories')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.frequency')}</th>
+                    <th className="px-4 py-4 text-center font-semibold text-gray-700">{t('customerInsights.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1094,7 +1094,7 @@ const CustomerInsights = () => {
                           className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm transition-all duration-200"
                         >
                           <FiEye className="w-3 h-3 mr-1" />
-                          View
+                          {t('customerInsights.view')}
                         </Button>
                       </td>
                     </tr>
@@ -1105,8 +1105,8 @@ const CustomerInsights = () => {
               {(!behaviorData.purchasePatterns || behaviorData.purchasePatterns.length === 0) && (
                 <div className="text-center py-12">
                   <FiShoppingBag className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="text-lg font-medium text-gray-600">No Purchase Data Found</p>
-                  <p className="text-sm text-gray-500">Customer purchase patterns will appear here</p>
+                  <p className="text-lg font-medium text-gray-600">{t('customerInsights.noPurchaseDataFound')}</p>
+                  <p className="text-sm text-gray-500">{t('customerInsights.customerPurchasePatternsWillAppearHere')}</p>
                 </div>
               )}
             </div>
@@ -1122,8 +1122,8 @@ const CustomerInsights = () => {
                   <FiShoppingBag className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-800">Popular Categories</h4>
-                  <p className="text-sm text-gray-500">Best-selling product categories</p>
+                  <h4 className="text-xl font-bold text-gray-800">{t('customerInsights.popularCategories')}</h4>
+                  <p className="text-sm text-gray-500">{t('customerInsights.bestSellingProductCategories')}</p>
                 </div>
               </div>
               <Button
@@ -1132,7 +1132,7 @@ const CustomerInsights = () => {
                 className="bg-green-500 hover:bg-green-600 text-white shadow-md transition-all duration-200"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
-                Export
+                {t('customerInsights.export')}
               </Button>
             </div>
             
@@ -1140,9 +1140,9 @@ const CustomerInsights = () => {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <FiShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg font-medium text-gray-600">Category Chart Temporarily Disabled</p>
-                  <p className="text-sm text-gray-500">Chart functionality under maintenance</p>
-                  <p className="text-xs text-gray-400 mt-2">Data displayed in table above</p>
+                  <p className="text-lg font-medium text-gray-600">{t('customerInsights.categoryChartTemporarilyDisabled')}</p>
+                  <p className="text-sm text-gray-500">{t('customerInsights.chartFunctionalityUnderMaintenance')}</p>
+                  <p className="text-xs text-gray-400 mt-2">{t('customerInsights.dataDisplayedInTableAbove')}</p>
                 </div>
               </div>
             </div>
@@ -1192,8 +1192,8 @@ const CustomerInsights = () => {
                   <FiMapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-800">Area Performance</h4>
-                  <p className="text-sm text-gray-500">Performance by delivery areas</p>
+                  <h4 className="text-xl font-bold text-gray-800">{t('customerInsights.areaPerformance')}</h4>
+                  <p className="text-sm text-gray-500">{t('customerInsights.performanceByDeliveryAreas')}</p>
                 </div>
               </div>
               <Button
@@ -1202,7 +1202,7 @@ const CustomerInsights = () => {
                 className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-md transition-all duration-200"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
-                Export Geographic Data
+                {t('customerInsights.exportGeographicData')}
               </Button>
             </div>
             
@@ -1210,12 +1210,12 @@ const CustomerInsights = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-gray-100">
-                    <th className="px-4 py-4 text-left font-semibold text-gray-700">Area</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Customers</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Total Spent</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Avg. Spent</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Active Customers</th>
-                    <th className="px-4 py-4 text-right font-semibold text-gray-700">Penetration %</th>
+                    <th className="px-4 py-4 text-left font-semibold text-gray-700">{t('customerInsights.area')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.customers')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.totalSpent')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.avgSpent')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.activeCustomers')}</th>
+                    <th className="px-4 py-4 text-right font-semibold text-gray-700">{t('customerInsights.penetration')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1228,7 +1228,7 @@ const CustomerInsights = () => {
                           </div>
                           <div>
                             <p className="font-semibold text-gray-800">{location.location}</p>
-                            <p className="text-xs text-gray-500">Delivery Area</p>
+                            <p className="text-xs text-gray-500">{t('customerInsights.deliveryArea')}</p>
                           </div>
                         </div>
                       </td>
@@ -1266,8 +1266,8 @@ const CustomerInsights = () => {
               {geographicDataForChart.length === 0 && (
                 <div className="text-center py-12">
                   <FiMapPin className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="text-lg font-medium text-gray-600">No Geographic Data Found</p>
-                  <p className="text-sm text-gray-500">Area performance data will appear here</p>
+                  <p className="text-lg font-medium text-gray-600">{t('customerInsights.noGeographicDataFound')}</p>
+                  <p className="text-sm text-gray-500">{t('customerInsights.areaPerformanceDataWillAppearHere')}</p>
                 </div>
               )}
             </div>
@@ -1283,8 +1283,8 @@ const CustomerInsights = () => {
                   <FiMapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-800">Customer Distribution by Area</h4>
-                  <p className="text-sm text-gray-500">Coverage within delivery zones</p>
+                  <h4 className="text-xl font-bold text-gray-800">{t('customerInsights.customerDistributionByArea')}</h4>
+                  <p className="text-sm text-gray-500">{t('customerInsights.coverageWithinDeliveryZones')}</p>
                 </div>
               </div>
               <Button
@@ -1293,7 +1293,7 @@ const CustomerInsights = () => {
                 className="bg-teal-500 hover:bg-teal-600 text-white shadow-md transition-all duration-200"
               >
                 <FiDownload className="w-4 h-4 mr-2" />
-                Export
+                {t('customerInsights.export')}
               </Button>
             </div>
             
@@ -1301,9 +1301,9 @@ const CustomerInsights = () => {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <FiMapPin className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg font-medium text-gray-600">Geographic Chart Temporarily Disabled</p>
-                  <p className="text-sm text-gray-500">Chart functionality under maintenance</p>
-                  <p className="text-xs text-gray-400 mt-2">Data displayed in table above</p>
+                  <p className="text-lg font-medium text-gray-600">{t('customerInsights.geographicChartTemporarilyDisabled')}</p>
+                  <p className="text-sm text-gray-500">{t('customerInsights.chartFunctionalityUnderMaintenance')}</p>
+                  <p className="text-xs text-gray-400 mt-2">{t('customerInsights.dataDisplayedInTableAbove')}</p>
                 </div>
               </div>
             </div>
@@ -1319,7 +1319,7 @@ const CustomerInsights = () => {
       <ModalHeader className="flex items-center justify-between">
         <div className="flex items-center">
           <FiUsers className="w-5 h-5 mr-2 text-blue-500" />
-          <span>Customer Details: {selectedCustomer?.name}</span>
+          <span>{t('customerInsights.customerDetails')}: {selectedCustomer?.name}</span>
         </div>
         <Button
           className="ml-auto text-gray-500 hover:text-gray-700"
@@ -1336,19 +1336,19 @@ const CustomerInsights = () => {
           <div className="space-y-6">
             {/* Customer Info Summary */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-3">👤 Customer Information</h4>
+              <h4 className="font-semibold mb-3">{t('customerInsights.customerInformation')}</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">Name:</span> {selectedCustomer.name}
+                  <span className="font-medium">{t('customerInsights.name')}:</span> {selectedCustomer.name}
                 </div>
                 <div>
-                  <span className="font-medium">Email:</span> {selectedCustomer.email || selectedCustomer.customerEmail}
+                  <span className="font-medium">{t('customerInsights.email')}:</span> {selectedCustomer.email || selectedCustomer.customerEmail}
                 </div>
                 <div>
-                  <span className="font-medium">City:</span> {selectedCustomer.city || selectedCustomer.customerCity}
+                  <span className="font-medium">{t('customerInsights.city')}:</span> {selectedCustomer.city || selectedCustomer.customerCity}
                 </div>
                 <div>
-                  <span className="font-medium">Segment:</span> 
+                  <span className="font-medium">{t('customerInsights.segment')}:</span> 
                   <span className={`ml-2 px-2 py-1 rounded text-xs ${
                     selectedCustomer.customerSegment === 'VIP' ? 'bg-purple-100 text-purple-800' :
                     selectedCustomer.customerSegment === 'Premium' ? 'bg-blue-100 text-blue-800' :
@@ -1359,10 +1359,10 @@ const CustomerInsights = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="font-medium">Total Spent:</span> {formatCurrency(selectedCustomer.totalSpent || selectedCustomer.currentClv || selectedCustomer.monetary)}
+                  <span className="font-medium">{t('customerInsights.totalSpent')}:</span> {formatCurrency(selectedCustomer.totalSpent || selectedCustomer.currentClv || selectedCustomer.monetary)}
                 </div>
                 <div>
-                  <span className="font-medium">Total Orders:</span> {selectedCustomer.totalOrders || selectedCustomer.totalOrderCount || selectedCustomer.frequency}
+                  <span className="font-medium">{t('customerInsights.totalOrders')}:</span> {selectedCustomer.totalOrders || selectedCustomer.totalOrderCount || selectedCustomer.frequency}
                 </div>
               </div>
             </div>
@@ -1372,24 +1372,24 @@ const CustomerInsights = () => {
               <h4 className="font-semibold mb-3 flex items-center justify-between">
                 <div className="flex items-center">
                   <FiShoppingBag className="w-4 h-4 mr-2" />
-                  📦 Order History
+                  <span>{t('customerInsights.orderHistory')}</span>
                 </div>
                 <div className="text-xs text-gray-500">
                   <FiEye className="w-3 h-3 inline mr-1" />
-                  Expand | <FiExternalLink className="w-3 h-3 inline mr-1" />
-                  View Details
+                  <span>{t('customerInsights.expand')}</span> | <FiExternalLink className="w-3 h-3 inline mr-1" />
+                  <span>{t('customerInsights.viewDetails')}</span>
                 </div>
               </h4>
               
               {customerOrdersLoading ? (
                 <div className="text-center py-4">
                   <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                  <p className="mt-2 text-sm text-gray-600">Loading orders...</p>
+                  <p className="mt-2 text-sm text-gray-600">{t('customerInsights.loadingOrders')}</p>
                 </div>
               ) : customerOrders.length === 0 ? (
                 <div className="text-center py-4 text-gray-500">
                   <FiShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>No orders found for this customer</p>
+                  <p>{t('customerInsights.noOrdersFoundForThisCustomer')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1410,14 +1410,14 @@ const CustomerInsights = () => {
                         </div>
                         <div className="text-right">
                           <div className="font-medium">{formatCurrency(order.totalAmount || order.total)}</div>
-                          <div className="text-sm text-gray-600">{order.cart?.length || 0} items</div>
+                          <div className="text-sm text-gray-600">{order.cart?.length || 0} {t('customerInsights.items')}</div>
                         </div>
                         <div className="flex space-x-1">
                           <Button
                             size="xs"
                             onClick={() => handleOrderSelect(order)}
                             className="bg-blue-500 hover:bg-blue-600 text-white"
-                            title="Toggle order items"
+                            title={t('customerInsights.toggleOrderItems')}
                           >
                             <FiEye className="w-3 h-3" />
                           </Button>
@@ -1425,7 +1425,7 @@ const CustomerInsights = () => {
                             size="xs"
                             onClick={() => handleViewOrderDetails(order)}
                             className="bg-green-500 hover:bg-green-600 text-white"
-                            title="View full order details"
+                            title={t('customerInsights.viewFullOrderDetails')}
                           >
                             <FiExternalLink className="w-3 h-3" />
                           </Button>
@@ -1435,20 +1435,20 @@ const CustomerInsights = () => {
                       {/* Order Items (Expandable) */}
                       {selectedOrder?._id === order._id && (
                         <div className="mt-3 pt-3 border-t bg-blue-50 rounded p-3">
-                          <h5 className="font-medium mb-2">🛒 Items Purchased:</h5>
+                          <h5 className="font-medium mb-2">{t('customerInsights.itemsPurchased')}:</h5>
                           <div className="space-y-2">
                             {order.cart?.map((item, itemIndex) => (
                               <div key={itemIndex} className="flex justify-between items-center text-sm">
                                 <div className="flex-1">
                                   <div className="font-medium">{item.title}</div>
-                                  {item.sku && <div className="text-gray-500">SKU: {item.sku}</div>}
+                                  {item.sku && <div className="text-gray-500">{t('customerInsights.sku')}: {item.sku}</div>}
                                 </div>
                                 <div className="text-center px-2">
-                                  <span className="text-gray-600">Qty: {item.quantity}</span>
+                                  <span className="text-gray-600">{t('customerInsights.qty')}: {item.quantity}</span>
                                 </div>
                                 <div className="text-right">
                                   <div className="font-medium">{formatCurrency(item.price)}</div>
-                                  <div className="text-gray-500">Total: {formatCurrency(item.price * item.quantity)}</div>
+                                  <div className="text-gray-500">{t('customerInsights.total')}: {formatCurrency(item.price * item.quantity)}</div>
                                 </div>
                               </div>
                             ))}
@@ -1457,12 +1457,12 @@ const CustomerInsights = () => {
                           {/* Order Summary */}
                           <div className="mt-3 pt-2 border-t border-blue-200">
                             <div className="flex justify-between items-center font-medium">
-                              <span>Order Total:</span>
+                              <span>{t('customerInsights.orderTotal')}:</span>
                               <span>{formatCurrency(order.totalAmount || order.total)}</span>
                             </div>
                             {order.paymentMethod && (
                               <div className="flex justify-between items-center text-sm text-gray-600">
-                                <span>Payment Method:</span>
+                                <span>{t('customerInsights.paymentMethod')}:</span>
                                 <span>{order.paymentMethod}</span>
                               </div>
                             )}
@@ -1480,7 +1480,7 @@ const CustomerInsights = () => {
       
       <ModalFooter>
         <Button onClick={closeCustomerModal} layout="outline">
-          Close
+          {t('customerInsights.close')}
         </Button>
       </ModalFooter>
     </Modal>
@@ -1508,9 +1508,9 @@ const CustomerInsights = () => {
     <div className="container mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8">
-        <PageTitle>👥 Customer Insights</PageTitle>
+        <PageTitle>{t('customerInsights.customerInsights')}</PageTitle>
         <p className="text-gray-600 mt-2">
-          Comprehensive customer analytics and intelligence dashboard
+          {t('customerInsights.comprehensiveCustomerAnalytics')}
         </p>
       </div>
 
@@ -1524,7 +1524,7 @@ const CustomerInsights = () => {
       {isLoading && (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <p className="mt-2 text-gray-600">Loading customer insights...</p>
+          <p className="mt-2 text-gray-600">{t('customerInsights.loadingCustomerInsights')}</p>
         </div>
       )}
 

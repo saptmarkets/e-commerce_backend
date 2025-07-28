@@ -56,14 +56,15 @@ const UploaderWithCropper = ({
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
         
-        if (enableCropper) {
+        // Only show cropper if enableCropper is true and it's not a multi-image upload
+        if (enableCropper && !product) {
           // Show cropper for the first file
           const imageUrl = URL.createObjectURL(file);
           setCurrentImageSrc(imageUrl);
           setCurrentFile(file);
           setShowCropper(true);
         } else {
-          // Process without cropping (legacy behavior)
+          // For multi-image uploads (product) or when cropper is disabled
           processFiles(acceptedFiles);
         }
       }
@@ -180,7 +181,13 @@ const UploaderWithCropper = ({
 
     try {
       const name = file.name.replaceAll(/\s/g, "");
-      const public_id = name?.substring(0, name.lastIndexOf("."));
+      const baseName = name?.substring(0, name.lastIndexOf("."));
+      const extension = name?.substring(name.lastIndexOf("."));
+      
+      // Create unique public_id to prevent overwriting
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const public_id = `${baseName}_${timestamp}_${randomSuffix}`;
 
       const formData = new FormData();
       formData.append("image", file);

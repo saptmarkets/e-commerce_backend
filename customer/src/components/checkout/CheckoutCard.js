@@ -4,6 +4,7 @@ import { FiPlus, FiMinus } from "react-icons/fi";
 import useTranslation from "next-translate/useTranslation";
 
 //internal imports
+import { getUnitDisplayName } from '@utils/unitUtils';
 import useUtilsFunction from "@hooks/useUtilsFunction";
 
 const CheckoutCard = ({ item }) => {
@@ -11,12 +12,13 @@ const CheckoutCard = ({ item }) => {
 
   const { currency } = useUtilsFunction();
   const { t } = useTranslation();
+  const { lang } = useUtilsFunction();
 
   // Get multi-unit display information
   const getUnitDisplayInfo = () => {
     if (!item.isMultiUnit && !item.packQty) return null;
     
-    const unitName = item.unitName || t("common:unit");
+    const unitName = getUnitDisplayName(item.unit, lang);
     const packQty = item.packQty || 1;
     const totalBaseUnits = item.quantity * packQty;
     

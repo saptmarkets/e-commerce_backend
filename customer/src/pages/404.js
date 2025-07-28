@@ -24,7 +24,7 @@ const NotFound = () => {
       </Head>
       <div className="px-6 py-10 lg:py-20 bg-emerald-50 h-screen flex flex-wrap content-center">
         <div className="block justify-items-stretch mx-auto items-center text-center">
-          <Image width={650} height={450} src="/404.svg" alt="logo" />
+          <Image width={650} height={450} src="/404.png" alt="logo" />
           <h2 className="font-bold font-serif font-2xl lg:text-4xl leading-6 mb-4">
             Page is not found!
           </h2>

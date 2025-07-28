@@ -146,7 +146,7 @@ const OrderAssignments = () => {
       setLoading(true);
       await DeliveryServices.autoAssignPendingOrders();
       fetchData();
-      alert('Bulk auto-assignment completed!');
+              alert(t("BulkAutoAssignmentCompleted"));
     } catch (error) {
       console.error('Error in bulk assignment:', error);
       alert('Failed to auto-assign orders');
@@ -212,7 +212,7 @@ const OrderAssignments = () => {
           </div>
 
           {pendingOrders.length === 0 ? (
-            <NotFound title="No Pending Orders" />
+            <NotFound title={t("NoPendingOrders")} />
           ) : (
             <TableContainer className="mb-8">
               <Table>

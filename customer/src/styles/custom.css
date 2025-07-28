@@ -13,6 +13,15 @@
   font-style: normal;
 }
 
+/* --- Noor Arabic Font -------------------------------------------------------- */
+@font-face {
+  font-family: 'Noor';
+  src: url('/fonts/Noor.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Apply the custom font directly when you need to display the symbol */
 .font-saudi_riyal {
   font-family: 'saudi_riyal', sans-serif !important;
@@ -45,36 +54,300 @@
   color: inherit;
 }
 
+/* --- Noor Arabic Font Classes ------------------------------------------------- */
+.font-noor {
+  font-family: 'Noor', 'Arial', sans-serif !important;
+}
+
+/* Apply Noor font to Arabic text elements */
+[dir="rtl"] .font-noor,
+[lang="ar"] .font-noor,
+html[dir="rtl"] .font-noor,
+html[lang="ar"] .font-noor {
+  font-family: 'Noor', 'Arial', sans-serif !important;
+}
+
+/* Specific classes for brand name and slogan */
+.brand-name-arabic,
+.slogan-arabic {
+  font-family: 'Noor', 'Arial', sans-serif !important;
+}
+
+/* Apply to RTL/Arabic contexts */
+[dir="rtl"] .brand-name-arabic,
+[dir="rtl"] .slogan-arabic,
+[lang="ar"] .brand-name-arabic,
+[lang="ar"] .slogan-arabic,
+html[dir="rtl"] .brand-name-arabic,
+html[dir="rtl"] .slogan-arabic,
+html[lang="ar"] .brand-name-arabic,
+html[lang="ar"] .slogan-arabic {
+  font-family: 'Noor', 'Arial', sans-serif !important;
+}
+
 /* RTL Support for Arabic - Targeted and Specific */
 
 /* Note: Global RTL rules are handled in globals.css */
 
-/* Keep carousel structure in LTR but allow content to be RTL */
-[dir="rtl"] .swiper,
-[dir="rtl"] .swiper-container,
-[dir="rtl"] .carousel,
-[dir="rtl"] .slider,
-[dir="rtl"] .mySwiper {
+/* Force consistent LTR animation for all product carousels regardless of RTL/LTR */
+.product-card-carousel .swiper,
+.product-card-carousel .swiper-wrapper,
+.product-card-carousel .swiper-slide,
+.category-slider .swiper,
+.category-slider .swiper-wrapper,
+.category-slider .swiper-slide,
+.image-carousel .swiper,
+.image-carousel .swiper-wrapper,
+.image-carousel .swiper-slide,
+.main-carousel .swiper,
+.main-carousel .swiper-wrapper,
+.main-carousel .swiper-slide,
+[dir="rtl"] .product-card-carousel .swiper,
+[dir="rtl"] .product-card-carousel .swiper-wrapper,
+[dir="rtl"] .product-card-carousel .swiper-slide,
+[dir="rtl"] .category-slider .swiper,
+[dir="rtl"] .category-slider .swiper-wrapper,
+[dir="rtl"] .category-slider .swiper-slide,
+[dir="rtl"] .image-carousel .swiper,
+[dir="rtl"] .image-carousel .swiper-wrapper,
+[dir="rtl"] .image-carousel .swiper-slide,
+[dir="rtl"] .main-carousel .swiper,
+[dir="rtl"] .main-carousel .swiper-wrapper,
+[dir="rtl"] .main-carousel .swiper-slide {
   direction: ltr !important;
 }
 
-/* Keep carousel navigation and structure in LTR */
+
+
+/* Force all carousel animations to be LTR regardless of page direction */
+.swiper,
+.swiper-wrapper,
+.swiper-slide,
+.swiper-rtl,
+.swiper.swiper-rtl,
+.mySwiper.swiper-rtl,
+[dir="rtl"] .swiper,
+[dir="rtl"] .swiper-wrapper,
+[dir="rtl"] .swiper-slide,
+[dir="ltr"] .swiper,
+[dir="ltr"] .swiper-wrapper,
+[dir="ltr"] .swiper-slide {
+  direction: ltr !important;
+}
+
+/* Specific carousel animation fixes */
+.main-carousel .swiper {
+  direction: inherit !important; /* Inherit from parent */
+}
+
+.main-carousel .swiper-wrapper {
+  direction: inherit !important; /* Inherit from parent */
+}
+
+.main-carousel .swiper-slide {
+  direction: inherit !important; /* Inherit from parent */
+}
+
+/* Pure sliding transitions - no fade effects */
+.main-carousel .swiper-slide-active {
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  opacity: 1 !important;
+}
+
+.main-carousel .swiper-slide-prev,
+.main-carousel .swiper-slide-next {
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  opacity: 1 !important;
+}
+
+/* Force consistent LTR navigation button positioning for all carousels */
+.main-carousel .swiper-button-prev,
+.product-card-carousel .swiper-button-prev,
+.category-slider .swiper-button-prev,
+.image-carousel .swiper-button-prev,
+[dir="rtl"] .main-carousel .swiper-button-prev,
+[dir="rtl"] .product-card-carousel .swiper-button-prev,
+[dir="rtl"] .category-slider .swiper-button-prev,
+[dir="rtl"] .image-carousel .swiper-button-prev {
+  left: 10px !important;
+  right: auto !important;
+}
+
+.main-carousel .swiper-button-next,
+.product-card-carousel .swiper-button-next,
+.category-slider .swiper-button-next,
+.image-carousel .swiper-button-next,
+[dir="rtl"] .main-carousel .swiper-button-next,
+[dir="rtl"] .product-card-carousel .swiper-button-next,
+[dir="rtl"] .category-slider .swiper-button-next,
+[dir="rtl"] .image-carousel .swiper-button-next {
+  right: 10px !important;
+  left: auto !important;
+}
+
+/* Fix for pagination dots in different directions */
+[dir="rtl"] .main-carousel .swiper-pagination {
+  direction: rtl !important;
+}
+
+[dir="ltr"] .main-carousel .swiper-pagination {
+  direction: ltr !important;
+}
+
+/* Enhanced sliding animation - no fade effects */
+.main-carousel .swiper-wrapper {
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transition-duration: 0.8s !important;
+}
+
+.main-carousel .swiper-slide {
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  /* Remove any fade/opacity transitions */
+  opacity: 1 !important;
+}
+
+/* Ensure proper loop behavior for main carousel */
+.main-carousel .mySwiper.swiper-container-initialized {
+  overflow: hidden !important;
+}
+
+.main-carousel .mySwiper .swiper-slide-duplicate {
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Fix for slide transform animations */
+.main-carousel .swiper-slide-active {
+  transform: translateX(0) !important;
+  z-index: 2 !important;
+}
+
+.main-carousel .swiper-slide-prev {
+  transform: translateX(-100%) !important;
+  z-index: 1 !important;
+}
+
+.main-carousel .swiper-slide-next {
+  transform: translateX(100%) !important;
+  z-index: 1 !important;
+}
+
+/* Use consistent LTR slide transforms for both languages */
+/* RTL specific slide transforms - now using consistent LTR animation */
+[dir="rtl"] .main-carousel .swiper-slide-prev {
+  transform: translateX(-100%) !important;
+}
+
+[dir="rtl"] .main-carousel .swiper-slide-next {
+  transform: translateX(100%) !important;
+}
+
+/* Ensure proper autoplay behavior */
+.main-carousel .swiper[data-swiper-autoplay] {
+  transition-delay: 0s !important;
+}
+
+/* Pure sliding for loop mode transitions */
+.main-carousel .swiper-slide-duplicate {
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  opacity: 1 !important;
+}
+
+/* Ensure proper z-index stacking */
+.main-carousel .swiper-slide {
+  z-index: 1 !important;
+}
+
+.main-carousel .swiper-slide-active {
+  z-index: 2 !important;
+}
+
+/* Fix for touch/swipe gestures */
+.main-carousel .swiper {
+  touch-action: pan-y pinch-zoom !important;
+}
+
+/* Ensure proper overflow handling */
+.main-carousel .swiper-wrapper {
+  overflow: visible !important;
+}
+
+.main-carousel .swiper {
+  overflow: hidden !important;
+}
+
+/* Main carousel specific styling for better image fit */
+.main-carousel .swiper-responsive {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.main-carousel .mySwiper .swiper-slide {
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+}
+
+.main-carousel .mySwiper .swiper-slide > div {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+}
+
+/* Ensure Next.js Image components fill properly in main carousel */
+.main-carousel img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  display: block !important;
+}
+
+/* Fix for container aspect ratio */
+.main-carousel .swiper-responsive {
+  aspect-ratio: auto !important;
+}
+
+/* Ensure proper positioning for absolute elements */
+.main-carousel .absolute {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+/* Force RTL direction only for RTL carousels */
 [dir="rtl"] .react-multi-carousel-list,
 [dir="rtl"] .react-multi-carousel-track,
 [dir="rtl"] .react-multiple-carousel__arrow,
-[dir="rtl"] .carousel-root,
-[dir="rtl"] .swiper-wrapper,
-[dir="rtl"] .swiper-slide {
+[dir="rtl"] .carousel-root {
+  direction: rtl !important;
+}
+
+/* Force LTR direction for LTR carousels */
+[dir="ltr"] .react-multi-carousel-list,
+[dir="ltr"] .react-multi-carousel-track,
+[dir="ltr"] .react-multiple-carousel__arrow,
+[dir="ltr"] .carousel-root {
   direction: ltr !important;
 }
 
-/* Allow banner text content to be RTL */
+/* Allow banner text content to respect language direction */
 [dir="rtl"] .swiper-slide .text-content,
 [dir="rtl"] .banner-text-content,
 [dir="rtl"] .banner-title,
 [dir="rtl"] .banner-description {
   direction: rtl !important;
   text-align: right !important;
+}
+
+/* For LTR languages, ensure text content is still left-aligned */
+[dir="ltr"] .swiper-slide .text-content,
+[dir="ltr"] .banner-text-content,
+[dir="ltr"] .banner-title,
+[dir="ltr"] .banner-description {
+  direction: ltr !important;
+  text-align: left !important;
 }
 
 /* Exclude main layout containers from RTL to prevent structural issues */
@@ -1673,3 +1946,456 @@ p:not(:last-of-type) {
   width: 18rem; /* Tailwind w-72 equivalent */
   flex: 0 0 auto;
 }
+
+/* Carousel container fixes */
+.product-card-carousel {
+  position: relative;
+  overflow: hidden; /* Changed from visible to hidden to contain all slides */
+  padding-left: 3rem; /* Space for left arrow */
+  padding-right: 3rem; /* Space for right arrow */
+}
+
+/* Single slide view container adjustments */
+.product-card-carousel[data-slides-per-view="1"] {
+  padding-left: 2rem; /* Less padding for single slide view */
+  padding-right: 2rem;
+}
+
+.product-card-carousel .mySwiper {
+  overflow: hidden; /* Changed from visible to hidden */
+  position: relative;
+}
+
+/* Ensure proper slide transitions */
+.mySwiper .swiper-slide {
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Autoplay animation improvements */
+.mySwiper .swiper-wrapper {
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Ensure proper loop behavior */
+.mySwiper.swiper-container-initialized {
+  overflow: hidden !important;
+}
+
+.mySwiper .swiper-slide-duplicate {
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Navigation buttons positioning and styling */
+.product-card-carousel button[aria-label="Previous"],
+.product-card-carousel button[aria-label="Next"] {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 30 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+
+.product-card-carousel button[aria-label="Previous"]:hover,
+.product-card-carousel button[aria-label="Next"]:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+  transform: translateY(-50%) scale(1.05) !important;
+}
+
+.product-card-carousel button[aria-label="Previous"]:active,
+.product-card-carousel button[aria-label="Next"]:active {
+  transform: translateY(-50%) scale(0.95) !important;
+}
+
+/* Ensure autoplay works smoothly on mobile */
+@media (max-width: 640px) {
+  .product-card-carousel {
+    padding-left: 2.5rem; /* Less padding on mobile */
+    padding-right: 2.5rem;
+  }
+
+  .mySwiper {
+    overflow: hidden !important; /* Changed from visible to hidden */
+    touch-action: pan-y pinch-zoom !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .mySwiper .swiper-wrapper {
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    will-change: transform !important;
+  }
+
+  /* Force hardware acceleration for smooth autoplay */
+  .mySwiper .swiper-slide {
+    transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+    perspective: 1000px !important;
+  }
+
+  /* Ensure autoplay continues after user interaction */
+  .mySwiper.swiper-container-initialized {
+    animation-play-state: running !important;
+  }
+
+  /* Mobile navigation button positioning */
+  .product-card-carousel button[aria-label="Previous"] {
+    left: -1rem !important;
+  }
+
+  .product-card-carousel button[aria-label="Next"] {
+    right: -1rem !important;
+  }
+
+  /* Ensure buttons are always visible and clickable on mobile */
+  .product-card-carousel button[aria-label="Previous"],
+  .product-card-carousel button[aria-label="Next"] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    z-index: 40 !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Additional mobile touch improvements */
+  .product-card-carousel .mySwiper {
+    touch-action: pan-y pinch-zoom !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* Override for single slide view on mobile */
+@media (max-width: 640px) {
+  .mySwiper[data-slides-per-view="1"] .product-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+  
+  /* Ensure proper one-by-one scrolling for single slide view */
+  .mySwiper[data-slides-per-view="1"] .swiper-slide {
+    width: 100% !important;
+    margin-right: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Fix slide width calculation for proper sliding */
+  .mySwiper[data-slides-per-view="1"] .swiper-wrapper {
+    display: flex !important;
+    width: 100% !important;
+  }
+  
+  /* Ensure each slide takes full width */
+  .mySwiper[data-slides-per-view="1"] .swiper-slide {
+    width: 100% !important;
+    flex: 0 0 100% !important;
+    transform: translateX(0) !important;
+  }
+  
+  /* Fix slide positioning for single slide view */
+  .mySwiper[data-slides-per-view="1"] .swiper-slide-active {
+    transform: translateX(0) !important;
+  }
+  
+  .mySwiper[data-slides-per-view="1"] .swiper-slide-prev {
+    transform: translateX(-100%) !important;
+  }
+  
+  .mySwiper[data-slides-per-view="1"] .swiper-slide-next {
+    transform: translateX(100%) !important;
+  }
+
+  /* Single slide view specific fixes */
+  .mySwiper[data-slides-per-view="1"] {
+    overflow: hidden !important;
+  }
+  
+  /* Ensure touch movement works on mobile for single slide view */
+  .mySwiper[data-slides-per-view="1"] {
+    touch-action: pan-y pinch-zoom !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Ensure navigation buttons work on mobile */
+  .mySwiper[data-slides-per-view="1"] .swiper-button-prev,
+  .mySwiper[data-slides-per-view="1"] .swiper-button-next {
+    display: flex !important;
+    z-index: 30 !important;
+  }
+}
+
+/* Override carousel direction on larger screens to prevent blank space */
+@media (min-width: 1024px) {
+  .main-carousel .mySwiper,
+  .main-carousel .mySwiper.swiper-rtl {
+    direction: ltr !important; /* Align first slide to the left edge */
+  }
+}
+
+/* Fix slide width for desktop to avoid large blank area */
+@media (min-width: 1024px) {
+  .main-carousel .mySwiper .swiper-slide {
+    width: 100% !important; /* Fill full carousel width */
+  }
+}
+
+/* --- Modern Product Card Consistent Height & Typography --- */
+.product-card {
+  min-height: 300px; /* ultra compact height for promotional cards */
+}
+
+/* Smaller fonts inside product cards to fit content */
+.product-card h2,
+.product-card h3,
+.product-card h4 {
+  font-size: 0.875rem !important; /* ~14px */
+  line-height: 1.25rem !important;
+}
+
+.product-card .text-responsive-base,
+.product-card .text-responsive-sm,
+.product-card .text-responsive-xs {
+  font-size: 0.75rem !important; /* ~12px */
+  line-height: 1rem !important;
+}
+
+/* Ensure consistent image container size for modern product card */
+.product-card .product-image-container {
+  height: 192px !important; /* Corresponds to h-48 */
+}
+
+.product-card .product-image-container img {
+  object-fit: contain !important;
+}
+
+/* Simple product cards - no fixed height */
+.product-card-simple {
+  min-height: auto !important;
+}
+
+/* Hero Carousel Animation Styles */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-delayed {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up-delayed {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes modern-zoom {
+  0% {
+    opacity: 0;
+    transform: scale(1.2) rotate(-2deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05) rotate(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background: linear-gradient(to bottom right, rgba(0,0,0,0.4), rgba(0,0,0,0.2), transparent);
+  }
+  50% {
+    background: linear-gradient(to bottom right, rgba(0,0,0,0.3), rgba(0,0,0,0.1), transparent);
+  }
+  100% {
+    background: linear-gradient(to bottom right, rgba(0,0,0,0.4), rgba(0,0,0,0.2), transparent);
+  }
+}
+
+@keyframes modern-slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(50px) scale(0.9);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(25px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes parallax-zoom {
+  0% {
+    opacity: 0;
+    transform: scale(1.3) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes parallax-slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(60px) translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+
+@keyframes button-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Animation Classes */
+.animate-fade-in {
+  animation: fade-in 1s ease-out;
+}
+
+.animate-fade-in-delayed {
+  animation: fade-in-delayed 1.5s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 1s ease-out;
+}
+
+.animate-slide-up-delayed {
+  animation: slide-up-delayed 1.5s ease-out;
+}
+
+.animate-zoom-in {
+  animation: zoom-in 2s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 1.2s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 1.2s ease-out;
+}
+
+.animate-modern-zoom {
+  animation: modern-zoom 1.5s ease-out;
+}
+
+.animate-gradient-shift {
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+.animate-modern-slide-up {
+  animation: modern-slide-up 1.5s ease-out;
+}
+
+.animate-parallax-zoom {
+  animation: parallax-zoom 3s ease-out;
+}
+
+.animate-parallax-slide-up {
+  animation: parallax-slide-up 2s ease-out;
+}
+
+.animate-button-pulse {
+  animation: button-pulse 2s ease-in-out infinite;
+}
+
+
+

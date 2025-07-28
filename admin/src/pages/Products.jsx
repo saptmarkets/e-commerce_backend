@@ -1,7 +1,7 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useHistory } from "react-router-dom";
-import { FiPlus, FiDownload, FiUpload } from "react-icons/fi";
+import { FiPlus, FiDownload, FiUpload, FiSearch } from "react-icons/fi";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 
 //internal import
@@ -62,12 +62,33 @@ const Products = () => {
       category: category,
       title: searchText,
       price: sortedField,
+      searchType: searchType,
     })
   );
 
   // react hooks
   const [isCheckAll, setIsCheckAll] = useState(false);
   const [isCheck, setIsCheck] = useState([]);
+  const [searchType, setSearchType] = useState("all"); // all, barcode, sku, name
+  const [searchValue, setSearchValue] = useState("");
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchValue !== searchText) {
+        // Update search text when debounced value changes
+        searchRef.current.value = searchValue;
+        handleSubmitForAll({ preventDefault: () => {} });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  // Handle search input change
+  const handleSearchChange = useCallback((e) => {
+    setSearchValue(e.target.value);
+  }, []);
 
   const handleSelectAll = () => {
     setIsCheckAll(!isCheckAll);
@@ -81,6 +102,8 @@ const Products = () => {
   const handleResetField = () => {
     setCategory("");
     setSortedField("");
+    setSearchType("all");
+    setSearchValue("");
     searchRef.current.value = "";
   };
 
@@ -97,7 +120,7 @@ const Products = () => {
     <>
       <PageTitle>{t("ProductsPage")}</PageTitle>
       <DeleteModal ids={allId} setIsCheck={setIsCheck} title={title} />
-      <BulkActionDrawer ids={allId} title="Products" />
+      <BulkActionDrawer ids={allId} title={t("Products")} />
       <MainDrawer>
         <ProductDrawer id={serviceId} />
       </MainDrawer>
@@ -110,7 +133,7 @@ const Products = () => {
             >
               <div className="flex-grow-0 sm:flex-grow md:flex-grow lg:flex-grow xl:flex-grow">
                 <UploadMany
-                  title="Products"
+                  title={t("Products")}
                   filename={filename}
                   isDisabled={isDisabled}
                   totalDoc={data?.totalDoc}
@@ -155,7 +178,7 @@ const Products = () => {
                     <span className="mr-2">
                       <FiUpload />
                     </span>
-                    Import/Export
+                    {t("ImportExport")}
                   </button>
                 </div>
                 <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
@@ -183,22 +206,41 @@ const Products = () => {
             >
               <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
                 <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                    ) : (
+                      <FiSearch className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
                   <input
                     ref={searchRef}
                     type="search"
                     name="search"
-                    placeholder="Search Product"
+                    value={searchValue}
+                    onChange={handleSearchChange}
+                    placeholder="Search by name (EN/AR), barcode, SKU, ID, brand..."
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
-                  <button
-                    type="submit"
-                    className="absolute right-0 top-0 mt-2 mr-1"
-                  ></button>
                 </div>
               </div>
 
               <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
                 <SelectCategory setCategory={setCategory} lang={lang} />
+              </div>
+
+              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+                <select
+                  value={searchType}
+                  onChange={(e) => setSearchType(e.target.value)}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                >
+                  <option value="all">All Fields</option>
+                  <option value="name">Name Only</option>
+                  <option value="barcode">Barcode Only</option>
+                  <option value="sku">SKU Only</option>
+                  <option value="id">Product ID</option>
+                </select>
               </div>
 
               <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
@@ -227,7 +269,7 @@ const Products = () => {
                     type="submit"
                     className="h-12 w-full bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium"
                   >
-                    Filter
+                    {t("Filter")}
                   </button>
                 </div>
 
@@ -237,7 +279,7 @@ const Products = () => {
                     type="reset"
                     className="px-4 md:py-1 py-2 h-12 text-sm dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:text-gray-200"
                   >
-                    Reset
+                    {t("Reset")}
                   </button>
                 </div>
               </div>
@@ -302,7 +344,7 @@ const Products = () => {
           </SimpleTableFooter>
         </SimpleTableContainer>
       ) : (
-        <NotFound title="Product" />
+        <NotFound title={t("Product")} />
       )}
     </>
   );

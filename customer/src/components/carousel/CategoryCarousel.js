@@ -49,64 +49,83 @@ const CategoryCarousel = () => {
           swiper.navigation.init();
           swiper.navigation.update();
         }}
+        dir="ltr"
         autoplay={{
-          delay: 5000,
+          delay: 4000, // Increased delay to match other carousels
           disableOnInteraction: false,
         }}
-        spaceBetween={8}
+        spaceBetween={6}
         navigation={true}
         allowTouchMove={false}
-        loop={true}
+        loop={false} // Disable built-in loop to implement custom behavior
         breakpoints={{
-          // when window width is >= 640px
+          // Mobile - smaller cards
           375: {
             width: 375,
-            slidesPerView: 2,
+            slidesPerView: 3,
+            spaceBetween: 4,
           },
-          // when window width is >= 768px
+          // Small mobile
           414: {
             width: 414,
-            slidesPerView: 3,
+            slidesPerView: 4,
+            spaceBetween: 4,
           },
-          // when window width is >= 768px
+          // Large mobile
           660: {
             width: 660,
-            slidesPerView: 4,
+            slidesPerView: 5,
+            spaceBetween: 6,
           },
-
-          // when window width is >= 768px
+          // Tablet
           768: {
             width: 768,
             slidesPerView: 6,
+            spaceBetween: 6,
           },
-
-          // when window width is >= 768px
+          // Small desktop
           991: {
             width: 991,
             slidesPerView: 8,
+            spaceBetween: 8,
           },
-
-          // when window width is >= 768px
+          // Large desktop
           1140: {
             width: 1140,
             slidesPerView: 9,
+            spaceBetween: 8,
           },
+          // Extra large
           1680: {
             width: 1680,
             slidesPerView: 10,
+            spaceBetween: 8,
           },
           1920: {
             width: 1920,
             slidesPerView: 10,
+            spaceBetween: 8,
           },
         }}
         modules={[Autoplay, Navigation, Pagination, Controller]}
-        className="mySwiper category-slider my-10"
+        className="mySwiper category-slider my-4 sm:my-6 swiper-ltr"
+        onSlideChange={(swiper) => {
+          // Custom loop behavior for category carousel
+          const currentIndex = swiper.activeIndex;
+          const totalSlides = data?.[0]?.children?.length || 0;
+          
+          // If we've reached the last slide, reset to the first slide
+          if (currentIndex >= totalSlides - 1) {
+            setTimeout(() => {
+              swiper.slideTo(0, 0, false);
+            }, 100);
+          }
+        }}
       >
         {loading ? (
           <Loading loading={loading} />
         ) : error ? (
-          <p className="flex justify-center align-middle items-center m-auto text-xl text-red-500">
+          <p className="flex justify-center align-middle items-center m-auto text-responsive-lg text-red-500">
             {error?.response?.data?.message || error?.message}
           </p>
         ) : (
@@ -117,14 +136,14 @@ const CategoryCarousel = () => {
                   onClick={() =>
                     handleCategoryClick(category?._id, category.name)
                   }
-                  className="text-center cursor-pointer p-3 bg-white rounded-lg"
+                  className="text-center cursor-pointer card-responsive bg-white rounded-lg touch-target"
                 >
-                  <div className="bg-white p-2 mx-auto w-10 h-10 rounded-full shadow-md">
-                    <div className="relative w-6 h-8">
+                  <div className="bg-white p-1 sm:p-2 mx-auto w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full shadow-md">
+                    <div className="relative w-4 h-4 sm:w-6 sm:h-6 md:w-6 md:h-8">
                       <Image
                         src={
                           category?.icon ||
-                          "https://res.cloudinary.com/ahossain/image/upload/v1655097002/placeholder_kvepfp.png"
+                          "https://res.cloudinary.com/dxjobesyt/image/upload/v1752706908/placeholder_kvepfp_wkyfut.png"
                         }
                         alt="category"
                         width={40}
@@ -134,7 +153,16 @@ const CategoryCarousel = () => {
                     </div>
                   </div>
 
-                  <h3 className="text-xs text-gray-600 mt-2 font-serif group-hover:text-emerald-500">
+                  <h3
+                    className="text-responsive-xs text-gray-600 mt-1 sm:mt-2 font-serif group-hover:text-emerald-500 break-words whitespace-normal"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      fontSize: (typeof window !== 'undefined' && document?.documentElement?.dir === 'rtl') ? '0.7rem' : undefined
+                    }}
+                  >
                     {showingTranslateValue(category?.name)}
                   </h3>
                 </div>

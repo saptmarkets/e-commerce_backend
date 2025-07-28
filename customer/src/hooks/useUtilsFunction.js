@@ -3,7 +3,34 @@ import Cookies from "js-cookie";
 import useGetSetting from "./useGetSetting";
 
 const useUtilsFunction = () => {
-  const lang = Cookies.get("_lang");
+  let lang = Cookies.get("_lang");
+  
+  // Force only English or Arabic - ignore browser locale completely
+  if (!lang || !['en', 'ar'].includes(lang)) {
+    lang = 'en';
+    // Set the correct cookie and clear any other language cookies
+    Cookies.set('_lang', 'en', { expires: 365 });
+    Cookies.set('NEXT_LOCALE', 'en', { expires: 365 });
+    
+    // Clear any other language-related cookies
+    const allCookies = Cookies.get();
+    Object.keys(allCookies).forEach(cookieName => {
+      if (cookieName.includes('lang') || cookieName.includes('locale')) {
+        const cookieValue = allCookies[cookieName];
+        try {
+          const parsedValue = JSON.parse(cookieValue);
+          if (parsedValue && parsedValue.code && !['en', 'ar'].includes(parsedValue.code)) {
+            Cookies.remove(cookieName);
+          }
+        } catch (e) {
+          // If it's not JSON, check if it's a string value
+          if (typeof cookieValue === 'string' && !['en', 'ar'].includes(cookieValue)) {
+            Cookies.remove(cookieName);
+          }
+        }
+      }
+    });
+  }
 
   const { globalSetting } = useGetSetting();
 
@@ -58,11 +85,20 @@ const useUtilsFunction = () => {
 
     // Check if data is an object with language keys
     if (typeof data === 'object' && data !== null) {
-      // Try current language first, then English, then first available language
-      return data[lang] || data.en || data[Object.keys(data)[0]] || '';
+      // When current language exists in the object, return it
+      if (data[lang] && typeof data[lang] === 'string') return data[lang];
+
+      // If Arabic UI but Arabic value missing, avoid falling back to English so that component can use i18n t() fallback instead
+      if (lang === 'ar') return '';
+
+      // For other languages, gracefully fall back to English or first available
+      const fallbackValue = data.en || data[Object.keys(data)[0]] || '';
+      return typeof fallbackValue === 'string' ? fallbackValue : '';
     }
 
-    return data?.en || '';
+    // Final fallback - ensure we always return a string
+    const finalValue = data?.en || '';
+    return typeof finalValue === 'string' ? finalValue : '';
   };
 
   const showingImage = (data) => {

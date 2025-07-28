@@ -3,7 +3,8 @@ import requests from './httpServices';
 const BannerServices = {
   // Get banners by location
   getBannersByLocation: async (location) => {
-    return requests.get(`/banners/location/${location}`);
+    const response = await requests.get(`/banners/location/${location}`);
+    return response;
   },
 
   // Get all active banners

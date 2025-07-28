@@ -251,7 +251,7 @@ const UnitListTree = () => {
               <button
                 className="p-1 rounded hover:bg-gray-100 text-red-600 hover:text-red-800"
                 onClick={() => handleModalOpen(unit._id)}
-                title="Delete Unit"
+                title={t("DeleteUnit")}
               >
                 <FiTrash2 className="w-4 h-4" />
               </button>
@@ -363,7 +363,7 @@ const UnitListTree = () => {
 
       <DeleteModal
         id={serviceId}
-        title="Delete Unit"
+        title={t("DeleteUnit")}
         isCheck={isCheck}
         setIsCheck={setIsCheck}
         handleDeleteMany={handleSubmitForAll}

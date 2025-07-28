@@ -17,13 +17,20 @@ const SectionBox = ({ children, className = "" }) => (
 );
 
 const AboutUs = () => {
-  const { storeCustomizationSetting, loading, error } = useGetSetting();
-  const { showingTranslateValue } = useUtilsFunction();
+  const { showingTranslateValue, lang } = useUtilsFunction();
+  const { storeCustomizationSetting, loading } = useGetSetting();
 
   // Helper to test if a translation field actually contains visible text
   const hasContent = (field) => {
     return (showingTranslateValue(field) || "").toString().trim().length > 0;
   };
+
+  // Single debug log to check data structure
+  React.useEffect(() => {
+    if (storeCustomizationSetting && !loading) {
+      // About Us Data Check logged
+    }
+  }, [storeCustomizationSetting, loading]);
 
   // Derive brand color (fallback to emerald brand)
   const brandColor = useMemo(() => {
@@ -169,15 +176,15 @@ const AboutUs = () => {
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="lg:order-2">
                 <h2 className="text-4xl font-bold text-emerald-800 mb-8">
-                  {storeCustomizationSetting?.about_us?.heritage_title?.en || "Our Heritage & Vision"}
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.heritage_title) || "Our Heritage & Vision"}
               </h2>
                 <div className="space-y-6 text-gray-700 leading-relaxed">
                   <p>
-                    {storeCustomizationSetting?.about_us?.heritage_description_one?.en || 
+                    {showingTranslateValue(storeCustomizationSetting?.about_us?.heritage_description_one) || 
                       "SAPT Markets is proudly part of the Al-Muhaysini Holding family, a trusted name in the Qassim region with deep roots in our community. Our journey began with a simple vision: to provide families with convenient access to quality products at competitive prices."}
                   </p>
                   <p>
-                    {storeCustomizationSetting?.about_us?.heritage_description_two?.en || 
+                    {showingTranslateValue(storeCustomizationSetting?.about_us?.heritage_description_two) || 
                       "Today, SAPT operates multiple locations throughout Buraidah, each designed to serve as more than just a marketplace – we're community hubs where neighbors meet, families shop together, and local traditions are celebrated through the products we offer."}
               </p>
             </div>
@@ -288,10 +295,10 @@ const AboutUs = () => {
             <div>
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-emerald-800 mb-6">
-                {storeCustomizationSetting?.about_us?.values_title?.en || "Our Core Values"}
+                {showingTranslateValue(storeCustomizationSetting?.about_us?.values_title) || "Our Core Values"}
             </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                {storeCustomizationSetting?.about_us?.values_description?.en || 
+                {showingTranslateValue(storeCustomizationSetting?.about_us?.values_description) || 
                   "These fundamental principles guide every decision we make and every interaction we have with our customers and community."}
               </p>
             </div>
@@ -302,10 +309,10 @@ const AboutUs = () => {
                   <span className="text-2xl">🎯</span>
                 </div>
                 <h3 className="text-xl font-bold text-emerald-800 mb-4">
-                  {storeCustomizationSetting?.about_us?.value_one_title?.en || "Quality First"}
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_one_title) || "Quality First"}
                 </h3>
                 <p className="text-gray-600">
-                  {storeCustomizationSetting?.about_us?.value_one_description?.en || 
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_one_description) || 
                     "We never compromise on the quality of our products, ensuring every item meets our high standards."}
                 </p>
               </div>
@@ -315,10 +322,10 @@ const AboutUs = () => {
                   <span className="text-2xl">❤️</span>
                 </div>
                 <h3 className="text-xl font-bold text-emerald-800 mb-4">
-                  {storeCustomizationSetting?.about_us?.value_two_title?.en || "Customer Care"}
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_two_title) || "Customer Care"}
                 </h3>
                 <p className="text-gray-600">
-                  {storeCustomizationSetting?.about_us?.value_two_description?.en || 
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_two_description) || 
                     "Every customer is valued and deserves exceptional service, respect, and attention to their needs."}
                 </p>
               </div>
@@ -328,10 +335,10 @@ const AboutUs = () => {
                   <span className="text-2xl">🤝</span>
                 </div>
                 <h3 className="text-xl font-bold text-emerald-800 mb-4">
-                  {storeCustomizationSetting?.about_us?.value_three_title?.en || "Community Focus"}
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_three_title) || "Community Focus"}
                 </h3>
                 <p className="text-gray-600">
-                  {storeCustomizationSetting?.about_us?.value_three_description?.en || 
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_three_description) || 
                     "We're not just a store; we're part of the Qassim community, supporting local families and traditions."}
             </p>
           </div>
@@ -341,10 +348,10 @@ const AboutUs = () => {
                   <span className="text-2xl">🚀</span>
                 </div>
                 <h3 className="text-xl font-bold text-emerald-800 mb-4">
-                  {storeCustomizationSetting?.about_us?.value_four_title?.en || "Innovation"}
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_four_title) || "Innovation"}
                 </h3>
                 <p className="text-gray-600">
-                  {storeCustomizationSetting?.about_us?.value_four_description?.en || 
+                  {showingTranslateValue(storeCustomizationSetting?.about_us?.value_four_description) || 
                     "We continuously evolve to meet changing customer needs and embrace new technologies."}
                 </p>
               </div>
@@ -356,16 +363,16 @@ const AboutUs = () => {
       )}
 
       {/* Branches Section */}
-      {storeCustomizationSetting?.about_us?.branches_title && (
+      {storeCustomizationSetting?.about_us?.branches_status !== false && hasContent(storeCustomizationSetting?.about_us?.branches_title) && (
         <section className="">
           <div className="w-full px-4 sm:px-6 lg:px-8">
           <SectionBox>
           <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-emerald-800 mb-6">
-                {storeCustomizationSetting?.about_us?.branches_title?.en || "Our Locations"}
+                {showingTranslateValue(storeCustomizationSetting?.about_us?.branches_title) || "Our Locations"}
             </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                {storeCustomizationSetting?.about_us?.branches_description?.en || 
+                {showingTranslateValue(storeCustomizationSetting?.about_us?.branches_description) || 
                   "Visit any of our convenient locations throughout Buraidah. Each store is designed to provide you with a comfortable and efficient shopping experience."}
             </p>
           </div>
@@ -411,7 +418,7 @@ const AboutUs = () => {
                     storeCustomizationSetting?.about_us?.[`branch_${word}_services`]
                   );
                   const services = servicesRaw
-                    ? servicesRaw.split(",").map((s) => s.trim()).filter(Boolean)
+                    ? servicesRaw.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
                     : [];
 
                   const featured =
@@ -531,97 +538,8 @@ const AboutUs = () => {
       </section>
       )}
 
-      {/* Community Impact Section */}
-      <section className="">
-        <div className="container mx-auto px-4">
-          <SectionBox className="text-center">
-          <h2 className="text-4xl lg:text-5xl font-bold text-emerald-800 text-center mb-8">
-            {loading ? (
-              <CMSkeleton count={1} height={50} loading={loading} />
-            ) : (
-              showingTranslateValue(storeCustomizationSetting?.about_us?.community_title) || "We Grow With Our People"
-            )}
-          </h2>
-          
-          <div className="max-w-5xl mx-auto text-center mb-16">
-            <p className="text-lg text-gray-600 leading-relaxed mb-6">
-              {loading ? (
-                <CMSkeleton count={4} height={22} loading={loading} />
-              ) : (
-                showingTranslateValue(storeCustomizationSetting?.about_us?.community_description_one) || "At SAPT Markets, we believe that a thriving business should contribute to a thriving community."
-              )}
-            </p>
-            
-            <p className="text-lg text-gray-600 leading-relaxed">
-              {loading ? (
-                <CMSkeleton count={4} height={22} loading={loading} />
-              ) : (
-                showingTranslateValue(storeCustomizationSetting?.about_us?.community_description_two) || "Our commitment extends beyond commerce. We support local events and sponsor youth programs."
-              )}
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-12 mb-16">
-            <div className="bg-white p-12 rounded-2xl text-center shadow-lg border-t-4 border-emerald-500">
-              <div className="text-5xl font-bold text-emerald-800 mb-3">
-                {loading ? (
-                  <CMSkeleton count={1} height={50} loading={loading} />
-                ) : (
-                  showingTranslateValue(storeCustomizationSetting?.about_us?.community_stat_one_number) || "15,000+"
-                )}
-              </div>
-              <div className="text-lg text-gray-600 font-semibold">
-                {loading ? (
-                  <CMSkeleton count={1} height={22} loading={loading} />
-                ) : (
-                  showingTranslateValue(storeCustomizationSetting?.about_us?.community_stat_one_label) || "Weekly Customers"
-                )}
-              </div>
-            </div>
-            
-            <div className="bg-white p-12 rounded-2xl text-center shadow-lg border-t-4 border-emerald-500">
-              <div className="text-5xl font-bold text-emerald-800 mb-3">
-                {loading ? (
-                  <CMSkeleton count={1} height={50} loading={loading} />
-                ) : (
-                  showingTranslateValue(storeCustomizationSetting?.about_us?.community_stat_two_number) || "200+"
-                )}
-              </div>
-              <div className="text-lg text-gray-600 font-semibold">
-                {loading ? (
-                  <CMSkeleton count={1} height={22} loading={loading} />
-                ) : (
-                  showingTranslateValue(storeCustomizationSetting?.about_us?.community_stat_two_label) || "Jobs Created"
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-12 rounded-2xl text-center shadow-lg">
-            <h3 className="text-3xl font-bold text-emerald-800 mb-4">
-              {loading ? (
-                <CMSkeleton count={1} height={35} loading={loading} />
-              ) : (
-                showingTranslateValue(storeCustomizationSetting?.about_us?.community_cta_title) || "Be Part of the SAPT Experience"
-              )}
-            </h3>
-            <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
-              {loading ? (
-                <CMSkeleton count={3} height={22} loading={loading} />
-              ) : (
-                showingTranslateValue(storeCustomizationSetting?.about_us?.community_cta_description) || "Join thousands of satisfied customers who have made SAPT Markets their trusted shopping destination."
-              )}
-            </p>
-            <button className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white px-12 py-4 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all">
-              Visit Our Stores
-            </button>
-          </div>
-          </SectionBox>
-        </div>
-      </section>
-
       {/* Upcoming Branches Section */}
-      {hasContent(storeCustomizationSetting?.about_us?.upcoming_branches_title) && (
+      {storeCustomizationSetting?.about_us?.branches_status !== false && hasContent(storeCustomizationSetting?.about_us?.upcoming_branches_title) && (
         <section className="">
           <div className="w-full px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -652,7 +570,7 @@ const AboutUs = () => {
                         const address = showingTranslateValue(br.address);
                         const quarter = showingTranslateValue(br.quarter);
                         const featuresRaw = showingTranslateValue(br.features);
-                        const features = featuresRaw ? featuresRaw.split(',').map(f=>f.trim()).filter(Boolean) : [];
+                        const features = featuresRaw ? featuresRaw.split(/[,،]/).map(f=>f.trim()).filter(Boolean) : [];
                         const emoji = showingTranslateValue(br.emoji) || "✨";
 
                         return (

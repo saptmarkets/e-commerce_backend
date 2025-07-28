@@ -92,11 +92,20 @@ const useEnhancedMultiUnits = (product) => {
       
       setIsLoadingPromotion(true);
       try {
-        const promotions = await PromotionServices.getPromotionsForProduct(product._id);
+        // Fetch promotions for this product
+        const promotions = await PromotionServices.getProductPromotions(product._id);
         if (promotions && promotions.length > 0) {
           setActivePromotion(promotions[0]);
         } else {
           setActivePromotion(null);
+        }
+
+        // Check if selected unit has specific promotions
+        if (selectedUnit && selectedUnit._id) {
+          const unitPromotions = await PromotionServices.getProductUnitPromotions(selectedUnit._id);
+          if (unitPromotions && unitPromotions.length > 0) {
+            setActivePromotion(unitPromotions[0]);
+          }
         }
       } catch (error) {
         console.error('Error fetching promotions:', error);

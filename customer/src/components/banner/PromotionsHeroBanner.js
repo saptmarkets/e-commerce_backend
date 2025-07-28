@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation } from "swiper/modules";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/router";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
@@ -12,6 +13,57 @@ import "swiper/css/navigation";
 import BannerServices from "@services/BannerServices";
 
 const PromotionsHeroBanner = () => {
+  const router = useRouter();
+  const lang = router.locale || 'en';
+  
+  // Helper function to safely extract text from object or string
+  const getLocalizedText = (field, fallback = '') => {
+    if (!field) return fallback;
+    
+    // If it's already a string, return as is
+    if (typeof field === 'string') return field;
+    
+    // If it's an object with en/ar keys
+    if (typeof field === 'object' && field !== null) {
+      // Handle nested structure: {en: {en: "...", ar: "..."}, ar: "..."}
+      if (lang === 'ar') {
+        if (field.ar) {
+          // If ar is a string, return it
+          if (typeof field.ar === 'string') return field.ar;
+          // If ar is an object, try to get the ar value from it
+          if (typeof field.ar === 'object' && field.ar.ar) return field.ar.ar;
+        }
+        // Fallback to en.ar if ar is not available
+        if (field.en && typeof field.en === 'object' && field.en.ar) return field.en.ar;
+      }
+      
+      if (lang === 'en') {
+        if (field.en) {
+          // If en is a string, return it
+          if (typeof field.en === 'string') return field.en;
+          // If en is an object, try to get the en value from it
+          if (typeof field.en === 'object' && field.en.en) return field.en.en;
+        }
+        // Fallback to ar.en if en is not available
+        if (field.ar && typeof field.ar === 'object' && field.ar.en) return field.ar.en;
+      }
+      
+      // Final fallbacks
+      if (field.ar && typeof field.ar === 'string') return field.ar;
+      if (field.en && typeof field.en === 'string') return field.en;
+      if (field.ar && typeof field.ar === 'object' && field.ar.ar) return field.ar.ar;
+      if (field.en && typeof field.en === 'object' && field.en.en) return field.en.en;
+      
+      // If all else fails, try to get any string value from the object
+      const allValues = Object.values(field).flat();
+      const stringValue = allValues.find(val => typeof val === 'string');
+      if (stringValue) return stringValue;
+    }
+    
+    // If it's already a string, return as is
+    return field;
+  };
+
   // Fetch banners from API
   const { data: banners, isLoading, error } = useQuery({
     queryKey: ["promotions-hero-banners"],
@@ -27,9 +79,9 @@ const PromotionsHeroBanner = () => {
   // Convert API banners to slider format
   const sliderData = banners.banners.map((banner) => ({
     id: banner._id,
-    title: banner.title,
-    info: banner.description,
-    buttonName: banner.linkText || "Shop Now",
+    title: getLocalizedText(banner.title, ''),
+    info: getLocalizedText(banner.description, ''),
+    buttonName: getLocalizedText(banner.linkText, 'Shop Now'),
     url: banner.linkUrl || "/products",
     image: banner.imageUrl,
     openInNewTab: banner.openInNewTab
@@ -88,14 +140,27 @@ const PromotionsHeroBanner = () => {
             delay: 5000,
             disableOnInteraction: false,
           }}
-          loop={sliderData.length > 1}
+          loop={false} // Disable built-in loop to implement custom behavior
           pagination={{
             clickable: true,
             dynamicBullets: true,
           }}
           navigation={sliderData.length > 1}
           modules={[Autoplay, Pagination, Navigation]}
-          className="mySwiper"
+          className="mySwiper swiper-ltr"
+          dir="ltr"
+          onSlideChange={(swiper) => {
+            // Custom loop behavior for banner carousel
+            const currentIndex = swiper.activeIndex;
+            const totalSlides = sliderData.length;
+            
+            // If we've reached the last slide, reset to the first slide
+            if (currentIndex >= totalSlides - 1) {
+              setTimeout(() => {
+                swiper.slideTo(0, 0, false);
+              }, 100);
+            }
+          }}
         >
           {sliderData.map((item) => (
             <SwiperSlide

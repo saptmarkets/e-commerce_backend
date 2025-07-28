@@ -27,6 +27,7 @@ import { SidebarContext } from "@context/SidebarContext";
 import useUtilsFunction from "@hooks/useUtilsFunction";
 import useTranslation from "next-translate/useTranslation";
 import LanguageSelector from "@components/common/LanguageSelector";
+import CategoryDropdown from "@components/category/CategoryDropdown";
 
 const NavbarPromo = () => {
   const { t } = useTranslation();
@@ -175,7 +176,7 @@ const NavbarPromo = () => {
                               <Popover.Panel className="absolute z-10 mt-3 transform w-screen max-w-sm">
                                 <div className="rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden bg-white">
                                   <div className="max-h-96 overflow-y-auto scrollbar-hide">
-                                    <Category />
+                                    <CategoryDropdown />
                                   </div>
                                 </div>
                               </Popover.Panel>
@@ -198,6 +199,8 @@ const NavbarPromo = () => {
                         </Link>
                       )}
 
+
+
                       {/* Pages Link */}
                       {storeCustomizationSetting?.navbar?.pages_menu_status && (
                         <Link
@@ -209,20 +212,6 @@ const NavbarPromo = () => {
                         >
                           <FiFileText className="w-4 h-4" />
                           <span>{t("common:Pages")}</span>
-                        </Link>
-                      )}
-
-                      {/* Offers Link */}
-                      {storeCustomizationSetting?.navbar?.offers_menu_status && (
-                        <Link
-                          href="/offers"
-                          onClick={() => setIsLoading(!isLoading)}
-                          className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-white rounded-lg font-medium transition-all duration-200 hover:shadow-md"
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#76bd44")}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                        >
-                          <FiGift className="w-4 h-4" />
-                          <span>{t("common:Offers")}</span>
                         </Link>
                       )}
                     </Popover.Group>

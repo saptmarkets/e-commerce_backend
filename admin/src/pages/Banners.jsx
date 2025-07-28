@@ -135,6 +135,46 @@ const Banners = () => {
     };
   };
 
+  // Helper function to safely extract text from object or string
+  const getLocalizedText = (field, fallback = '') => {
+    if (!field) return fallback;
+    
+    // If it's an object with en/ar keys
+    if (typeof field === 'object' && field !== null) {
+      // Handle nested structure: {en: {en: "...", ar: "..."}, ar: "..."}
+      if (lang === 'ar') {
+        if (field.ar) {
+          // If ar is a string, return it
+          if (typeof field.ar === 'string') return field.ar;
+          // If ar is an object, try to get the ar value from it
+          if (typeof field.ar === 'object' && field.ar.ar) return field.ar.ar;
+        }
+        // Fallback to en.ar if ar is not available
+        if (field.en && typeof field.en === 'object' && field.en.ar) return field.en.ar;
+      }
+      
+      if (lang === 'en') {
+        if (field.en) {
+          // If en is a string, return it
+          if (typeof field.en === 'string') return field.en;
+          // If en is an object, try to get the en value from it
+          if (typeof field.en === 'object' && field.en.en) return field.en.en;
+        }
+        // Fallback to ar.en if en is not available
+        if (field.ar && typeof field.ar === 'object' && field.ar.en) return field.ar.en;
+      }
+      
+      // Final fallbacks
+      if (field.ar && typeof field.ar === 'string') return field.ar;
+      if (field.en && typeof field.en === 'string') return field.en;
+      if (field.ar && typeof field.ar === 'object' && field.ar.ar) return field.ar.ar;
+      if (field.en && typeof field.en === 'object' && field.en.en) return field.en.en;
+    }
+    
+    // If it's already a string, return as is
+    return field;
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Active' },
@@ -228,7 +268,7 @@ const Banners = () => {
                         <span className="mr-2">
                           <FiPlus />
                         </span>
-                        Add Banner
+                        {t("AddBanner")}
                       </button>
                     </div>
                   </div>
@@ -250,7 +290,7 @@ const Banners = () => {
                   ref={searchRef}
                   type="search"
                   name="search"
-                  placeholder="Search banners by title or location..."
+                  placeholder={t("SearchBannersByTitleOrLocation")}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
               </div>
@@ -261,7 +301,7 @@ const Banners = () => {
                   onChange={(e) => setSelectedLocation(e.target.value)}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="all">All Locations</option>
+                  <option value="all">{t("AllLocations")}</option>
                   {Object.entries(BANNER_LOCATIONS).map(([key, location]) => (
                     <option key={key} value={key}>
                       {location.name}
@@ -276,11 +316,11 @@ const Banners = () => {
                   onChange={(e) => setSortedField(e.target.value)}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="">Sort By</option>
-                  <option value="createdAt">Date Created</option>
-                  <option value="title">Title</option>
-                  <option value="location">Location</option>
-                  <option value="status">Status</option>
+                  <option value="">{t("SortBy")}</option>
+                  <option value="createdAt">{t("DateCreated")}</option>
+                  <option value="title">{t("Title")}</option>
+                  <option value="location">{t("Location")}</option>
+                  <option value="status">{t("Status")}</option>
                 </select>
               </div>
 
@@ -289,7 +329,7 @@ const Banners = () => {
                   type="submit"
                   className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                 >
-                  Filter
+                  {t("Filter")}
                 </button>
               </div>
             </form>
@@ -310,13 +350,13 @@ const Banners = () => {
                     isChecked={isCheckAll}
                   />
                 </SimpleTableHeaderCell>
-                <SimpleTableHeaderCell>Image</SimpleTableHeaderCell>
-                <SimpleTableHeaderCell>Title</SimpleTableHeaderCell>
-                <SimpleTableHeaderCell>Location</SimpleTableHeaderCell>
-                <SimpleTableHeaderCell>Dimensions</SimpleTableHeaderCell>
-                <SimpleTableHeaderCell>Status</SimpleTableHeaderCell>
-                <SimpleTableHeaderCell>Schedule</SimpleTableHeaderCell>
-                <SimpleTableHeaderCell>Actions</SimpleTableHeaderCell>
+                <SimpleTableHeaderCell>{t("Image")}</SimpleTableHeaderCell>
+                <SimpleTableHeaderCell>{t("Title")}</SimpleTableHeaderCell>
+                <SimpleTableHeaderCell>{t("Location")}</SimpleTableHeaderCell>
+                <SimpleTableHeaderCell>{t("Dimensions")}</SimpleTableHeaderCell>
+                <SimpleTableHeaderCell>{t("Status")}</SimpleTableHeaderCell>
+                <SimpleTableHeaderCell>{t("Schedule")}</SimpleTableHeaderCell>
+                <SimpleTableHeaderCell>{t("Actions")}</SimpleTableHeaderCell>
               </tr>
             </SimpleTableHeader>
 
@@ -358,7 +398,7 @@ const Banners = () => {
                           {banner.imageUrl ? (
                             <img
                               src={banner.imageUrl}
-                              alt={banner.title}
+                              alt={getLocalizedText(banner.title, 'Banner')}
                               className="w-12 h-8 object-cover rounded border"
                             />
                           ) : (
@@ -372,11 +412,11 @@ const Banners = () => {
                       <SimpleTableCell>
                         <div>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {banner.title}
+                            {getLocalizedText(banner.title, '')}
                           </span>
                           {banner.description && (
                             <p className="text-xs text-gray-500 mt-1 max-w-xs truncate">
-                              {banner.description}
+                              {getLocalizedText(banner.description, '')}
                             </p>
                           )}
                         </div>
@@ -407,13 +447,13 @@ const Banners = () => {
                       <SimpleTableCell>
                         <div className="text-xs text-gray-500">
                           {banner.startDate && (
-                            <div>Start: {new Date(banner.startDate).toLocaleDateString()}</div>
+                            <div>{t("Start")}: {new Date(banner.startDate).toLocaleDateString()}</div>
                           )}
                           {banner.endDate && (
-                            <div>End: {new Date(banner.endDate).toLocaleDateString()}</div>
+                            <div>{t("End")}: {new Date(banner.endDate).toLocaleDateString()}</div>
                           )}
                           {!banner.startDate && !banner.endDate && (
-                            <span>Always Active</span>
+                            <span>{t("AlwaysActive")}</span>
                           )}
                         </div>
                       </SimpleTableCell>
@@ -440,7 +480,7 @@ const Banners = () => {
               ) : (
                 <tr>
                   <SimpleTableCell colSpan={8}>
-                    <NotFound title="No banners found" />
+                    <NotFound title={t("NoBannersFound")} />
                   </SimpleTableCell>
                 </tr>
               )}
@@ -452,7 +492,7 @@ const Banners = () => {
               totalResults={data?.totalDoc}
               resultsPerPage={limitData}
               onChange={handleChangePage}
-              label="Table navigation"
+              label={t("TableNavigation")}
             />
           </SimpleTableFooter>
         </SimpleTableContainer>

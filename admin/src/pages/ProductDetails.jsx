@@ -9,7 +9,7 @@ import {
 } from "@windmill/react-ui";
 import React, { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router";
+import { useParams, useHistory } from "react-router";
 import { FiImage, FiPackage, FiBox, FiShoppingBag, FiDollarSign, FiBarChart2, FiLayers, FiInfo } from "react-icons/fi";
 //internal import
 
@@ -37,6 +37,7 @@ const ProductDetails = () => {
   const [activeTab, setActiveTab] = useState("basic");
   const [productUnits, setProductUnits] = useState([]);
   const [isLoadingUnits, setIsLoadingUnits] = useState(false);
+  const history = useHistory();
 
   const { data, loading, error } = useAsync(() => ProductServices.getProductById(id));
 
@@ -94,6 +95,18 @@ const ProductDetails = () => {
 
   return (
     <>
+      {/* Back Arrow Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => history.push('/products')}
+          className="flex items-center text-emerald-600 hover:text-emerald-800 font-semibold text-lg gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          {t('BackToProducts')}
+        </button>
+      </div>
       <MainDrawer product>
         <ProductDrawer id={id} />
       </MainDrawer>
@@ -167,7 +180,7 @@ const ProductDetails = () => {
             >
               <div className="flex items-center">
                 <FiInfo className="w-4 h-4 mr-2" />
-                Basic Information
+                {t('BasicInformation')}
               </div>
             </button>
             <button
@@ -180,7 +193,7 @@ const ProductDetails = () => {
             >
               <div className="flex items-center">
                 <FiPackage className="w-4 h-4 mr-2" />
-                Units
+                {t('Units')}
               </div>
             </button>
             <button
@@ -193,7 +206,7 @@ const ProductDetails = () => {
             >
               <div className="flex items-center">
                 <FiImage className="w-4 h-4 mr-2" />
-                Media & Galleries
+                {t('MediaAndGalleries')}
               </div>
             </button>
             <button
@@ -206,7 +219,20 @@ const ProductDetails = () => {
             >
               <div className="flex items-center">
                 <FiBarChart2 className="w-4 h-4 mr-2" />
-                Inventory & Stock
+                {t('InventoryAndStock')}
+              </div>
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                activeTab === "storeStock"
+                  ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("storeStock")}
+            >
+              <div className="flex items-center">
+                <FiBarChart2 className="w-4 h-4 mr-2" />
+                {t('StoreStock')}
               </div>
             </button>
           </div>
@@ -620,6 +646,23 @@ const ProductDetails = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Store Stock Tab */}
+            {activeTab === "storeStock" && data && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">{t('StoreStock')}</h3>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <div className="mb-4">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('CurrentStock')}
+                    </span>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      {data.stock || 0}
+                    </h3>
+                  </div>
                 </div>
               </div>
             )}

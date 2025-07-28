@@ -80,7 +80,25 @@ const CustomerDetails = () => {
       Cancel: 'danger',
       Cancelled: 'danger',
     };
-    return <Badge type={colors[status] || 'neutral'}>{status}</Badge>;
+    const getStatusText = (status) => {
+      switch (status) {
+        case "Delivered":
+          return t("Delivered");
+        case "Processing":
+          return t("Processing");
+        case "Pending":
+          return t("Pending");
+        case "Received":
+          return t("Received");
+        case "Out for Delivery":
+          return t("OutForDelivery");
+        case "Cancelled":
+          return t("Cancelled");
+        default:
+          return status;
+      }
+    };
+    return <Badge type={colors[status] || 'neutral'}>{getStatusText(status)}</Badge>;
   };
 
   const getStatusIcon = (status) => {

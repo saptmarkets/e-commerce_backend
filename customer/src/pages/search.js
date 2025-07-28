@@ -139,7 +139,7 @@ const Search = ({ products, attributes, shouldRedirect, redirectTo }) => {
                 <div className="mx-auto p-5 my-5">
                   <Image
                     className="my-4 mx-auto"
-                    src="/no-result.svg"
+                    src="/no-result.png"
                     alt="no-result"
                     width={400}
                     height={380}
@@ -184,8 +184,8 @@ const Search = ({ products, attributes, shouldRedirect, redirectTo }) => {
                         key={i + 1}
                         product={product}
                         attributes={attributes}
-                        compact={true}
-                        showQuantitySelector={false}
+                        compact={false}
+                        showQuantitySelector={true}
                         showFavorite={true}
                         promotion={product.promotion}
                       />

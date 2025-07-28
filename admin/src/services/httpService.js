@@ -2,14 +2,14 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { getCorrectApiUrl } from "../utils/apiDebugger";
 
-// Get the correct base URL without duplicate /api paths
+// Get the correct base URL from environment variable
 const getBaseUrl = () => {
-  // Directly set the base URL to 127.0.0.1 to avoid localhost/IPv6 issues
-  const baseUrl = "http://127.0.0.1:5055/api";
+  // Use environment variable for API base URL
+  const baseUrl = import.meta.env.VITE_APP_API_BASE_URL || "http://127.0.0.1:5055/api";
   // Log the configured base URL
-  console.log("Original API Base URL:", baseUrl);
+  console.log("API Base URL from env:", import.meta.env.VITE_APP_API_BASE_URL);
+  console.log("Using API Base URL:", baseUrl);
   
-  // No need for duplicate /api path check if hardcoding
   return baseUrl;
 };
 
@@ -19,7 +19,7 @@ console.log("Using API Base URL:", BASE_URL);
 
 const instance = axios.create({
   baseURL: BASE_URL,
-  timeout: 50000,
+  timeout: 500000, // Increased from 50000ms (50s) to 500000ms (500s) - 10x increase for Odoo sync operations
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",

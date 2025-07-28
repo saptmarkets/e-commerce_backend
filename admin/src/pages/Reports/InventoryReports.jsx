@@ -8,8 +8,10 @@ import PageTitle from '@/components/Typography/PageTitle';
 import SectionTitle from '@/components/Typography/SectionTitle';
 import useUtilsFunction from '@/hooks/useUtilsFunction';
 import httpService from '@/services/httpService';
+import { useTranslation } from 'react-i18next';
 
 const InventoryReports = () => {
+  const { t } = useTranslation();
   const { currency, getNumberTwo } = useUtilsFunction();
 
   // 📊 State Management
@@ -254,7 +256,7 @@ const InventoryReports = () => {
 
   return (
     <>
-      <PageTitle>Inventory Reports</PageTitle>
+      <PageTitle>{t('inventoryReports')}</PageTitle>
       
       <div className="container mx-auto px-6 py-8">
         
@@ -264,16 +266,16 @@ const InventoryReports = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <FiFilter className="mr-2" />
-                <h3 className="text-lg font-semibold">Filter Options</h3>
+                <h3 className="text-lg font-semibold">{t('filterOptions')}</h3>
               </div>
               <Button onClick={applyFilters} disabled={loading}>
-                {loading ? 'Loading...' : 'Apply Filters'}
+                {loading ? t('loading') : t('applyFilters')}
               </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <Label>Low Stock Threshold</Label>
+                <Label>{t('lowStockThreshold')}</Label>
                 <Input
                   type="number"
                   value={filters.lowStockThreshold}
@@ -283,39 +285,39 @@ const InventoryReports = () => {
                 />
               </div>
               <div>
-                <Label>Analysis Period (Days)</Label>
+                <Label>{t('analysisPeriod')}</Label>
                 <Select
                   value={filters.period}
                   onChange={(e) => setFilters({...filters, period: parseInt(e.target.value)})}
                 >
-                  <option value={7}>Last 7 Days</option>
-                  <option value={30}>Last 30 Days</option>
-                  <option value={90}>Last 90 Days</option>
-                  <option value={180}>Last 180 Days</option>
-                  <option value={365}>Last Year</option>
+                  <option value={7}>{t('last7Days')}</option>
+                  <option value={30}>{t('last30Days')}</option>
+                  <option value={90}>{t('last90Days')}</option>
+                  <option value={180}>{t('last180Days')}</option>
+                  <option value={365}>{t('lastYear')}</option>
                 </Select>
               </div>
               <div>
-                <Label>Stock Status</Label>
+                <Label>{t('stockStatus')}</Label>
                 <Select
                   value={filters.stockStatus}
                   onChange={(e) => setFilters({...filters, stockStatus: e.target.value})}
                 >
-                  <option value="all">All Items</option>
-                  <option value="in_stock">In Stock</option>
-                  <option value="low_stock">Low Stock</option>
-                  <option value="out_of_stock">Out of Stock</option>
+                  <option value="all">{t('allItems')}</option>
+                  <option value="in_stock">{t('inStock')}</option>
+                  <option value="low_stock">{t('lowStock')}</option>
+                  <option value="out_of_stock">{t('outOfStock')}</option>
                 </Select>
               </div>
               <div>
-                <Label>Valuation Method</Label>
+                <Label>{t('valuationMethod')}</Label>
                 <Select
                   value={filters.valuationMethod}
                   onChange={(e) => setFilters({...filters, valuationMethod: e.target.value})}
                 >
-                  <option value="fifo">FIFO</option>
-                  <option value="lifo">LIFO</option>
-                  <option value="average">Average Cost</option>
+                  <option value="fifo">{t('fifo')}</option>
+                  <option value="lifo">{t('lifo')}</option>
+                  <option value="average">{t('averageCost')}</option>
                 </Select>
               </div>
             </div>
@@ -330,7 +332,7 @@ const InventoryReports = () => {
                 <FiPackage className="text-blue-500 dark:text-blue-100" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Products</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('totalProducts')}</p>
                 <p className="text-2xl font-semibold">{kpis.totalProducts || 0}</p>
               </div>
             </CardBody>
@@ -342,7 +344,7 @@ const InventoryReports = () => {
                 <FiDollarSign className="text-green-500 dark:text-green-100" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Stock Value</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('totalStockValue')}</p>
                 <p className="text-2xl font-semibold">{currency}{getNumberTwo(kpis.totalStockValue || 0)}</p>
               </div>
             </CardBody>
@@ -354,7 +356,7 @@ const InventoryReports = () => {
                 <FiAlertTriangle className="text-red-500 dark:text-red-100" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Out of Stock</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('outOfStock')}</p>
                 <p className="text-2xl font-semibold">{kpis.outOfStockCount || 0}</p>
               </div>
             </CardBody>
@@ -366,7 +368,7 @@ const InventoryReports = () => {
                 <FiTrendingUp className="text-orange-500 dark:text-orange-100" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Low Stock</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('lowStock')}</p>
                 <p className="text-2xl font-semibold">{kpis.lowStockCount || 0}</p>
               </div>
             </CardBody>
@@ -378,7 +380,7 @@ const InventoryReports = () => {
                 <FiBarChart2 className="text-emerald-500 dark:text-emerald-100" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Well Stocked</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('wellStocked')}</p>
                 <p className="text-2xl font-semibold">{kpis.inStockCount || 0}</p>
               </div>
             </CardBody>
@@ -389,10 +391,10 @@ const InventoryReports = () => {
         <Card className="mb-8">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <SectionTitle>Stock Overview</SectionTitle>
+              <SectionTitle>{t('stockOverview')}</SectionTitle>
               <Button size="small" onClick={() => exportToCSV('overview')}>
                 <FiDownload className="mr-2" />
-                Export CSV
+                {t('exportCSV')}
               </Button>
             </div>
             
@@ -400,27 +402,27 @@ const InventoryReports = () => {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
-                    <th className="px-4 py-3">Product</th>
-                    <th className="px-4 py-3">SKU</th>
-                    <th className="px-4 py-3">Category</th>
-                    <th className="px-4 py-3">Current Stock</th>
-                    <th className="px-4 py-3">Stock Value</th>
-                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">{t('product')}</th>
+                    <th className="px-4 py-3">{t('sku')}</th>
+                    <th className="px-4 py-3">{t('category')}</th>
+                    <th className="px-4 py-3">{t('currentStock')}</th>
+                    <th className="px-4 py-3">{t('stockValue')}</th>
+                    <th className="px-4 py-3">{t('status')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stockItems.slice(0, 10).map((item, index) => (
                     <tr key={index} className="border-b dark:border-gray-700">
                       <td className="px-4 py-3 font-medium">
-                        {getSafeText(item.title) || 'Unknown Product'}
+                        {getSafeText(item.title) || t('unknownProduct')}
                       </td>
-                      <td className="px-4 py-3">{item.sku || 'N/A'}</td>
-                      <td className="px-4 py-3">{getSafeText(item.categoryName) || 'Uncategorized'}</td>
+                      <td className="px-4 py-3">{item.sku || t('na')}</td>
+                      <td className="px-4 py-3">{getSafeText(item.categoryName) || t('uncategorized')}</td>
                       <td className="px-4 py-3">{item.stock || 0}</td>
                       <td className="px-4 py-3">{currency}{getNumberTwo(item.stockValue || 0)}</td>
                       <td className="px-4 py-3">
                         <Badge type={getStockStatusColor(item.stockStatus)}>
-                          {item.stockStatus?.replace('_', ' ') || 'Unknown'}
+                          {item.stockStatus?.replace('_', ' ') || t('unknown')}
                         </Badge>
                       </td>
                     </tr>
@@ -435,10 +437,10 @@ const InventoryReports = () => {
         <Card className="mb-8">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <SectionTitle>Recent Stock Movements</SectionTitle>
+              <SectionTitle>{t('recentStockMovements')}</SectionTitle>
               <Button size="small" onClick={() => exportToCSV('movement')}>
                 <FiDownload className="mr-2" />
-                Export CSV
+                {t('exportCSV')}
               </Button>
             </div>
             
@@ -446,30 +448,30 @@ const InventoryReports = () => {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
-                    <th className="px-4 py-3">Product</th>
-                    <th className="px-4 py-3">SKU</th>
-                    <th className="px-4 py-3">Movement</th>
-                    <th className="px-4 py-3">Quantity</th>
-                    <th className="px-4 py-3">Value</th>
-                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">{t('product')}</th>
+                    <th className="px-4 py-3">{t('sku')}</th>
+                    <th className="px-4 py-3">{t('movement')}</th>
+                    <th className="px-4 py-3">{t('quantity')}</th>
+                    <th className="px-4 py-3">{t('value')}</th>
+                    <th className="px-4 py-3">{t('date')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {movementData.slice(0, 10).map((item, index) => (
                     <tr key={index} className="border-b dark:border-gray-700">
                       <td className="px-4 py-3 font-medium">
-                        {getSafeText(item.productTitle) || 'Unknown Product'}
+                        {getSafeText(item.productTitle) || t('unknownProduct')}
                       </td>
-                      <td className="px-4 py-3">{item.sku || 'N/A'}</td>
+                      <td className="px-4 py-3">{item.sku || t('na')}</td>
                       <td className="px-4 py-3">
                         <Badge type={item.movementType === 'out' ? 'red' : 'green'}>
-                          {item.movementType === 'out' ? 'Out' : 'In'}
+                          {item.movementType === 'out' ? t('out') : t('in')}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">{item.quantity || 0}</td>
                       <td className="px-4 py-3">{currency}{getNumberTwo(item.totalValue || 0)}</td>
                       <td className="px-4 py-3">
-                        {item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}
+                        {item.date ? new Date(item.date).toLocaleDateString() : t('na')}
                       </td>
                     </tr>
                   ))}
@@ -483,10 +485,10 @@ const InventoryReports = () => {
         <Card className="mb-8">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <SectionTitle>Product Velocity Analysis</SectionTitle>
+              <SectionTitle>{t('productVelocityAnalysis')}</SectionTitle>
               <Button size="small" onClick={() => exportToCSV('velocity')}>
                 <FiDownload className="mr-2" />
-                Export CSV
+                {t('exportCSV')}
               </Button>
             </div>
             
@@ -494,26 +496,26 @@ const InventoryReports = () => {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
-                    <th className="px-4 py-3">Product</th>
-                    <th className="px-4 py-3">Current Stock</th>
-                    <th className="px-4 py-3">Total Sold</th>
-                    <th className="px-4 py-3">Velocity Score</th>
-                    <th className="px-4 py-3">Classification</th>
-                    <th className="px-4 py-3">Revenue</th>
+                    <th className="px-4 py-3">{t('product')}</th>
+                    <th className="px-4 py-3">{t('currentStock')}</th>
+                    <th className="px-4 py-3">{t('totalSold')}</th>
+                    <th className="px-4 py-3">{t('velocityScore')}</th>
+                    <th className="px-4 py-3">{t('classification')}</th>
+                    <th className="px-4 py-3">{t('revenue')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {velocityData.slice(0, 10).map((item, index) => (
                     <tr key={index} className="border-b dark:border-gray-700">
                       <td className="px-4 py-3 font-medium">
-                        {getSafeText(item.productTitle) || 'Unknown Product'}
+                        {getSafeText(item.productTitle) || t('unknownProduct')}
                       </td>
                       <td className="px-4 py-3">{item.currentStock || 0}</td>
                       <td className="px-4 py-3">{item.totalSold || 0}</td>
                       <td className="px-4 py-3">{(item.velocityScore || 0).toFixed(2)}</td>
                       <td className="px-4 py-3">
                         <Badge type={getVelocityColor(item.velocityClassification)}>
-                          {item.velocityClassification || 'Unknown'}
+                          {item.velocityClassification || t('unknown')}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">{currency}{getNumberTwo(item.totalRevenue || 0)}</td>
@@ -529,10 +531,10 @@ const InventoryReports = () => {
         <Card className="mb-8">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <SectionTitle>ABC Analysis</SectionTitle>
+              <SectionTitle>{t('abcAnalysis')}</SectionTitle>
               <Button size="small" onClick={() => exportToCSV('abc')}>
                 <FiDownload className="mr-2" />
-                Export CSV
+                {t('exportCSV')}
               </Button>
             </div>
             
@@ -540,12 +542,12 @@ const InventoryReports = () => {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
-                    <th className="px-4 py-3">Rank</th>
-                    <th className="px-4 py-3">Product</th>
-                    <th className="px-4 py-3">Classification</th>
-                    <th className="px-4 py-3">Revenue</th>
-                    <th className="px-4 py-3">Revenue %</th>
-                    <th className="px-4 py-3">Cumulative %</th>
+                    <th className="px-4 py-3">{t('rank')}</th>
+                    <th className="px-4 py-3">{t('product')}</th>
+                    <th className="px-4 py-3">{t('classification')}</th>
+                    <th className="px-4 py-3">{t('revenue')}</th>
+                    <th className="px-4 py-3">{t('revenuePercentage')}</th>
+                    <th className="px-4 py-3">{t('cumulativePercentage')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -553,11 +555,11 @@ const InventoryReports = () => {
                     <tr key={index} className="border-b dark:border-gray-700">
                       <td className="px-4 py-3">{item.rank || index + 1}</td>
                       <td className="px-4 py-3 font-medium">
-                        {getSafeText(item.productTitle) || 'Unknown Product'}
+                        {getSafeText(item.productTitle) || t('unknownProduct')}
                       </td>
                       <td className="px-4 py-3">
                         <Badge type={getABCColor(item.classification)}>
-                          {item.classification || 'C'}
+                          {item.classification || t('c')}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">{currency}{getNumberTwo(item.totalRevenue || 0)}</td>
@@ -575,34 +577,34 @@ const InventoryReports = () => {
         <Card className="mb-8">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <SectionTitle>Inventory Valuation Summary</SectionTitle>
+              <SectionTitle>{t('inventoryValuationSummary')}</SectionTitle>
               <Button size="small" onClick={() => exportToCSV('valuation')}>
                 <FiDownload className="mr-2" />
-                Export CSV
+                {t('exportCSV')}
               </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
-                <p className="text-sm text-blue-600 dark:text-blue-300">Total Stock Value</p>
+                <p className="text-sm text-blue-600 dark:text-blue-300">{t('totalStockValue')}</p>
                 <p className="text-2xl font-semibold text-blue-800 dark:text-blue-200">
                   {currency}{getNumberTwo(dashboardData.inventoryValuation?.totalValuation?.totalStockValue || 0)}
                 </p>
               </div>
               <div className="bg-green-50 dark:bg-green-900 p-4 rounded-lg">
-                <p className="text-sm text-green-600 dark:text-green-300">Potential Revenue</p>
+                <p className="text-sm text-green-600 dark:text-green-300">{t('potentialRevenue')}</p>
                 <p className="text-2xl font-semibold text-green-800 dark:text-green-200">
                   {currency}{getNumberTwo(dashboardData.inventoryValuation?.totalValuation?.potentialRevenue || 0)}
                 </p>
               </div>
               <div className="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg">
-                <p className="text-sm text-purple-600 dark:text-purple-300">Potential Profit</p>
+                <p className="text-sm text-purple-600 dark:text-purple-300">{t('potentialProfit')}</p>
                 <p className="text-2xl font-semibold text-purple-800 dark:text-purple-200">
                   {currency}{getNumberTwo(dashboardData.inventoryValuation?.totalValuation?.potentialProfit || 0)}
                 </p>
               </div>
               <div className="bg-orange-50 dark:bg-orange-900 p-4 rounded-lg">
-                <p className="text-sm text-orange-600 dark:text-orange-300">Avg Stock Value</p>
+                <p className="text-sm text-orange-600 dark:text-orange-300">{t('averageStockValue')}</p>
                 <p className="text-2xl font-semibold text-orange-800 dark:text-orange-200">
                   {currency}{getNumberTwo(dashboardData.inventoryValuation?.totalValuation?.averageStockValue || 0)}
                 </p>
@@ -614,19 +616,19 @@ const InventoryReports = () => {
         {/* 📈 Applied Filters Display */}
         <Card>
           <CardBody>
-            <h3 className="text-lg font-semibold mb-4">Current Filter Settings</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('currentFilterSettings')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="font-medium">Low Stock Threshold:</span> {filters.lowStockThreshold}
+                <span className="font-medium">{t('lowStockThreshold')}:</span> {filters.lowStockThreshold}
               </div>
               <div>
-                <span className="font-medium">Analysis Period:</span> {filters.period} days
+                <span className="font-medium">{t('analysisPeriod')}:</span> {filters.period} {t('days')}
               </div>
               <div>
-                <span className="font-medium">Stock Status:</span> {filters.stockStatus}
+                <span className="font-medium">{t('stockStatus')}:</span> {filters.stockStatus}
               </div>
               <div>
-                <span className="font-medium">Valuation Method:</span> {filters.valuationMethod.toUpperCase()}
+                <span className="font-medium">{t('valuationMethod')}:</span> {filters.valuationMethod.toUpperCase()}
               </div>
             </div>
           </CardBody>

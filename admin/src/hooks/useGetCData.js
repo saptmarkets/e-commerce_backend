@@ -73,14 +73,17 @@ const useGetCData = () => {
           } else {
             console.error("Decryption returned invalid data:", decryptedArray);
             // Fallback: Use role from adminInfo directly for Super Admin
-            if (adminInfo.email === 'admin@gmail.com') {
+            if (adminInfo.email === 'admin@gmail.com' || adminInfo.role === 'Super Admin') {
               console.log("Applying Super Admin fallback access");
               setRole("Super Admin");
               setAccessList([
                 "dashboard", "products", "categories", "attributes", "units",
                 "promotions", "banners", "coupons", "orders", "our-staff",
                 "settings", "languages", "currencies", "store", "customers",
-                "odoo-sync", "odoo-catalog", "reports"
+                "odoo-sync", "odoo-catalog", "reports", "reports/sales", "reports/inventory",
+                "reports/customers", "reports/delivery", "reports/financial", "reports/executive",
+                "delivery/dashboard", "delivery/assignments", "delivery/drivers", "delivery/tracking",
+                "delivery/settings", "products/import-export", "categories/import-export"
               ]);
             }
           }
@@ -94,14 +97,17 @@ const useGetCData = () => {
           });
           
           // Fallback for Super Admin if decryption fails
-          if (adminInfo.email === 'admin@gmail.com') {
+          if (adminInfo.email === 'admin@gmail.com' || adminInfo.role === 'Super Admin') {
             console.log("Decryption failed, applying Super Admin fallback");
             setRole("Super Admin");
             setAccessList([
               "dashboard", "products", "categories", "attributes", "units",
               "promotions", "banners", "coupons", "orders", "our-staff", 
               "settings", "languages", "currencies", "store", "customers",
-              "odoo-sync", "odoo-catalog", "reports"
+              "odoo-sync", "odoo-catalog", "reports", "reports/sales", "reports/inventory",
+              "reports/customers", "reports/delivery", "reports/financial", "reports/executive",
+              "delivery/dashboard", "delivery/assignments", "delivery/drivers", "delivery/tracking",
+              "delivery/settings", "products/import-export", "categories/import-export"
             ]);
           }
         }

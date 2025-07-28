@@ -1,4 +1,5 @@
 import "@styles/custom.css";
+import "@styles/responsive.css";
 import { CartProvider } from "react-use-cart";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistStore } from "redux-persist";
@@ -6,7 +7,7 @@ import { Provider } from "react-redux";
 import ReactGA from "react-ga4";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
-import { SessionProvider } from "next-auth/react";
+// import { SessionProvider } from "next-auth/react"; // Removed NextAuth SessionProvider
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import TawkMessengerReact from "@tawk.to/tawk-messenger-react";
 import Head from "next/head";
@@ -98,12 +99,20 @@ function MyApp({ Component, pageProps }) {
     };
   }, [router, handleRouteStart, handleRouteComplete, handleRouteError]);
 
-  // Sync <html> lang and dir on locale change
+  // Sync <html> lang and dir on locale change - force English/Arabic only
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const currentLocale = router.locale || 'en';
+      // Force only English or Arabic, ignore browser locale
+      const currentLocale = ['en', 'ar'].includes(router.locale) ? router.locale : 'en';
       document.documentElement.lang = currentLocale;
       document.documentElement.dir = currentLocale === 'ar' ? 'rtl' : 'ltr';
+      
+      // Ensure cookies are set correctly
+      const Cookies = require('js-cookie');
+      if (!Cookies.get('_lang') || !['en', 'ar'].includes(Cookies.get('_lang'))) {
+        Cookies.set('_lang', currentLocale, { expires: 365 });
+        Cookies.set('NEXT_LOCALE', currentLocale, { expires: 365 });
+      }
     }
   }, [router.locale]);
 
@@ -115,29 +124,28 @@ function MyApp({ Component, pageProps }) {
   return (
     <>
       <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          <UserProvider>
-            <Provider store={store}>
-              <PersistGate loading={null} persistor={persistor}>
-                <SidebarProvider>
-                  <CartProvider>
-                    <DefaultSeo />
-                    {/* Show page loader during route transitions */}
-                    {isPageLoading && <PageLoader />}
-                    {/* Render TawkMessengerReact only if initialized and enabled */}
-                    {isInitialized && storeSetting?.tawk_chat_status && (
-                      <TawkMessengerReact
-                        propertyId={storeSetting?.tawk_chat_property_id || ""}
-                        widgetId={storeSetting?.tawk_chat_widget_id || ""}
-                      />
-                    )}
-                    <Component {...pageProps} />
-                  </CartProvider>
-                </SidebarProvider>
-              </PersistGate>
-            </Provider>
-          </UserProvider>
-        </SessionProvider>
+        {/* Removed SessionProvider - using custom auth instead */}
+        <UserProvider>
+          <Provider store={store}>
+            <PersistGate loading={null} persistor={persistor}>
+              <SidebarProvider>
+                <CartProvider>
+                  <DefaultSeo />
+                  {/* Show page loader during route transitions */}
+                  {isPageLoading && <PageLoader />}
+                  {/* Render TawkMessengerReact only if initialized and enabled */}
+                  {isInitialized && storeSetting?.tawk_chat_status && (
+                    <TawkMessengerReact
+                      propertyId={storeSetting?.tawk_chat_property_id || ""}
+                      widgetId={storeSetting?.tawk_chat_widget_id || ""}
+                    />
+                  )}
+                  <Component {...pageProps} />
+                </CartProvider>
+              </SidebarProvider>
+            </PersistGate>
+          </Provider>
+        </UserProvider>
       </QueryClientProvider>
     </>
   );

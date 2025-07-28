@@ -17,7 +17,9 @@ import InputAreaTwo from "@/components/form/input/InputAreaTwo";
 import SwitchToggle from "@/components/form/switch/SwitchToggle";
 import TextAreaCom from "@/components/form/others/TextAreaCom";
 import UploaderWithCropper from "@/components/image-uploader/UploaderWithCropper";
-import { useState } from "react";
+import SelectLanguageTwo from "@/components/form/selectOption/SelectLanguageTwo";
+import { useState, useContext } from "react";
+import { SidebarContext } from "@/context/SidebarContext";
 
 const AboutUs = ({
   isSave,
@@ -73,8 +75,20 @@ const AboutUs = ({
   isSubmitting,
   handleSubmit,
   onSubmit,
+  handleSelectLanguage,
 }) => {
   const { t } = useTranslation();
+  const { lang } = useContext(SidebarContext);
+  const [selectedLanguage, setSelectedLanguage] = useState(lang || "en");
+
+  const handleLanguageChange = (language) => {
+    setSelectedLanguage(language);
+    // Call the parent's handleSelectLanguage function
+    if (handleSelectLanguage) {
+      handleSelectLanguage(language);
+    }
+    console.log('Language changed to:', language);
+  };
 
   return (
     <>
@@ -96,9 +110,51 @@ const AboutUs = ({
               </Button>
             ) : (
               <Button
-                type="button"
+                type="submit"
                 className="h-10 px-6 "
-                onClick={handleSubmit(onSubmit)}
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent default form submission
+                  console.log('=== ABOUT US FORM DEBUG ===');
+                  console.log('Button clicked!');
+                  console.log('Form errors:', errors);
+                  console.log('isSubmitting:', isSubmitting);
+                  console.log('isSave:', isSave);
+                  
+                  // Try to submit the form programmatically
+                  console.log('Attempting programmatic form submission...');
+                  
+                  // Get the form element
+                  const form = e.target.closest('form');
+                  console.log('Form element:', form);
+                  
+                  if (form) {
+                    // Trigger form submission
+                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                    form.dispatchEvent(submitEvent);
+                    console.log('Form submit event dispatched');
+                  } else {
+                    console.log('No form element found');
+                  }
+                  
+                  // Fallback: Try direct onSubmit call
+                  setTimeout(() => {
+                    console.log('Trying direct onSubmit call as fallback...');
+                    try {
+                      // Get form data manually
+                      const formData = new FormData(form);
+                      const data = {};
+                      for (let [key, value] of formData.entries()) {
+                        data[key] = value;
+                      }
+                      console.log('Form data:', data);
+                      
+                      // Call onSubmit directly
+                      onSubmit(data);
+                    } catch (error) {
+                      console.error('Error in direct onSubmit call:', error);
+                    }
+                  }, 100);
+                }}
               >
                 {isSave ? t("SaveBtn") : t("UpdateBtn")}
               </Button>
@@ -108,6 +164,20 @@ const AboutUs = ({
           <div className="inline-flex md:text-lg text-base text-gray-800 font-semibold dark:text-gray-400 md:mb-3 mb-1">
             <FiSettings className="mt-1 mr-2" />
             {t("AboutUs")}
+          </div>
+
+          {/* Language Selector */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Current Language: <span className="font-semibold">{selectedLanguage.toUpperCase()}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Edit Language:</span>
+              <SelectLanguageTwo 
+                handleSelectLanguage={handleLanguageChange}
+                register={() => ({})}
+              />
+            </div>
           </div>
 
           <hr className="md:mb-12 mb-3" />
@@ -355,7 +425,6 @@ const AboutUs = ({
                 </label>
                 <div className="sm:col-span-4">
                   <TextAreaCom
-                    required={true}
                     register={register}
                     label="Card One Description"
                     name="about_page_card_one_description"
@@ -363,9 +432,7 @@ const AboutUs = ({
                     placeholder="We offer a comprehensive range of household necessities..."
                   />
                   <Error
-                    errorName={
-                      (errors.name = "about_page_card_one_description")
-                    }
+                    errorName={errors.about_page_card_one_description}
                   />
                 </div>
               </div>
@@ -409,7 +476,6 @@ const AboutUs = ({
                 </label>
                 <div className="sm:col-span-4">
                   <TextAreaCom
-                    required={true}
                     register={register}
                     label="Card Two Description"
                     name="about_page_card_two_description"
@@ -417,9 +483,7 @@ const AboutUs = ({
                     placeholder="Our regular promotional offers help families save money..."
                   />
                   <Error
-                    errorName={
-                      (errors.name = "about_page_card_two_description")
-                    }
+                    errorName={errors.about_page_card_two_description}
                   />
                 </div>
               </div>
@@ -1786,31 +1850,6 @@ const AboutUs = ({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Bottom Submit Button */}
-      <div className="flex justify-end mt-10">
-        {isSubmitting ? (
-          <Button disabled type="button" className="h-10 px-6">
-            <img
-              src={spinnerLoadingImage}
-              alt="Loading"
-              width={20}
-              height={10}
-            />
-            <span className="font-serif ml-2 font-light">
-              {t("Processing")}
-            </span>
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            className="h-10 px-6"
-            onClick={handleSubmit(onSubmit)}
-          >
-            {isSave ? t("SaveBtn") : t("UpdateBtn")}
-          </Button>
-        )}
       </div>
     </>
   );

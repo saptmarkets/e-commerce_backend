@@ -1621,6 +1621,7 @@ const StoreHome = () => {
     // All other states from the hook
     control,
     coupons,
+    handleSelectLanguage,
   } = useStoreHomeSubmit();
 
   // Render the appropriate tab content
@@ -1787,6 +1788,7 @@ const StoreHome = () => {
             aboutBranches={aboutBranches}
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}
+            handleSelectLanguage={handleSelectLanguage}
           />
         );
 

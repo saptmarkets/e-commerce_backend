@@ -1,0 +1,692 @@
+/* Global Responsive Design Improvements */
+
+/* Mobile-first approach with smaller sizes */
+@media (max-width: 640px) {
+  html {
+    font-size: 90%;
+  }
+  
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  button, .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .h-header {
+    height: 400px;
+  }
+  
+  .product-card {
+    padding: 0.75rem;
+  }
+  
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Ensure proper carousel behavior on mobile */
+  .mySwiper {
+    overflow: visible !important;
+    touch-action: pan-y pinch-zoom !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .mySwiper .swiper-wrapper {
+    transition: transform 0.3s ease !important;
+  }
+
+  /* Navigation buttons for mobile */
+  .product-card-carousel button[aria-label="Previous"],
+  .product-card-carousel button[aria-label="Next"] {
+    position: absolute !important;
+    z-index: 20 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+  }
+
+  .product-card-carousel button[aria-label="Previous"]:hover,
+  .product-card-carousel button[aria-label="Next"]:hover {
+    background: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    transform: scale(1.05) !important;
+  }
+
+  /* Position navigation buttons outside the carousel on mobile */
+  .product-card-carousel button[aria-label="Previous"] {
+    left: -1rem !important;
+  }
+
+  .product-card-carousel button[aria-label="Next"] {
+    right: -1rem !important;
+  }
+
+  /* Ensure two product cards fit horizontally in Swiper and grid */
+  .mySwiper .swiper-slide {
+    width: calc(50% - 6px) !important; /* half minus small gap */
+  }
+
+  /* Special case: When slidesPerView is 1, make card full width */
+  .mySwiper[data-slides-per-view="1"] .swiper-slide {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+
+  /* Limit product card max-width to fit two columns comfortably */
+  .product-card {
+    max-width: 180px;
+  }
+
+  /* Full width product card when single slide */
+  .mySwiper[data-slides-per-view="1"] .product-card {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Ensure no partial card visibility for single slide view */
+  .mySwiper[data-slides-per-view="1"] {
+    overflow: hidden !important;
+  }
+
+  .mySwiper[data-slides-per-view="1"] .swiper-wrapper {
+    align-items: center !important;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  html {
+    font-size: 92.5%;
+  }
+  
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Responsive spacing utilities */
+.responsive-padding {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-padding {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Responsive grid layouts */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* Ensure product cards in grid have equal height */
+.responsive-grid {
+  align-items: stretch; /* stretch items to same height */
+}
+
+.responsive-grid > * {
+  height: 100%; /* child (card wrapper) occupies full row height */
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* For Swiper slides ensure card fills slide height */
+.mySwiper .swiper-slide {
+  display: flex;
+  height: auto;
+}
+
+.mySwiper .product-card {
+  flex: 1 1 auto;
+}
+
+/* Hide elements on mobile */
+.mobile-hide {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .mobile-hide {
+    display: block;
+  }
+}
+
+.desktop-hide {
+  display: block;
+}
+
+@media (min-width: 640px) {
+  .desktop-hide {
+    display: none;
+  }
+}
+
+/* Button responsive sizes */
+.btn-responsive {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .btn-responsive {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .btn-responsive {
+    font-size: 1rem;
+    padding: 0.625rem 1.25rem;
+  }
+}
+
+/* Section spacing responsive */
+.section-responsive {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .section-responsive {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .section-responsive {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-responsive {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
+/* Responsive text sizes */
+.text-responsive-xs {
+  font-size: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-xs {
+    font-size: 0.875rem;
+  }
+}
+
+.text-responsive-sm {
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-sm {
+    font-size: 1rem;
+  }
+}
+
+.text-responsive-base {
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-base {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-base {
+    font-size: 1.125rem;
+  }
+}
+
+/* Large responsive text */
+.text-responsive-lg {
+  font-size: 1rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-lg {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-lg {
+    font-size: 1.25rem;
+  }
+}
+
+/* Extra large responsive text */
+.text-responsive-xl {
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-xl {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-xl {
+    font-size: 1.125rem;
+  }
+}
+
+/* 2XL responsive text */
+.text-responsive-2xl {
+  font-size: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-2xl {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-2xl {
+    font-size: 1.875rem;
+  }
+}
+
+/* 3XL responsive text */
+.text-responsive-3xl {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-3xl {
+    font-size: 1.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-3xl {
+    font-size: 2.25rem;
+  }
+}
+
+/* 4XL responsive text */
+.text-responsive-4xl {
+  font-size: 1.875rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-4xl {
+    font-size: 2.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-4xl {
+    font-size: 3rem;
+  }
+}
+
+/* 5XL responsive text */
+.text-responsive-5xl {
+  font-size: 1.75rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-5xl {
+    font-size: 2.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-5xl {
+    font-size: 2.75rem;
+  }
+}
+
+/* 6XL responsive text */
+.text-responsive-6xl {
+  font-size: 3rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-6xl {
+    font-size: 3.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-6xl {
+    font-size: 4.5rem;
+  }
+}
+
+/* Responsive heading sizes */
+.heading-responsive {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+@media (min-width: 640px) {
+  .heading-responsive {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .heading-responsive {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heading-responsive {
+    font-size: 1.875rem;
+  }
+}
+
+/* Mobile menu improvements */
+@media (max-width: 768px) {
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 40;
+  }
+  
+  .main-content-mobile {
+    padding-bottom: 60px;
+  }
+}
+
+/* Swiper/Carousel responsive - Unified height (reduced to ~30%) */
+.swiper-responsive {
+  height: 30vh !important;   /* 30% of viewport height */
+  min-height: 200px;
+  max-height: 450px;
+}
+
+/* Maintain same height across breakpoints */
+@media (min-width: 640px) {
+  .swiper-responsive { height: 30vh !important; }
+}
+
+@media (min-width: 768px) {
+  .swiper-responsive { height: 30vh !important; }
+}
+
+@media (min-width: 1024px) {
+  .swiper-responsive { height: 30vh !important; }
+}
+
+@media (min-width: 1280px) {
+  .swiper-responsive { height: 30vh !important; }
+}
+
+@media (min-width: 1920px) {
+  .swiper-responsive { height: 30vh !important; }
+}
+
+/* Ensure swiper containers fill their parent properly */
+.mySwiper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.mySwiper .swiper-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Generic swiper-slide setup */
+.mySwiper .swiper-slide {
+  height: auto !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+}
+
+/* Only stretch slides full width in main carousel */
+.main-carousel .mySwiper .swiper-slide {
+  width: 100% !important;
+  height: 100% !important;
+  align-items: center !important;
+}
+
+/* Only full-cover images in main carousel slides */
+.main-carousel .mySwiper .swiper-slide img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+/* Scope fill divs to main carousel */
+.main-carousel .mySwiper .swiper-slide > div {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+/* Additional fixes for responsive behavior */
+@media (max-width: 767px) {
+  .swiper-responsive {
+    width: 100vw !important;
+    margin-left: calc(-50vw + 50%) !important;
+    margin-right: calc(-50vw + 50%) !important;
+  }
+}
+
+/* Fix for container overflow on mobile */
+@media (max-width: 640px) {
+  .swiper-responsive {
+    border-radius: 0 !important;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  button, a, .clickable {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem;
+  }
+  
+  .hover\:bg-gray-100:hover {
+    background-color: transparent;
+  }
+}
+
+/* RTL responsive adjustments */
+[dir="rtl"] {
+  @media (max-width: 640px) {
+    .rtl-responsive {
+      text-align: right;
+      padding-right: 1rem;
+      padding-left: 0.5rem;
+    }
+    
+    .rtl-responsive .text-sm {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+/* Search bar responsive */
+.search-bar-responsive {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Product card specific responsive adjustments */
+.product-card-responsive {
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .product-card-responsive {
+    padding: 0.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .product-card-responsive {
+    padding: 1rem;
+  }
+}
+
+/* Category card responsive */
+.category-card-responsive {
+  min-height: 80px;
+  padding: 0.5rem;
+}
+
+/* Price responsive */
+.price-responsive {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Badge responsive */
+.badge-responsive {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 640px) {
+  /* Reduce card shadows on mobile */
+  .product-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Smaller border radius on mobile */
+  .product-card {
+    border-radius: 0.5rem;
+  }
+  
+  /* Tighter spacing in grids */
+  .responsive-grid {
+    gap: 0.25rem; /* Reduced gap to fit two cards comfortably */
+  }
+  
+  /* Reduce section padding on mobile */
+  .section-responsive {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Reduce product-card internal padding on mobile for better fit */
+  .product-card {
+    padding: 0.5rem;
+  }
+}
+
+/* Skeleton responsive */
+.skeleton-responsive {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+} 
+
+@media (min-width: 1024px) {
+  .mySwiper .swiper-slide {
+    width: 220px !important;
+    max-width: 240px;
+  }
+  .mySwiper .product-card {
+    max-width: 220px;
+  }
+} 
+
+/* --- Overrides for MainCarousel on larger screens --- */
+@media (min-width: 768px) {
+  .main-carousel .mySwiper .swiper-slide {
+    width: 100% !important;
+    max-width: none !important;
+  }
+} 

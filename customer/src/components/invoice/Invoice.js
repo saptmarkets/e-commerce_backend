@@ -11,23 +11,41 @@ import VerificationCodeDisplay from "@components/order/VerificationCodeDisplay";
 
 const Invoice = ({ data, printRef, globalSetting, currency }) => {
   // console.log('invoice data',data)
-  const { t } = useTranslation();
-  console.log('Invoice data received:', {
-    verificationCode: data?.verificationCode,
-    status: data?.status,
-    invoice: data?.invoice
-  });
+  const { t, lang } = useTranslation('common');
+
+  // Simple translate helper similar to other components
+  const tr = (en, ar) => (lang === 'ar' ? ar : en);
 
   const { getNumberTwo } = useUtilsFunction();
+
+  const statusLabel = tr('Status', 'الحالة');
+
+  // Helper to render price with correct currency placement based on language
+  const formatPrice = (value) => {
+    const amount = getNumberTwo(value);
+    if (lang === 'ar') {
+      return (
+        <>
+          {amount}
+          <span className="font-saudi_riyal ml-0.5">{currency}</span>
+        </>
+      );
+    }
+    return (
+      <>
+        <span className="font-saudi_riyal mr-0.5">{currency}</span>{amount}
+      </>
+    );
+  };
 
   return (
     <div ref={printRef}>
       <div className="bg-indigo-50 p-8 rounded-t-xl">
         <div className="flex lg:flex-row md:flex-row flex-col lg:items-center justify-between pb-4 border-b border-gray-50">
           <div>
-            <h1 className="font-bold font-serif text-2xl uppercase">Invoice</h1>
+            <h1 className="font-bold font-serif text-2xl uppercase">{tr('Invoice', 'الفاتورة')}</h1>
             <h6 className="text-gray-700">
-              Status :{" "}
+              {statusLabel}: {" "}
               {data.status === "Delivered" && (
                 <span className="text-emerald-500">{t('statusDelivered')}</span>
               )}
@@ -59,6 +77,7 @@ const Invoice = ({ data, printRef, globalSetting, currency }) => {
                   "/logo/logo-color.png"
                 }
                 alt="logo"
+                style={{ width: 'auto', height: 'auto' }}
               />
             </h2>
           </div>
@@ -66,7 +85,7 @@ const Invoice = ({ data, printRef, globalSetting, currency }) => {
         <div className="flex lg:flex-row md:flex-row flex-col justify-between pt-4">
           <div className="mb-3 md:mb-0 lg:mb-0 flex flex-col">
             <span className="font-bold font-serif text-sm uppercase text-gray-600 block">
-              Date
+              {tr('Date', 'التاريخ')}
             </span>
             <span className="text-sm text-gray-500 block">
               {data.createdAt !== undefined ? (
@@ -78,13 +97,13 @@ const Invoice = ({ data, printRef, globalSetting, currency }) => {
           </div>
           <div className="mb-3 md:mb-0 lg:mb-0 flex flex-col">
             <span className="font-bold font-serif text-sm uppercase text-gray-600 block">
-              Invoice No.
+              {tr('Invoice No.', 'رقم الفاتورة')}
             </span>
             <span className="text-sm text-gray-500 block">#{data.invoice}</span>
           </div>
           <div className="flex flex-col lg:text-right text-left">
             <span className="font-bold font-serif text-sm uppercase text-gray-600 block">
-              Invoice To.
+              {tr('Invoice To.', 'الفاتورة إلى.')}
             </span>
             <span className="text-sm text-gray-500 block">
               {data?.user_info?.name} <br />
@@ -105,21 +124,12 @@ const Invoice = ({ data, printRef, globalSetting, currency }) => {
           <VerificationCodeDisplay 
             verificationCode={data.verificationCode}
             orderInvoice={data.invoice}
-            onCopy={() => console.log('Verification code copied')}
+            onCopy={() => {}}
           />
         </div>
       )}
 
-      {/* Debug info - remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="px-8 pt-2">
-          <div className="bg-gray-100 p-2 rounded text-xs">
-            <strong>Debug:</strong> verificationCode: {data?.verificationCode || 'NOT FOUND'}, 
-            status: {data?.status}, 
-            shouldShow: {(data?.verificationCode && data?.status !== "Delivered" && data?.status !== "Cancel") ? 'YES' : 'NO'}
-          </div>
-        </div>
-      )}
+
 
       <div className="s-table-container">
         <table className="s-table">
@@ -132,22 +142,22 @@ const Invoice = ({ data, printRef, globalSetting, currency }) => {
               </th>
               <th className="s-table-head">
                 <h4 className="font-semibold uppercase text-xs text-gray-600">
-                  Product Details
+                  {tr('Product Details', 'تفاصيل المنتج')}
                 </h4>
               </th>
               <th className="s-table-head">
                 <h4 className="font-semibold text-center uppercase text-xs text-gray-600">
-                  Quantity
+                  {tr('Quantity', 'الكمية')}
                 </h4>
               </th>
               <th className="s-table-head">
                 <h4 className="font-semibold text-center uppercase text-xs text-gray-600">
-                  Item Price
+                  {tr('Item Price', 'سعر العنصر')}
                 </h4>
               </th>
               <th className="s-table-head">
                 <h4 className="font-semibold text-center uppercase text-xs text-gray-600">
-                  Amount
+                  {tr('Amount', 'المبلغ')}
                 </h4>
               </th>
             </tr>
@@ -159,7 +169,7 @@ const Invoice = ({ data, printRef, globalSetting, currency }) => {
       <div className="flex lg:flex-row md:flex-row flex-col justify-between">
         <div className="mb-3 md:mb-0 lg:mb-0 flex flex-col sm:flex-wrap">
           <span className="mb-1 font-bold font-serif text-sm uppercase text-gray-600 block">
-            Payment Method
+            {tr('Payment Method', 'طريقة الدفع')}
           </span>
           <span className="text-sm text-gray-500 font-semibold font-serif block">
             {data.paymentMethod}
@@ -170,38 +180,34 @@ const Invoice = ({ data, printRef, globalSetting, currency }) => {
             <tbody>
               <tr className="border-b border-gray-100 last:border-b-0 text-sm">
                 <td className="px-4 py-1 font-semibold text-gray-500 font-serif uppercase tracking-wide">
-                  Sub Total
+                  {tr('Sub Total', 'المجموع الفرعي')}
                 </td>
                 <td className="px-4 py-1 text-gray-500 font-DejaVu tracking-widest">
-                  {currency}
-                  {getNumberTwo(data.subTotal)}
+                  {formatPrice(data.subTotal)}
                 </td>
               </tr>
               <tr className="border-b border-gray-100 last:border-b-0 text-sm">
                 <td className="px-4 py-1 font-semibold text-gray-500 font-serif uppercase tracking-wide">
-                  Shipping Cost
+                  {tr('Shipping Cost', 'تكلفة الشحن')}
                 </td>
                 <td className="px-4 py-1 text-gray-500 font-DejaVu tracking-widest">
-                  {currency}
-                  {getNumberTwo(data.shippingCost)}
+                  {formatPrice(data.shippingCost)}
                 </td>
               </tr>
               <tr className="border-b border-gray-100 last:border-b-0 text-sm">
                 <td className="px-4 py-1 font-semibold text-gray-500 font-serif uppercase tracking-wide">
-                  Discount
+                  {tr('Discount', 'الخصم')}
                 </td>
                 <td className="px-4 py-1 text-gray-500 font-DejaVu tracking-widest">
-                  {currency}
-                  {getNumberTwo(data.discount)}
+                  {formatPrice(data.discount)}
                 </td>
               </tr>
               <tr className="border-b-2 border-gray-300 bg-gray-50 text-sm">
                 <td className="px-4 py-2 font-bold text-black font-serif uppercase tracking-wide">
-                  Total
+                  {tr('Total', 'الإجمالي')}
                 </td>
                 <td className="px-4 py-2 font-bold text-black font-DejaVu tracking-widest">
-                  {currency}
-                  {getNumberTwo(data.total)}
+                  {formatPrice(data.total)}
                 </td>
               </tr>
             </tbody>

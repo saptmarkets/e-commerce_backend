@@ -79,9 +79,9 @@ const Coupons = () => {
       <DeleteModal
         ids={allId}
         setIsCheck={setIsCheck}
-        title="Selected Coupon"
+        title={t("SelectedCoupon")}
       />
-      <BulkActionDrawer ids={allId} title="Coupons" />
+      <BulkActionDrawer ids={allId} title={t("Coupons")} />
 
       <MainDrawer>
         <CouponDrawer id={serviceId} />
@@ -96,7 +96,7 @@ const Coupons = () => {
             >
               <div className="flex justify-start xl:w-1/2  md:w-full">
                 <UploadMany
-                  title="Coupon"
+                  title={t("Coupon")}
                   exportData={data}
                   filename={filename}
                   isDisabled={isDisabled}
@@ -166,7 +166,7 @@ const Coupons = () => {
               <div className="flex items-center gap-2 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
                 <div className="w-full mx-1">
                   <Button type="submit" className="h-12 w-full bg-emerald-700">
-                    Filter
+                    {t("Filter")}
                   </Button>
                 </div>
 
@@ -237,7 +237,7 @@ const Coupons = () => {
           </TableFooter>
         </TableContainer>
       ) : (
-        <NotFound title="Sorry, There are no coupons right now." />
+        <NotFound title={t("NoCouponsFound")} />
       )}
     </>
   );

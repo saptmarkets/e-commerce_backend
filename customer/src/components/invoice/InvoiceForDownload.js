@@ -7,14 +7,20 @@ import {
   View,
 } from "@react-pdf/renderer";
 import dayjs from "dayjs";
+import { getUnitDisplayName } from '@utils/unitUtils';
 // helper tLabel defined internally below
 
 // Register DejaVu Sans which includes Arabic currency symbol ﷼
-Font.register({
-  family: "DejaVuSans",
-  src:
-    "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.0/ttf/DejaVuSans.ttf",
-});
+try {
+  Font.register({
+    family: "DejaVuSans",
+    src:
+      "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.0/ttf/DejaVuSans.ttf",
+  });
+} catch (error) {
+  // Fallback to default font if registration fails
+  console.warn('Font registration failed, using default font:', error);
+}
 
 // Default PDF fonts are used; custom font registration removed to avoid network fetch issues.
 const styles = StyleSheet.create({
@@ -143,15 +149,14 @@ const styles = StyleSheet.create({
   logo: {
     textAlign: "right",
     color: "#4b5563",
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     fontWeight: "bold",
-    fontSize: 12,
-    textTransform: "uppercase",
+    fontSize: 14,
     alignSelf: "flex-end",
   },
   title: {
     color: "#2f3032",
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     fontWeight: "bold",
     fontSize: 8.1,
     textTransform: "uppercase",
@@ -159,6 +164,7 @@ const styles = StyleSheet.create({
   info: {
     fontSize: 9,
     color: "#6b7280",
+    fontFamily: "DejaVuSans",
   },
   infoCost: {
     fontSize: 10,
@@ -184,7 +190,7 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 10,
     color: "#ef4444",
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     fontWeight: "bold",
     textTransform: "uppercase",
     textAlign: "right",
@@ -203,7 +209,7 @@ const styles = StyleSheet.create({
   header: {
     color: "#6b7280",
     fontSize: 9,
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     fontWeight: "bold",
     textTransform: "uppercase",
     textAlign: "left",
@@ -216,13 +222,13 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontSize: 9,
     color: "#6b7280",
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     fontWeight: "bold",
     width: "25%",
   },
   titleRight: {
     textAlign: "right",
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     fontWeight: "bold",
     fontSize: 8.1,
     width: "25%",
@@ -247,7 +253,7 @@ export const InvoiceForDownload = ({
 }) => {
   // Helper to compute unit info similar to OrderTable
   const getUnitDisplayInfo = (item) => {
-    const unitName = item.unitName || 'pcs';
+    const unitName = getUnitDisplayName(item.unit, lang);
     const packQty = item.packQty || 1;
     const totalBaseUnits = item.quantity * packQty;
 
@@ -267,24 +273,44 @@ export const InvoiceForDownload = ({
 
   const tLabel = (en, ar) => (lang === 'ar' ? ar : en);
 
+  // Map order status to Arabic when needed
+  const translateStatus = (status) => {
+    if (lang !== 'ar') return status;
+    const map = {
+      'Delivered': 'تم التوصيل',
+      'Received': 'تم الاستلام',
+      'Processing': 'قيد المعالجة',
+      'Out for Delivery': 'قيد التوصيل',
+      'Cancel': 'تم الإلغاء',
+      'Cancelled': 'تم الإلغاء',
+    };
+    return map[status] || status;
+  };
+
+  // Format price based on language direction with stylish Saudi Riyal symbol
+  const formatPrice = (value = 0) => {
+    const amount = getNumberTwo(value);
+    const riyalSymbol = '\uE900'; // Saudi Riyal Unicode character
+    
+    if (lang === 'ar') {
+      return `${amount} ${riyalSymbol}`;
+    } else {
+      return `${riyalSymbol}${amount}`;
+    }
+  };
+
   return (
-    <>
-      <Document>
+    <Document>
         <Page size="A4" style={styles.page}>
           <View style={styles.invoiceFirst}>
             <View>
-              <Text style={{ fontFamily: "Helvetica", fontWeight: "bold" }}>
-                INVOICE
+              <Text style={{ fontFamily: "DejaVuSans", fontWeight: "bold" }}>
+                {tLabel('INVOICE', 'الفاتورة')}
               </Text>
-              <Text style={styles.info}>Status : {data?.status}</Text>
+              <Text style={styles.info}>{tLabel('Status', 'الحالة')} : {translateStatus(data?.status)}</Text>
             </View>
             <View style={styles.topBg}>
-              <Text style={styles.logo}>SAPT MARKETS</Text>
-              <Text style={styles.topAddress}>
-                {globalSetting?.address ||
-                  "Cecilia Chapman, 561-4535 Nulla LA, United States 96522"}
-              </Text>
-              {/* <Text style={styles.info}> United States 96522</Text> */}
+              <Text style={styles.logo}>{tLabel('SAPT MARKETS','اسواق سبت المركزية')}</Text>
             </View>
           </View>
 
@@ -296,11 +322,11 @@ export const InvoiceForDownload = ({
               </Text>
             </View>
             <View>
-              <Text style={styles.title}>INVOICE NO</Text>
+              <Text style={styles.title}>{tLabel('INVOICE NO', 'رقم الفاتورة')}</Text>
               <Text style={styles.info}>#{data?.invoice}</Text>
             </View>
             <View>
-              <Text style={styles.title}>INVOICE TO</Text>
+              <Text style={styles.title}>{tLabel('INVOICE TO', 'الفاتورة إلى')}</Text>
               <Text style={styles.info}>{data?.user_info?.name}</Text>
               <Text style={styles.info}>
                 {" "}
@@ -316,97 +342,209 @@ export const InvoiceForDownload = ({
             <View style={styles.tableRow}>
               <View style={styles.tableCol}>
                 <Text style={styles.tableCell}>
-                  <Text style={styles.header}>Sr.</Text>
+                  <Text style={styles.header}>{tLabel('Sr.', 'الرقم التسلسلي.')}</Text>
                 </Text>
               </View>
               <View style={styles.tableCol}>
                 <Text style={styles.tableCell}>
-                  <Text style={styles.header}>Product Name</Text>
+                  <Text style={styles.header}>{tLabel('Product Name', 'اسم المنتج')}</Text>
                 </Text>
               </View>
               <View style={styles.tableCol}>
                 <Text style={styles.tableCell}>
-                  <Text style={styles.header}>Quantity</Text>
+                  <Text style={styles.header}>{tLabel('Quantity', 'الكمية')}</Text>
                 </Text>
               </View>
               <View style={styles.tableCol}>
                 <Text style={styles.tableCell}>
-                  <Text style={styles.header}>Item Price</Text>
+                  <Text style={styles.header}>{tLabel('Item Price', 'سعر العنصر')}</Text>
                 </Text>
               </View>
 
               <View style={styles.tableCol}>
                 <Text style={styles.tableCell}>
                   {" "}
-                  <Text style={styles.header}>Amount</Text>
+                  <Text style={styles.header}>{tLabel('Amount', 'المبلغ')}</Text>
                 </Text>
               </View>
             </View>
-            {data?.cart?.map((item, i) => {
-              const unitInfo = getUnitDisplayInfo(item);
-              return (
-                <View key={i} style={styles.tableRow}>
-                  <View style={styles.tableCol}>
-                    <Text style={styles.tableCell}>{i + 1}</Text>
-                  </View>
-                  <View style={styles.tableCol}>
-                    <Text style={styles.tableCell}>{showingTranslateValue ? showingTranslateValue(item.title) : item.title}</Text>
-                    {unitInfo.hasMultiUnit && (
-                      <Text style={{ fontSize: 7, color: '#6b7280' }}>Unit: {unitInfo.unitDisplay} ({unitInfo.totalBaseUnits} total pcs)</Text>
-                    )}
-                  </View>
-                  <View style={styles.tableCol}>
-                    <Text style={styles.tableCell}>
-                      <Text style={styles.quantity}>{item.quantity}</Text>
-                    </Text>
-                  </View>
-                  <View style={styles.tableCol}>
-                    <Text style={styles.tableCell}>
-                      <Text style={styles.quantity}>
-                        {currency}
-                        {getNumberTwo(item.price)}
-                      </Text>
-                    </Text>
-                  </View>
-                  <View style={styles.tableCol}>
-                    <Text style={styles.tableCell}>
-                      <Text style={styles.amount}>
-                        {currency}
-                        {getNumberTwo(item.itemTotal ?? item.price * item.quantity)}
-                      </Text>
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
+            {(() => {
+              let rowIndex = 0;
+              const rows = [];
+              
+              data?.cart?.forEach((item, i) => {
+                const unitInfo = getUnitDisplayInfo(item);
+                const isCombo = item.comboDetails && item.comboDetails.productBreakdown;
+                
+                if (isCombo) {
+                  // Add combo header row
+                  rows.push(
+                    <View key={`${i}-header`} style={styles.tableRow}>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>{rowIndex + 1}</Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontWeight: 'bold', color: '#7c3aed' }}>
+                            {showingTranslateValue ? showingTranslateValue(item.title) : item.title}
+                          </Text>
+                          <Text style={{ fontSize: 8, color: '#6b7280' }}>
+                            {tLabel('Combo Deal', 'عرض باقة')} • {item.comboDetails.productBreakdown?.length || 0} {tLabel('items', 'عناصر')}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={styles.quantity}>{item.quantity}</Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={styles.quantity}>{formatPrice(item.price)}</Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={styles.amount}>{formatPrice(item.itemTotal ?? item.price * item.quantity)}</Text>
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                  rowIndex++;
+                  
+                  // Add individual combo products
+                  item.comboDetails.productBreakdown?.forEach((comboProduct, j) => {
+                    rows.push(
+                      <View key={`${i}-combo-${j}`} style={[styles.tableRow, { backgroundColor: '#f9fafb' }]}>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}></Text>
+                        </View>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>
+                              {comboProduct.productTitle}
+                            </Text>
+                            <Text style={{ fontSize: 7, color: '#9ca3af' }}>
+                              ({getUnitDisplayName(comboProduct.unit, lang)})
+                            </Text>
+                          </Text>
+                        </View>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>{comboProduct.quantity}</Text>
+                          </Text>
+                        </View>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>{formatPrice(comboProduct.unitPrice || 0)}</Text>
+                          </Text>
+                        </View>
+                        <View style={styles.tableCol}>
+                          <Text style={styles.tableCell}>
+                            <Text style={{ fontSize: 9, color: '#6b7280' }}>{formatPrice((comboProduct.unitPrice || 0) * comboProduct.quantity)}</Text>
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  });
+                  
+                  // Add combo total row
+                  rows.push(
+                    <View key={`${i}-total`} style={[styles.tableRow, { backgroundColor: '#f3f4f6', borderTopWidth: 1, borderColor: '#d1d5db' }]}>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}></Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            {tLabel('Combo Total', 'إجمالي الباقة')} ({item.comboDetails?.totalSelectedQty || item.quantity} {tLabel('items', 'عناصر')})
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            {item.quantity} {tLabel('combo', 'باقة')}{item.quantity > 1 ? 's' : ''}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            {formatPrice(item.comboDetails?.pricePerItem || item.price)}
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed' }}>
+                            {formatPrice(item.comboDetails?.totalValue || (item.price * item.quantity))}
+                          </Text>
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                } else {
+                  // Regular product row
+                  rows.push(
+                    <View key={i} style={styles.tableRow}>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>{rowIndex + 1}</Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>{showingTranslateValue ? showingTranslateValue(item.title) : item.title}</Text>
+                        {unitInfo.hasMultiUnit && (
+                          <Text style={{ fontSize: 7, color: '#6b7280' }}>{tLabel('Unit', 'وحدة')}: {unitInfo.unitDisplay} ({unitInfo.totalBaseUnits} {tLabel('total pcs', 'إجمالي القطع')})</Text>
+                        )}
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={styles.quantity}>{item.quantity}</Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={styles.quantity}>{formatPrice(item.price)}</Text>
+                        </Text>
+                      </View>
+                      <View style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          <Text style={styles.amount}>{formatPrice(item.itemTotal ?? item.price * item.quantity)}</Text>
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                  rowIndex++;
+                }
+              });
+              
+              return rows;
+            })()}
           </View>
 
           <View style={styles.invoiceThird}>
             <View>
-              <Text style={styles.title}> Payment Method</Text>
+              <Text style={styles.title}>{tLabel('Payment Method', 'طريقة الدفع')}</Text>
               <Text style={styles.info}> {data.paymentMethod} </Text>
             </View>
             <View>
-              <Text style={styles.title}>Shipping Cost</Text>
+              <Text style={styles.title}>{tLabel('Shipping Cost', 'تكلفة الشحن')}</Text>
               <Text style={styles.info}>
-                {currency}
-                {getNumberTwo(data.shippingCost ?? 0)}
+                {formatPrice(data.shippingCost ?? 0)}
               </Text>
             </View>
             <View>
-              <Text style={styles.title}>Discount</Text>
+              <Text style={styles.title}>{tLabel('Discount', 'الخصم')}</Text>
               <Text style={styles.info}>
                 {" "}
-                {currency}
-                {getNumberTwo(data.discount ?? 0)}
+                {formatPrice(data.discount ?? 0)}
               </Text>
             </View>
 
             <View>
-              <Text style={styles.title}>Total Amount</Text>
+              <Text style={styles.title}>{tLabel('Total Amount', 'المبلغ الإجمالي')}</Text>
               <Text style={styles.amount}>
-                {currency}
-                {getNumberTwo(data.total)}
+                {formatPrice(data.total)}
               </Text>
             </View>
           </View>
@@ -420,13 +558,11 @@ export const InvoiceForDownload = ({
             }}
           >
             <Text>
-              Thank you <Text style={styles.thanks}>{data.name},</Text> Your
-              order have been received !
+              {tLabel('Thank you', 'شكراً لك')} <Text style={styles.thanks}>{data.name},</Text> {tLabel('Your order have been received !', 'تم استلام طلبك!')}
             </Text>
           </View>
         </Page>
       </Document>
-    </>
   );
 };
 

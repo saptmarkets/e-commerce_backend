@@ -16,8 +16,10 @@ import CouponServices from "@services/CouponServices";
 import { notifyError, notifySuccess } from "@utils/toast";
 import CustomerServices from "@services/CustomerServices";
 import NotificationServices from "@services/NotificationServices";
+import useTranslation from "next-translate/useTranslation";
 
 const useCheckoutSubmit = (storeSetting, loyaltySummary) => {
+  const { t } = useTranslation("common");
   const { dispatch } = useContext(UserContext);
 
   const [error, setError] = useState("");
@@ -191,12 +193,7 @@ const useCheckoutSubmit = (storeSetting, loyaltySummary) => {
         },
       };
 
-      // Log for debugging
-      console.log('📋 Order user details:', {
-        formData: data,
-        latestCustomerData: latestCustomerData,
-        finalUserDetails: userDetails
-      });
+      // Order user details processed
 
       // Process cart items to ensure complete multi-unit information
       const processedCartItems = items.map(item => {
@@ -209,18 +206,7 @@ const useCheckoutSubmit = (storeSetting, loyaltySummary) => {
         const basePrice = item.baseProductPrice || item.basePrice || item.price || 0;
         const totalBaseUnits = item.quantity * packQty;
         
-        console.log(`🛒 CHECKOUT: Processing cart item`, {
-          productId: actualProductId,
-          title: item.title,
-          quantity: item.quantity,
-          packQty: packQty,
-          unitPrice: unitPrice,
-          basePrice: basePrice,
-          totalBaseUnits: totalBaseUnits,
-          selectedUnitId: item.selectedUnitId,
-          unitName: item.unitName,
-          isMultiUnit: item.isMultiUnit
-        });
+        // Processing cart item for checkout
         
         return {
           id: actualProductId,
@@ -265,8 +251,7 @@ const useCheckoutSubmit = (storeSetting, loyaltySummary) => {
         };
       });
 
-      console.log(`🛒 CHECKOUT: Processed ${processedCartItems.length} cart items for submission`);
-      console.log(`📋 PROCESSED CART ITEMS:`, JSON.stringify(processedCartItems, null, 2));
+      // Cart items processed for submission
 
       let orderInfo = {
         shippingOption: data.shippingOption,
@@ -308,8 +293,7 @@ const useCheckoutSubmit = (storeSetting, loyaltySummary) => {
         message: `${
           orderResponse?.user_info?.name
         } placed an order of ${parseFloat(orderResponse?.total).toFixed(2)}!`,
-        image:
-          "https://res.cloudinary.com/ahossain/image/upload/v1655097002/placeholder_kvepfp.png",
+        image: "",
       };
 
       const updatedData = {
@@ -343,8 +327,8 @@ const useCheckoutSubmit = (storeSetting, loyaltySummary) => {
       
       // Show success message with verification code if available
       const successMessage = orderResponse?.verificationCode 
-        ? `Your Order Confirmed! Verification Code: ${orderResponse.verificationCode}. Please provide this code to the delivery person.`
-        : "Your Order Confirmed! The invoice will be emailed to you shortly.";
+        ? t("common:orderConfirmedSuccess", { verificationCode: orderResponse.verificationCode })
+        : t("common:orderConfirmedSuccessNoCode");
       
       notifySuccess(successMessage);
       Cookies.remove("couponInfo");

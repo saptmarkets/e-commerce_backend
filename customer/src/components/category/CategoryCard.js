@@ -18,30 +18,41 @@ const CategoryCard = ({ title, icon, nested, id }) => {
   const { showingTranslateValue } = useUtilsFunction();
 
   // react hook
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(false); // State to manage expansion of current category
   const [showSubCategory, setShowSubCategory] = useState({
     id: "",
     show: false,
   });
 
-  // handle show category
-  const showCategory = (id, categoryName) => {
-    setShow(!show);
-    router.push(`/category/${id}`);
-    closeCategoryDrawer();
-    setIsLoading(!isLoading);
+  // handle show category - now toggles expansion for parents, navigates for leaves
+  const handleCategoryClick = (categoryId) => {
+    if (nested && nested.length > 0) {
+      setShow(!show); // Toggle expansion for parent categories
+    } else {
+      router.push(`/category/${categoryId}`); // Navigate for leaf categories
+      closeCategoryDrawer();
+      setIsLoading(!isLoading);
+    }
   };
 
-  // handle sub nested category
-  const handleSubNestedCategory = (id, categoryName) => {
-    setShowSubCategory({ id: id, show: showSubCategory.show ? false : true });
-    router.push(`/category/${id}`);
-    closeCategoryDrawer();
-    setIsLoading(!isLoading);
+  // handle sub nested category (for 2nd level)
+  const handleSubNestedCategory = (subCategoryId) => {
+    setShowSubCategory((prev) => ({
+      id: subCategoryId,
+      show: prev.id === subCategoryId ? !prev.show : true,
+    }));
+    // Only navigate if there are no further nested children
+    const subCategory = nested.find(n => n._id === subCategoryId);
+    if (!subCategory?.children || subCategory.children.length === 0) {
+      router.push(`/category/${subCategoryId}`);
+      closeCategoryDrawer();
+      setIsLoading(!isLoading);
+    }
   };
 
-  const handleSubCategory = (id, categoryName) => {
-    router.push(`/category/${id}`);
+  // handle sub category (for 3rd level and leaves)
+  const handleSubCategory = (subCategoryId) => {
+    router.push(`/category/${subCategoryId}`);
     closeCategoryDrawer();
     setIsLoading(!isLoading);
   };
@@ -49,7 +60,7 @@ const CategoryCard = ({ title, icon, nested, id }) => {
   return (
     <>
       <a
-        onClick={() => showCategory(id, title)}
+        onClick={() => handleCategoryClick(id)}
         className="p-2 flex items-center rounded-md hover:bg-gray-50 w-full hover:text-emerald-600"
         role="button"
       >
@@ -57,10 +68,11 @@ const CategoryCard = ({ title, icon, nested, id }) => {
           <Image src={icon} width={18} height={18} alt="Category" />
         ) : (
           <Image
-            src="https://res.cloudinary.com/ahossain/image/upload/v1655097002/placeholder_kvepfp.png"
+            src="https://res.cloudinary.com/dxjobesyt/image/upload/v1752706908/placeholder_kvepfp_wkyfut.png"
             width={18}
             height={18}
             alt="category"
+            style={{ width: 'auto', height: 'auto' }}
           />
         )}
 
@@ -77,13 +89,10 @@ const CategoryCard = ({ title, icon, nested, id }) => {
         <ul className="pl-6 pb-3 pt-1 -mt-1">
           {nested.map((children) => (
             <li key={children._id}>
-              {children.children.length > 0 ? (
+              {children.children && children.children.length > 0 ? (
                 <a
                   onClick={() =>
-                    handleSubNestedCategory(
-                      children._id,
-                      showingTranslateValue(children.name)
-                    )
+                    handleSubNestedCategory(children._id)
                   }
                   className="flex items-center font-serif pr-2 text-sm text-gray-600 hover:text-emerald-600 py-1 cursor-pointer"
                 >
@@ -109,10 +118,7 @@ const CategoryCard = ({ title, icon, nested, id }) => {
               ) : (
                 <a
                   onClick={() =>
-                    handleSubCategory(
-                      children._id,
-                      showingTranslateValue(children.name)
-                    )
+                    handleSubCategory(children._id)
                   }
                   className="flex items-center font-serif py-1 text-sm text-gray-600 hover:text-emerald-600 cursor-pointer"
                 >
@@ -131,10 +137,7 @@ const CategoryCard = ({ title, icon, nested, id }) => {
                     <li key={subChildren._id}>
                       <a
                         onClick={() =>
-                          handleSubCategory(
-                            subChildren._id,
-                            showingTranslateValue(subChildren?.name)
-                          )
+                          handleSubCategory(subChildren._id)
                         }
                         className="flex items-center font-serif py-1 text-sm text-gray-600 hover:text-emerald-600 cursor-pointer"
                       >
