@@ -73,6 +73,7 @@ const corsOptions = {
       'http://localhost:3001',
       'http://127.0.0.1:3001',
       // Add your deployed frontend domains here
+      'https://e-commerce-admin-five-sable.vercel.app',
       'https://saptmarkets-admin.vercel.app',
       'https://saptmarkets-customer.vercel.app',
       'https://saptmarkets-admin.netlify.app',
