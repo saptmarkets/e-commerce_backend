@@ -1,19 +1,76 @@
 /* Global Responsive Design Improvements */
 
-/* Mobile-first approach with smaller sizes */
+/* Mobile-first approach with improved text readability */
 @media (max-width: 640px) {
   html {
-    font-size: 90%;
+    font-size: 100%;
+  }
+  
+  /* Improve text readability on mobile */
+  body {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  
+  /* Increase text sizes for better mobile readability */
+  .text-xs {
+    font-size: 0.875rem !important;
+  }
+  
+  .text-sm {
+    font-size: 1rem !important;
+  }
+  
+  .text-base {
+    font-size: 1.125rem !important;
+  }
+  
+  .text-lg {
+    font-size: 1.25rem !important;
+  }
+  
+  .text-xl {
+    font-size: 1.375rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Improve button text size */
+  button, .btn {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  /* Improve form input text size */
+  input, textarea, select {
+    font-size: 1rem !important;
+    padding: 0.75rem !important;
+  }
+  
+  /* Improve navigation text size */
+  nav a, .nav-link {
+    font-size: 1rem !important;
+  }
+  
+  /* Improve product card text */
+  .product-card .text-sm {
+    font-size: 1rem !important;
+  }
+  
+  .product-card .text-base {
+    font-size: 1.125rem !important;
+  }
+  
+  .product-card .text-lg {
+    font-size: 1.25rem !important;
   }
   
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
-  }
-  
-  button, .btn {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
   }
   
   .h-header {
@@ -654,6 +711,40 @@
   /* Reduce product-card internal padding on mobile for better fit */
   .product-card {
     padding: 0.5rem;
+  }
+  
+  /* Products page specific styles - more targeted approach */
+  .products-page-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  
+  /* Only apply these styles to products page, not carousels */
+  .products-page-grid .product-card {
+    width: 100%;
+    max-width: none;
+    flex: none;
+    margin: 0;
+  }
+  
+  /* Override carousel styles for products page */
+  .products-page-grid .product-card {
+    max-width: none !important;
+    width: 100% !important;
+    flex: none !important;
+    margin: 0 !important;
+    transform: none !important;
+    position: relative !important;
+    overflow: visible !important;
+  }
+  
+  /* Ensure products page cards don't inherit carousel slide styles */
+  .products-page-grid .product-card {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
   }
 }
 

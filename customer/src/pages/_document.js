@@ -6,8 +6,22 @@ class MyDocument extends Document {
     const initialProps = await Document.getInitialProps(ctx);
     const locale = ctx.locale;
 
-    // Fetch general metadata from backend API
-    const setting = await SettingServices.getStoreSeoSetting();
+    // Fetch general metadata from backend API with error handling
+    let setting = null;
+    try {
+      setting = await SettingServices.getStoreSeoSetting();
+    } catch (error) {
+      console.warn("Failed to fetch store settings during build:", error.message);
+      // Provide fallback values for build time
+      setting = {
+        favicon: "/favicon.png",
+        meta_title: "SAPT Markets - React Grocery & Organic Food Store e-commerce Template",
+        meta_description: "React Grocery & Organic Food Store e-commerce Template",
+        meta_keywords: "ecommerce online store",
+        meta_url: "https://saptmarkets-store.vercel.app/",
+        meta_img: ""
+      };
+    }
 
     return { ...initialProps, setting, locale };
   }

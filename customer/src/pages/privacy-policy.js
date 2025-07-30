@@ -7,7 +7,7 @@ import {
   DatabaseIcon,
   RefreshIcon,
   GlobeAltIcon,
-  BellAlertIcon,
+  BellIcon,
 } from "@heroicons/react/solid";
 
 import Layout from "@layout/Layout";
@@ -27,7 +27,7 @@ const icons = [
   DatabaseIcon,
   RefreshIcon,
   GlobeAltIcon,
-  BellAlertIcon,
+  BellIcon,
 ];
 
 const tints = [

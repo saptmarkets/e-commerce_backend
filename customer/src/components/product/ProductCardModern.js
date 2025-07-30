@@ -91,7 +91,54 @@ const ProductCardModern = ({
   useEffect(() => {
     const fetchProductData = async () => {
       if (!product?._id) return;
-      await Promise.all([fetchProductUnits(), !promotion ? fetchPromotions() : Promise.resolve()]);
+      
+      // Set a timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        console.warn('Product data fetch timeout for product:', product._id);
+        // Ensure we have at least a basic unit if timeout occurs
+        if (!selectedUnit) {
+          const fallbackUnit = {
+            _id: `fallback-${product._id}`,
+            product: product._id,
+            unit: { name: 'Unit', shortCode: 'pcs' },
+            unitValue: 1,
+            packQty: 1,
+            price: product?.price || product?.prices?.price || 0,
+            isDefault: true,
+            isActive: true,
+            unitType: 'basic'
+          };
+          setAvailableUnits([fallbackUnit]);
+          setSelectedUnit(fallbackUnit);
+        }
+      }, 10000); // 10 second timeout
+      
+      try {
+        await Promise.all([
+          fetchProductUnits(), 
+          !promotion ? fetchPromotions() : Promise.resolve()
+        ]);
+        clearTimeout(timeoutId);
+      } catch (error) {
+        console.error('Error fetching product data:', error);
+        clearTimeout(timeoutId);
+        // Ensure we have at least a basic unit even if API calls fail
+        if (!selectedUnit) {
+          const fallbackUnit = {
+            _id: `fallback-${product._id}`,
+            product: product._id,
+            unit: { name: 'Unit', shortCode: 'pcs' },
+            unitValue: 1,
+            packQty: 1,
+            price: product?.price || product?.prices?.price || 0,
+            isDefault: true,
+            isActive: true,
+            unitType: 'basic'
+          };
+          setAvailableUnits([fallbackUnit]);
+          setSelectedUnit(fallbackUnit);
+        }
+      }
     };
     fetchProductData();
   }, [product?._id, promotion]);
@@ -294,21 +341,23 @@ const ProductCardModern = ({
 
   // Calculate pricing with max quantity support
   const pricingInfo = useMemo(() => {
-    if (!selectedUnit) return { 
-      basePrice: 0, 
-      finalPrice: 0, 
-      savings: 0, 
-      isPromotional: false,
-      pricePerBaseUnit: 0,
-      minQtyTotal: 0,
-      minQty: 1,
-      perUnitPrice: 0,
-      promoUnits: 0,
-      normalUnits: 0,
-      promoUnitPrice: 0,
-      normalUnitPrice: 0,
-      breakdown: ''
-    };
+    if (!selectedUnit) {
+      return { 
+        basePrice: 0, 
+        finalPrice: 0, 
+        savings: 0, 
+        isPromotional: false,
+        pricePerBaseUnit: 0,
+        minQtyTotal: 0,
+        minQty: 1,
+        perUnitPrice: 0,
+        promoUnits: 0,
+        normalUnits: 0,
+        promoUnitPrice: 0,
+        normalUnitPrice: 0,
+        breakdown: ''
+      };
+    }
 
     const basePrice = selectedUnit.price || 0;
     let finalPrice = basePrice;
@@ -529,6 +578,22 @@ const ProductCardModern = ({
 
   if (!product) return null;
 
+  // Show loading skeleton if units are still loading
+  if (isLoadingUnits && availableUnits.length === 0) {
+    return (
+      <div className={`product-card bg-white rounded-2xl shadow-md overflow-hidden flex flex-col ${className}`}>
+        <div className="relative overflow-hidden">
+          <div className="w-full h-48 bg-gray-200 animate-pulse rounded-t-lg"></div>
+        </div>
+        <div className="p-4 space-y-2">
+          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3"></div>
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {modalOpen && (
@@ -619,7 +684,18 @@ const ProductCardModern = ({
           } ${!pricingInfo.isPromotional && availableUnits.length <= 1 ? 'mb-0.5' : ''}`}>
           {/* Titles (EN + AR) */}
           <div onClick={() => setModalOpen(true)} className="cursor-pointer">
-            {titleEn && (
+            {/* Show only the appropriate language title based on current locale */}
+            {lang === 'ar' && titleAr && (
+              <h3
+                className={`font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 transition-colors leading-tight ${
+                  pricingInfo.isPromotional ? 'text-responsive-xs' : 'text-responsive-sm'
+                }`}
+                dir="rtl"
+              >
+                {titleAr}
+              </h3>
+            )}
+            {lang === 'en' && titleEn && (
               <h3
                 className={`font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 transition-colors leading-tight ${
                   pricingInfo.isPromotional ? 'text-responsive-xs' : 'text-responsive-sm'
@@ -628,7 +704,17 @@ const ProductCardModern = ({
                 {titleEn}
               </h3>
             )}
-            {titleAr && (
+            {/* Fallback: if current language title is not available, show the other language */}
+            {lang === 'ar' && !titleAr && titleEn && (
+              <h3
+                className={`font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 transition-colors leading-tight ${
+                  pricingInfo.isPromotional ? 'text-responsive-xs' : 'text-responsive-sm'
+                }`}
+              >
+                {titleEn}
+              </h3>
+            )}
+            {lang === 'en' && !titleEn && titleAr && (
               <h3
                 className={`font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 transition-colors leading-tight ${
                   pricingInfo.isPromotional ? 'text-responsive-xs' : 'text-responsive-sm'

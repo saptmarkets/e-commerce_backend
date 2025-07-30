@@ -193,7 +193,7 @@ const Navbar = () => {
             {/* Logo Section */}
             <div className="flex-shrink-0">
               <Link href="/" className="flex items-center space-x-1 sm:space-x-3 group">
-                <div className="relative w-14 h-12 sm:w-16 sm:h-14 md:w-20 md:h-16 transition-transform group-hover:scale-105">
+                <div className="relative w-16 h-14 sm:w-18 sm:h-16 md:w-20 md:h-16 lg:w-24 lg:h-20 transition-transform group-hover:scale-105">
                   <Image
                     width="0"
                     height="0"
@@ -294,78 +294,76 @@ const Navbar = () => {
                 )}
               </button>
 
-              {/* Notification Bell - Visible on mobile since cart is hidden */}
-              {userInfo && (
-                <div className="relative" ref={notificationRef}>
-                  <button 
-                    onClick={handleNotificationToggle}
-                    className="relative p-0.5 sm:p-1.5 text-gray-600 hover:text-purple-600 transition-colors rounded-xl hover:bg-gray-50 group touch-target flex items-center justify-center"
-                  >
-                    <FiBell className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-bold shadow-sm">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </button>
+              {/* Notification Bell - Always visible on mobile */}
+              <div className="relative flex items-center block" ref={notificationRef}>
+                <button 
+                  onClick={handleNotificationToggle}
+                  className="relative p-0.5 sm:p-1.5 text-gray-600 hover:text-purple-600 transition-colors rounded-xl hover:bg-gray-50 group touch-target flex items-center justify-center"
+                >
+                  <FiBell className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-bold shadow-sm">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
 
-                    {/* Notification Dropdown */}
-                    {notificationOpen && (
-                      <div className={`absolute top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[80vh] overflow-hidden ${
-                        lang === 'ar' ? 'left-0' : 'right-0'
-                      } w-64 sm:w-72 md:w-80 max-w-[calc(100vw-2rem)]`}>
-                        <div className="p-3 sm:p-4 border-b border-gray-100">
-                          <h3 className="font-semibold text-gray-800 text-responsive-base">{t("common:Notifications")}</h3>
+                {/* Notification Dropdown */}
+                {notificationOpen && (
+                  <div className={`absolute top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[80vh] overflow-hidden ${
+                    lang === 'ar' ? 'left-0' : 'right-0'
+                  } w-64 sm:w-72 md:w-80 max-w-[calc(100vw-2rem)]`}>
+                    <div className="p-3 sm:p-4 border-b border-gray-100">
+                      <h3 className="font-semibold text-gray-800 text-responsive-base">{t("common:Notifications")}</h3>
+                    </div>
+                    <div className="max-h-64 sm:max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-3 sm:p-4 text-center text-gray-500 text-responsive-sm">
+                          {t("common:noNotifications")}
                         </div>
-                        <div className="max-h-64 sm:max-h-96 overflow-y-auto">
-                          {notifications.length === 0 ? (
-                            <div className="p-3 sm:p-4 text-center text-gray-500 text-responsive-sm">
-                              {t("common:noNotifications")}
-                            </div>
-                          ) : (
-                            notifications.map((notification) => (
-                              <div
-                                key={notification._id}
-                                className={`p-3 sm:p-4 border-b border-gray-100 hover:bg-gray-50 ${
-                                  notification.status === 'unread' ? 'bg-blue-50' : ''
-                                }`}
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <Link
-                                      href={
-                                        notification.orderInvoice
-                                          ? `/order/${notification.orderInvoice}`
-                                          : notification.orderId
-                                            ? `/order/${notification.orderId.toString()}`
-                                            : '#'
-                                      }
-                                      onClick={() => handleNotificationRead(notification._id)}
-                                      className="block"
-                                    >
-                                      <p className="text-responsive-sm text-gray-800 mb-1">
-                                        {translateNotificationMessage(notification).message}
-                                      </p>
-                                      <p className="text-responsive-xs text-gray-500">
-                                        {dayjs(notification.createdAt).format("MMM D, YYYY h:mm A")}
-                                      </p>
-                                    </Link>
-                                  </div>
-                                  <button
-                                    onClick={() => handleNotificationDelete(notification._id)}
-                                    className="ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors touch-target"
-                                  >
-                                    <FiTrash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </button>
-                                </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification._id}
+                            className={`p-3 sm:p-4 border-b border-gray-100 hover:bg-gray-50 ${
+                              notification.status === 'unread' ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <Link
+                                  href={
+                                    notification.orderInvoice
+                                      ? `/order/${notification.orderInvoice}`
+                                      : notification.orderId
+                                        ? `/order/${notification.orderId.toString()}`
+                                        : '#'
+                                  }
+                                  onClick={() => handleNotificationRead(notification._id)}
+                                  className="block"
+                                >
+                                  <p className="text-responsive-sm text-gray-800 mb-1">
+                                    {translateNotificationMessage(notification).message}
+                                  </p>
+                                  <p className="text-responsive-xs text-gray-500">
+                                    {dayjs(notification.createdAt).format("MMM D, YYYY h:mm A")}
+                                  </p>
+                                </Link>
                               </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
+                              <button
+                                onClick={() => handleNotificationDelete(notification._id)}
+                                className="ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors touch-target"
+                              >
+                                <FiTrash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )}
+              </div>
 
               {/* User Account */}
               <div className="flex items-center">

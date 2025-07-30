@@ -1,0 +1,14 @@
+node_modules\
+*.log
+*.md
+migrate-database.js
+*.bat
+*.ps1
+*.gz
+*.zip
+mongodb_dump\
+saptmarkets_archive.gz
+saptmarkets_dump.zip
+server_logs.md
+test-order-fixed.log
+smart-tree-cheatsheet.md 

@@ -11,6 +11,9 @@ const nextTranslate = require("next-translate-plugin");
 //   disable: process.env.NODE_ENV === "development",
 // });
 
+// Log the API base URL during build
+console.log("API Base URL:", process.env.NEXT_PUBLIC_API_BASE_URL || "https://e-commerce-backend-l0s0.onrender.com/api");
+
 module.exports = {
   reactStrictMode: true,
   swcMinify: true,
@@ -21,7 +24,7 @@ module.exports = {
   compress: true,
   
   env: {
-    NEXT_PUBLIC_API_BASE_URL: "http://127.0.0.1:5055/api",
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://e-commerce-backend-l0s0.onrender.com/api",
     CUSTOM_NODE_ENV: process.env.NODE_ENV,
   },
   
@@ -151,7 +154,7 @@ module.exports = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5055/api'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://e-commerce-backend-l0s0.onrender.com/api'}/:path*`,
       },
     ];
   },

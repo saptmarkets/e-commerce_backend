@@ -1,0 +1,1293 @@
+[23:26:05.499] Running build in Washington, D.C., USA (East) – iad1
+[23:26:05.500] Build machine configuration: 2 cores, 8 GB
+[23:26:05.528] Cloning github.com/saptmarkets/e-commerce_customer (Branch: main, Commit: 95af4e8)
+[23:26:05.649] Previous build caches not available
+[23:26:05.893] Cloning completed: 365.000ms
+[23:26:06.322] Running "vercel build"
+[23:26:07.617] Vercel CLI 44.6.4
+[23:26:08.381] Running "install" command: `npm install`...
+[23:26:13.454] npm warn deprecated workbox-google-analytics@6.6.0: It is not compatible with newer versions of GA starting with v4, as long as you are using GAv3 it should be ok, but the package is not longer being maintained
+[23:26:13.460] npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+[23:26:13.679] npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+[23:26:13.748] npm warn deprecated rollup-plugin-terser@7.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-terser
+[23:26:13.822] npm warn deprecated workbox-cacheable-response@6.6.0: workbox-background-sync@6.6.0
+[23:26:15.050] npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+[23:26:15.317] npm warn deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported
+[23:26:16.211] npm warn deprecated critters@0.0.25: Ownership of Critters has moved to the Nuxt team, who will be maintaining the project going forward. If you'd like to keep using Critters, please switch to the actively-maintained fork at https://github.com/danielroe/beasties
+[23:26:17.011] npm warn deprecated @humanwhocodes/config-array@0.5.0: Use @eslint/config-array instead
+[23:26:17.506] npm warn deprecated @humanwhocodes/object-schema@1.2.1: Use @eslint/object-schema instead
+[23:26:18.300] npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+[23:26:18.320] npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+[23:26:21.474] npm warn deprecated eslint@7.30.0: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+[23:26:34.248] 
+[23:26:34.249] added 933 packages, and audited 1143 packages in 26s
+[23:26:34.250] 
+[23:26:34.250] 193 packages are looking for funding
+[23:26:34.250]   run `npm fund` for details
+[23:26:34.291] 
+[23:26:34.292] 7 vulnerabilities (1 low, 2 moderate, 2 high, 2 critical)
+[23:26:34.292] 
+[23:26:34.293] To address all issues, run:
+[23:26:34.293]   npm audit fix
+[23:26:34.293] 
+[23:26:34.293] Run `npm audit` for details.
+[23:26:34.366] Detected Next.js version: 14.2.23
+[23:26:34.367] Running "npm run build"
+[23:26:34.502] 
+[23:26:34.506] > saptmarkets-store@0.1.0 build
+[23:26:34.506] > next build
+[23:26:34.506] 
+[23:26:35.344] Attention: Next.js now collects completely anonymous telemetry regarding usage.
+[23:26:35.344] This information is used to shape Next.js' roadmap and prioritize features.
+[23:26:35.344] You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+[23:26:35.344] https://nextjs.org/telemetry
+[23:26:35.345] 
+[23:26:35.404]   ▲ Next.js 14.2.23
+[23:26:35.405]   - Environments: .env
+[23:26:35.406]   - Experiments (use with caution):
+[23:26:35.406]     · forceSwcTransforms
+[23:26:35.406] 
+[23:26:35.406]    Skipping linting
+[23:26:35.406]    Checking validity of types ...
+[23:26:35.534]    Creating an optimized production build ...
+[23:26:40.249] Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+[23:26:40.249]   npx update-browserslist-db@latest
+[23:26:40.249]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[23:27:04.363] Browserslist: caniuse-lite is outdated. Please run:
+[23:27:04.363]   npx update-browserslist-db@latest
+[23:27:04.363]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[23:27:08.327]  ⚠ Compiled with warnings
+[23:27:08.328] 
+[23:27:08.328] ./src/pages/privacy-policy.js
+[23:27:08.328] Attempted import error: 'BellAlertIcon' is not exported from '@heroicons/react/solid' (imported as 'BellAlertIcon').
+[23:27:08.328] 
+[23:27:08.329]    Collecting page data ...
+[23:27:10.764]    Generating static pages (0/47) ...
+[23:27:10.877] 
+[23:27:10.878] Error occurred prerendering page "/500". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:10.878] 
+[23:27:10.878] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:10.878]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:10.879]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:10.879]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:10.879]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:10.879]     at ClientRequest.emit (node:events:518:28)
+[23:27:10.880]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:10.880]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:10.880]     at Socket.emit (node:events:518:28)
+[23:27:10.880]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:10.880]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:10.880]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:10.880]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:10.880]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:10.880]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:10.881]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:10.881]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:10.881]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:10.881]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:10.881]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:10.881]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:10.945] [36mnext-translate[0m - compiled page: [36m/404[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:10.946] 
+[23:27:10.946] Error occurred prerendering page "/en/404". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:10.946] 
+[23:27:10.948] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:10.948]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:10.949]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:10.949]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:10.949]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:10.949]     at ClientRequest.emit (node:events:518:28)
+[23:27:10.949]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:10.952]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:10.952]     at Socket.emit (node:events:518:28)
+[23:27:10.953]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:10.953]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:10.953]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:10.955]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:10.956]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:10.957]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:10.958]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:10.958]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:10.958]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:10.958]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:10.958]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:10.958]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.016] [36mnext-translate[0m - compiled page: [36m/404[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.019] 
+[23:27:11.020] Error occurred prerendering page "/ar/404". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.021] 
+[23:27:11.021] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.021]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.021]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.021]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.021]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.021]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.021]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.021]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.022]     at Socket.emit (node:events:518:28)
+[23:27:11.022]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.022]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.022]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.022]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.022]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.022]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.022]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.022]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.022]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.022]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.022]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.022]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.128] [36mnext-translate[0m - compiled page: [36m/_offline[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.129] 
+[23:27:11.130] Error occurred prerendering page "/en/_offline". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.130] 
+[23:27:11.130] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.130]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.131]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.131]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.131]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.131]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.131]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.131]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.132]     at Socket.emit (node:events:518:28)
+[23:27:11.132]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.132]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.132]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.132]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.133]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.133]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.133]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.133]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.133]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.134]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.134]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.134]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.177] [36mnext-translate[0m - compiled page: [36m/_offline[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.178] 
+[23:27:11.179] Error occurred prerendering page "/ar/_offline". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.179] 
+[23:27:11.179] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.179]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.179]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.179]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.179]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.180]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.180]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.180]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.180]     at Socket.emit (node:events:518:28)
+[23:27:11.180]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.180]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.180]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.180]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.180]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.180]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.180]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.180]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.181]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.181]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.181]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.181]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.251] [36mnext-translate[0m - compiled page: [36m/about-us[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.289] 
+[23:27:11.289] Error occurred prerendering page "/en/about-us". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.296] 
+[23:27:11.297] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.297]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.297]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.297]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.297]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.297]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.297]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.297]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.297]     at Socket.emit (node:events:518:28)
+[23:27:11.297]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.297]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.297]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.297]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.297]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.297]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.298]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.298]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.298]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.298]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.298]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.298]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.397] [36mnext-translate[0m - compiled page: [36m/about-us[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.398] 
+[23:27:11.398] Error occurred prerendering page "/ar/about-us". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.398] 
+[23:27:11.398] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.398]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.398]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.398]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.399]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.399]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.399]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.399]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.399]     at Socket.emit (node:events:518:28)
+[23:27:11.399]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.399]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.399]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.399]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.400]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.400]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.400]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.400]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.400]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.400]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.400]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.400]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.480] [36mnext-translate[0m - compiled page: [36m/auth/error[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.481] 
+[23:27:11.481] Error occurred prerendering page "/en/auth/error". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.481] 
+[23:27:11.481] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.481]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.482]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.482]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.482]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.482]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.482]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.482]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.482]     at Socket.emit (node:events:518:28)
+[23:27:11.482]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.482]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.482]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.482]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.482]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.482]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.482]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.482]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.482]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.483]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.483]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.483]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.592] [36mnext-translate[0m - compiled page: [36m/auth/error[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.598] 
+[23:27:11.599] Error occurred prerendering page "/ar/auth/error". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.599] 
+[23:27:11.599] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.599]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.599]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.599]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.599]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.599]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.599]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.599]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.599]     at Socket.emit (node:events:518:28)
+[23:27:11.599]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.599]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.599]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.599]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.599]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.599]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.599]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.599]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.599]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.599]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.599]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.599]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.689] [36mnext-translate[0m - compiled page: [36m/auth/forget-password[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.690] 
+[23:27:11.690] Error occurred prerendering page "/en/auth/forget-password". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.690] 
+[23:27:11.690] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.690]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.690]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.690]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.690]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.690]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.691]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.691]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.691]     at Socket.emit (node:events:518:28)
+[23:27:11.691]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.691]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.691]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.692]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.692]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.692]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.692]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.692]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.692]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.692]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.692]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.692]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.778] [36mnext-translate[0m - compiled page: [36m/auth/forget-password[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.779] 
+[23:27:11.779] Error occurred prerendering page "/ar/auth/forget-password". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.779] 
+[23:27:11.779] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.780]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.780]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.780]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.780]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.780]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.780]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.780]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.780]     at Socket.emit (node:events:518:28)
+[23:27:11.780]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.781]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.781]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.781]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.781]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.781]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.782]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.782]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.782]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.782]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.782]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.783]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.783]    Generating static pages (11/47) 
+[23:27:11.865] [36mnext-translate[0m - compiled page: [36m/auth/login[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.866] 
+[23:27:11.866] Error occurred prerendering page "/en/auth/login". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.866] 
+[23:27:11.866] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.867]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.867]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.867]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.867]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.867]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.867]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.867]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.868]     at Socket.emit (node:events:518:28)
+[23:27:11.868]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.868]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.868]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.868]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.868]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.869]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.869]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.869]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.869]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.869]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.870]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.873]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:11.966] [36mnext-translate[0m - compiled page: [36m/auth/login[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:11.967] 
+[23:27:11.967] Error occurred prerendering page "/ar/auth/login". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:11.967] 
+[23:27:11.967] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:11.969]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:11.969]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:11.969]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:11.969]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:11.969]     at ClientRequest.emit (node:events:518:28)
+[23:27:11.970]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:11.970]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:11.970]     at Socket.emit (node:events:518:28)
+[23:27:11.970]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:11.970]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:11.970]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:11.970]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:11.971]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:11.971]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:11.971]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:11.971]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:11.971]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:11.971]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:11.972]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:11.972]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:12.159] [36mnext-translate[0m - compiled page: [36m/auth/phone-signup[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:12.160] 
+[23:27:12.162] Error occurred prerendering page "/en/auth/phone-signup". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:12.163] 
+[23:27:12.163] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:12.163]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:12.163]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:12.163]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:12.163]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:12.163]     at ClientRequest.emit (node:events:518:28)
+[23:27:12.163]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:12.163]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:12.163]     at Socket.emit (node:events:518:28)
+[23:27:12.164]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:12.164]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:12.164]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:12.164]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:12.164]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:12.164]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:12.164]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:12.164]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:12.164]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:12.164]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:12.164]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:12.164]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:12.273] [36mnext-translate[0m - compiled page: [36m/auth/phone-signup[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:12.285] 
+[23:27:12.285] Error occurred prerendering page "/ar/auth/phone-signup". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:12.285] 
+[23:27:12.285] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:12.285]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:12.285]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:12.285]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:12.285]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:12.285]     at ClientRequest.emit (node:events:518:28)
+[23:27:12.285]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:12.285]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:12.285]     at Socket.emit (node:events:518:28)
+[23:27:12.285]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:12.285]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:12.285]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:12.285]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:12.285]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:12.285]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:12.285]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:12.285]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:12.285]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:12.285]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:12.285]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:12.286]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:12.411] [36mnext-translate[0m - compiled page: [36m/auth/signup[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:12.413] 
+[23:27:12.413] Error occurred prerendering page "/en/auth/signup". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:12.413] 
+[23:27:12.413] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:12.414]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:12.414]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:12.414]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:12.414]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:12.414]     at ClientRequest.emit (node:events:518:28)
+[23:27:12.414]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:12.415]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:12.415]     at Socket.emit (node:events:518:28)
+[23:27:12.415]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:12.415]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:12.415]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:12.415]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:12.415]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:12.416]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:12.416]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:12.416]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:12.416]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:12.416]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:12.416]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:12.417]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:12.547] [36mnext-translate[0m - compiled page: [36m/auth/signup[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:12.548] 
+[23:27:12.552] Error occurred prerendering page "/ar/auth/signup". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:12.553] 
+[23:27:12.553] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:12.553]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:12.554]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:12.554]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:12.554]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:12.554]     at ClientRequest.emit (node:events:518:28)
+[23:27:12.554]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:12.554]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:12.554]     at Socket.emit (node:events:518:28)
+[23:27:12.555]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:12.555]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:12.555]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:12.555]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:12.555]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:12.555]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:12.556]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:12.556]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:12.556]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:12.556]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:12.556]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:12.557]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:12.706] [36mnext-translate[0m - compiled page: [36m/contact-us[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:12.709] 
+[23:27:12.709] Error occurred prerendering page "/en/contact-us". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:12.712] 
+[23:27:12.712] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:12.712]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:12.712]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:12.712]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:12.713]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:12.713]     at ClientRequest.emit (node:events:518:28)
+[23:27:12.713]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:12.713]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:12.713]     at Socket.emit (node:events:518:28)
+[23:27:12.713]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:12.714]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:12.714]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:12.716]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:12.716]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:12.717]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:12.717]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:12.717]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:12.717]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:12.718]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:12.718]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:12.718]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:12.819] [36mnext-translate[0m - compiled page: [36m/contact-us[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:12.823] 
+[23:27:12.823] Error occurred prerendering page "/ar/contact-us". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:12.827] 
+[23:27:12.827] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:12.827]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:12.827]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:12.827]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:12.827]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:12.827]     at ClientRequest.emit (node:events:518:28)
+[23:27:12.828]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:12.828]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:12.828]     at Socket.emit (node:events:518:28)
+[23:27:12.828]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:12.828]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:12.828]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:12.828]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:12.828]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:12.828]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:12.828]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:12.828]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:12.828]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:12.828]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:12.828]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:12.828]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:12.961] [36mnext-translate[0m - compiled page: [36m/faq[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:12.966] 
+[23:27:12.968] Error occurred prerendering page "/en/faq". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:12.969] 
+[23:27:12.969] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:12.969]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:12.970]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:12.970]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:12.970]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:12.970]     at ClientRequest.emit (node:events:518:28)
+[23:27:12.970]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:12.970]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:12.971]     at Socket.emit (node:events:518:28)
+[23:27:12.971]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:12.971]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:12.971]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:12.971]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:12.971]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:12.972]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:12.972]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:12.972]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:12.972]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:12.974]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:12.974]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:12.975]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:13.106] [36mnext-translate[0m - compiled page: [36m/faq[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:13.107] 
+[23:27:13.107] Error occurred prerendering page "/ar/faq". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:13.108] 
+[23:27:13.109] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:13.112]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:13.113]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:13.113]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:13.113]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:13.113]     at ClientRequest.emit (node:events:518:28)
+[23:27:13.114]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:13.114]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:13.114]     at Socket.emit (node:events:518:28)
+[23:27:13.114]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:13.114]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:13.115]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:13.115]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:13.115]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:13.115]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:13.116]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:13.116]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:13.116]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:13.117]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:13.117]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:13.117]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:13.200] [36mnext-translate[0m - compiled page: [36m/[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:13.200] 
+[23:27:13.202] Error occurred prerendering page "/en". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:13.202] 
+[23:27:13.202] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:13.202]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:13.202]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:13.203]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:13.204]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:13.204]     at ClientRequest.emit (node:events:518:28)
+[23:27:13.204]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:13.204]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:13.204]     at Socket.emit (node:events:518:28)
+[23:27:13.205]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:13.207]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:13.207]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:13.207]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:13.207]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:13.207]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:13.208]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:13.208]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:13.208]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:13.208]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:13.208]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:13.208]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:13.367] [36mnext-translate[0m - compiled page: [36m/[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:13.368]    Generating static pages (23/47) 
+[23:27:13.369] 
+[23:27:13.372] Error occurred prerendering page "/ar". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:13.373] 
+[23:27:13.373] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:13.373]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:13.374]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:13.374]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:13.374]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:13.374]     at ClientRequest.emit (node:events:518:28)
+[23:27:13.374]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:13.374]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:13.374]     at Socket.emit (node:events:518:28)
+[23:27:13.374]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:13.374]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:13.374]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:13.374]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:13.374]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:13.374]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:13.374]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:13.374]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:13.374]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:13.374]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:13.374]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:13.375]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:13.457] [36mnext-translate[0m - compiled page: [36m/privacy-policy[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:13.458] 
+[23:27:13.458] Error occurred prerendering page "/en/privacy-policy". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:13.462] 
+[23:27:13.462] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:13.462]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:13.463]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:13.463]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:13.463]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:13.463]     at ClientRequest.emit (node:events:518:28)
+[23:27:13.463]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:13.463]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:13.464]     at Socket.emit (node:events:518:28)
+[23:27:13.464]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:13.464]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:13.464]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:13.464]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:13.464]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:13.464]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:13.465]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:13.465]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:13.465]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:13.465]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:13.465]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:13.465]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:13.648] [36mnext-translate[0m - compiled page: [36m/privacy-policy[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:13.649] 
+[23:27:13.649] Error occurred prerendering page "/ar/privacy-policy". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:13.653] 
+[23:27:13.653] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:13.653]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:13.653]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:13.653]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:13.653]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:13.653]     at ClientRequest.emit (node:events:518:28)
+[23:27:13.654]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:13.654]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:13.654]     at Socket.emit (node:events:518:28)
+[23:27:13.654]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:13.654]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:13.655]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:13.655]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:13.655]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:13.655]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:13.655]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:13.655]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:13.656]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:13.656]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:13.656]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:13.656]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:13.708] [36mnext-translate[0m - compiled page: [36m/product-showcase[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:13.708] 
+[23:27:13.708] Error occurred prerendering page "/en/product-showcase". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:13.708] 
+[23:27:13.708] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:13.708]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:13.709]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:13.709]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:13.709]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:13.709]     at ClientRequest.emit (node:events:518:28)
+[23:27:13.709]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:13.709]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:13.709]     at Socket.emit (node:events:518:28)
+[23:27:13.709]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:13.709]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:13.709]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:13.709]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:13.709]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:13.709]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:13.709]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:13.709]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:13.709]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:13.709]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:13.709]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:13.709]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:13.911] [36mnext-translate[0m - compiled page: [36m/product-showcase[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:13.913] 
+[23:27:13.913] Error occurred prerendering page "/ar/product-showcase". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:13.913] 
+[23:27:13.914] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:13.914]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:13.914]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:13.914]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:13.914]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:13.914]     at ClientRequest.emit (node:events:518:28)
+[23:27:13.915]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:13.915]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:13.915]     at Socket.emit (node:events:518:28)
+[23:27:13.915]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:13.915]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:13.915]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:13.915]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:13.916]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:13.916]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:13.916]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:13.916]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:13.918]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:13.922]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:13.922]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:13.922]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.071] [36mnext-translate[0m - compiled page: [36m/terms-and-conditions[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.072] 
+[23:27:14.072] Error occurred prerendering page "/en/terms-and-conditions". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.072] 
+[23:27:14.072] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.072]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.072]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.072]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.072]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.072]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.072]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.072]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.072]     at Socket.emit (node:events:518:28)
+[23:27:14.072]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.072]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.073]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.073]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.073]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.073]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.073]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.073]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.073]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.073]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.073]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.073]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.156] [36mnext-translate[0m - compiled page: [36m/terms-and-conditions[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.157] 
+[23:27:14.158] Error occurred prerendering page "/ar/terms-and-conditions". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.161] 
+[23:27:14.161] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.161]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.161]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.161]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.161]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.161]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.161]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.161]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.161]     at Socket.emit (node:events:518:28)
+[23:27:14.161]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.161]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.161]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.165]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.166]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.166]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.166]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.166]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.166]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.166]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.166]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.166]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.291] [36mnext-translate[0m - compiled page: [36m/user/add-shipping-address[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.291] 
+[23:27:14.292] Error occurred prerendering page "/en/user/add-shipping-address". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.292] 
+[23:27:14.292] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.292]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.293]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.293]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.294]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.294]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.294]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.294]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.294]     at Socket.emit (node:events:518:28)
+[23:27:14.295]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.295]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.295]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.295]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.295]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.296]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.296]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.296]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.296]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.296]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.296]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.297]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.350] [36mnext-translate[0m - compiled page: [36m/user/add-shipping-address[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.351] 
+[23:27:14.351] Error occurred prerendering page "/ar/user/add-shipping-address". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.351] 
+[23:27:14.351] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.351]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.351]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.352]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.352]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.352]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.352]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.352]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.352]     at Socket.emit (node:events:518:28)
+[23:27:14.352]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.352]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.352]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.352]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.352]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.353]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.353]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.353]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.353]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.353]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.353]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.353]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.389] [36mnext-translate[0m - compiled page: [36m/user/change-password[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.390] 
+[23:27:14.390] Error occurred prerendering page "/en/user/change-password". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.390] 
+[23:27:14.390] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.390]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.397]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.397]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.397]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.397]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.398]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.399]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.399]     at Socket.emit (node:events:518:28)
+[23:27:14.399]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.399]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.399]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.399]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.399]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.399]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.399]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.399]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.399]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.399]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.399]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.399]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.461] [36mnext-translate[0m - compiled page: [36m/user/change-password[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.471] 
+[23:27:14.471] Error occurred prerendering page "/ar/user/change-password". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.471] 
+[23:27:14.471] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.471]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.471]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.471]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.471]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.471]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.471]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.471]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.471]     at Socket.emit (node:events:518:28)
+[23:27:14.471]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.471]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.471]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.471]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.472]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.472]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.472]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.472]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.472]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.472]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.472]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.472]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.684] [36mnext-translate[0m - compiled page: [36m/user/loyalty[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.685] 
+[23:27:14.688] Error occurred prerendering page "/en/user/loyalty". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.688] 
+[23:27:14.688] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.689]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.689]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.689]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.689]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.689]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.689]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.689]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.689]     at Socket.emit (node:events:518:28)
+[23:27:14.689]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.689]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.689]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.689]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.689]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.689]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.689]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.689]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.689]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.689]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.689]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.689]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.851] [36mnext-translate[0m - compiled page: [36m/user/loyalty[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.852] 
+[23:27:14.852] Error occurred prerendering page "/ar/user/loyalty". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.856] 
+[23:27:14.856] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.856]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.856]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.856]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.856]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.856]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.856]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.856]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.856]     at Socket.emit (node:events:518:28)
+[23:27:14.856]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.857]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.857]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.857]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.857]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.857]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.857]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.857]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.857]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.857]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.857]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.857]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:14.857]    Generating static pages (35/47) 
+[23:27:14.944] [36mnext-translate[0m - compiled page: [36m/user/my-account[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:14.945] 
+[23:27:14.946] Error occurred prerendering page "/en/user/my-account". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:14.946] 
+[23:27:14.948] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:14.949]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:14.949]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:14.949]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:14.949]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:14.950]     at ClientRequest.emit (node:events:518:28)
+[23:27:14.950]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:14.951]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:14.951]     at Socket.emit (node:events:518:28)
+[23:27:14.951]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:14.951]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:14.951]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:14.951]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:14.951]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:14.952]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:14.952]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:14.952]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:14.952]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:14.952]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:14.952]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:14.952]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:15.100] [36mnext-translate[0m - compiled page: [36m/user/my-account[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:15.101] 
+[23:27:15.102] Error occurred prerendering page "/ar/user/my-account". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:15.102] 
+[23:27:15.102] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:15.102]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:15.102]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:15.102]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:15.103]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:15.103]     at ClientRequest.emit (node:events:518:28)
+[23:27:15.103]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:15.103]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:15.103]     at Socket.emit (node:events:518:28)
+[23:27:15.104]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:15.104]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:15.104]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:15.104]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:15.105]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:15.105]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:15.105]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:15.105]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:15.105]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:15.106]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:15.106]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:15.106]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:15.172] [36mnext-translate[0m - compiled page: [36m/user/my-orders[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:15.173] 
+[23:27:15.173] Error occurred prerendering page "/en/user/my-orders". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:15.173] 
+[23:27:15.173] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:15.173]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:15.173]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:15.173]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:15.173]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:15.173]     at ClientRequest.emit (node:events:518:28)
+[23:27:15.174]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:15.174]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:15.174]     at Socket.emit (node:events:518:28)
+[23:27:15.174]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:15.174]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:15.174]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:15.174]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:15.174]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:15.174]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:15.174]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:15.174]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:15.174]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:15.175]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:15.175]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:15.175]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:15.257] [36mnext-translate[0m - compiled page: [36m/user/my-orders[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:15.258] 
+[23:27:15.258] Error occurred prerendering page "/ar/user/my-orders". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:15.260] 
+[23:27:15.261] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:15.261]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:15.261]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:15.261]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:15.261]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:15.261]     at ClientRequest.emit (node:events:518:28)
+[23:27:15.261]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:15.261]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:15.261]     at Socket.emit (node:events:518:28)
+[23:27:15.262]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:15.262]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:15.262]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:15.262]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:15.262]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:15.262]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:15.262]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:15.262]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:15.262]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:15.262]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:15.262]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:15.262]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:15.362] [36mnext-translate[0m - compiled page: [36m/user/purchase-history[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:15.369] 
+[23:27:15.369] Error occurred prerendering page "/en/user/purchase-history". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:15.369] 
+[23:27:15.369] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:15.369]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:15.369]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:15.369]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:15.370]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:15.370]     at ClientRequest.emit (node:events:518:28)
+[23:27:15.370]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:15.370]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:15.370]     at Socket.emit (node:events:518:28)
+[23:27:15.370]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:15.370]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:15.370]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:15.370]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:15.370]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:15.370]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:15.370]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:15.370]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:15.370]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:15.370]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:15.370]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:15.370]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:15.513] [36mnext-translate[0m - compiled page: [36m/user/purchase-history[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:15.513] 
+[23:27:15.513] Error occurred prerendering page "/ar/user/purchase-history". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:15.513] 
+[23:27:15.514] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:15.514]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:15.514]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:15.514]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:15.514]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:15.514]     at ClientRequest.emit (node:events:518:28)
+[23:27:15.514]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:15.514]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:15.514]     at Socket.emit (node:events:518:28)
+[23:27:15.514]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:15.514]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:15.514]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:15.514]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:15.514]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:15.514]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:15.514]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:15.515]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:15.515]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:15.515]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:15.515]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:15.515]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:15.965] [36mnext-translate[0m - compiled page: [36m/user/recent-order[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:15.966] 
+[23:27:15.968] Error occurred prerendering page "/en/user/recent-order". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:15.969] 
+[23:27:15.969] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:15.969]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:15.969]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:15.969]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:15.970]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:15.970]     at ClientRequest.emit (node:events:518:28)
+[23:27:15.970]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:15.970]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:15.970]     at Socket.emit (node:events:518:28)
+[23:27:15.970]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:15.971]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:15.971]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:15.971]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:15.971]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:15.971]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:15.971]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:15.971]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:15.971]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:15.972]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:15.972]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:15.972]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:16.195] [36mnext-translate[0m - compiled page: [36m/user/recent-order[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:16.196] 
+[23:27:16.196] Error occurred prerendering page "/ar/user/recent-order". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:16.196] 
+[23:27:16.196] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:16.197]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:16.197]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:16.197]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:16.197]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:16.197]     at ClientRequest.emit (node:events:518:28)
+[23:27:16.198]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:16.198]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:16.198]     at Socket.emit (node:events:518:28)
+[23:27:16.198]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:16.198]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:16.198]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:16.199]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:16.202]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:16.202]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:16.202]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:16.202]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:16.203]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:16.203]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:16.203]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:16.203]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:16.624] [36mnext-translate[0m - compiled page: [36m/user/update-profile[0m - locale: [36men[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:16.625] 
+[23:27:16.626] Error occurred prerendering page "/en/user/update-profile". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:16.626] 
+[23:27:16.626] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:16.626]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:16.627]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:16.627]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:16.629]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:16.630]     at ClientRequest.emit (node:events:518:28)
+[23:27:16.630]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:16.630]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:16.630]     at Socket.emit (node:events:518:28)
+[23:27:16.630]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:16.630]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:16.630]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:16.630]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:16.630]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:16.630]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:16.630]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:16.630]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:16.630]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:16.630]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:16.630]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:16.630]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:16.720] [36mnext-translate[0m - compiled page: [36m/user/update-profile[0m - locale: [36mar[0m - namespaces: [36mcommon[0m - used loader: [36mgetStaticProps[0m
+[23:27:16.721] 
+[23:27:16.721] Error occurred prerendering page "/ar/user/update-profile". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:16.722] 
+[23:27:16.722] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:16.722]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:16.722]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:16.723]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:16.723]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:16.723]     at ClientRequest.emit (node:events:518:28)
+[23:27:16.723]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:16.723]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:16.724]     at Socket.emit (node:events:518:28)
+[23:27:16.724]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:16.724]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:16.724]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:16.725]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:16.725]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:16.725]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:16.725]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:16.725]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:16.725]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:16.726]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:16.726]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:16.726]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:16.808] 
+[23:27:16.808] Error occurred prerendering page "/en/500". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:16.809] 
+[23:27:16.809] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:16.809]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:16.809]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:16.809]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:16.809]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:16.810]     at ClientRequest.emit (node:events:518:28)
+[23:27:16.810]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:16.810]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:16.810]     at Socket.emit (node:events:518:28)
+[23:27:16.810]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:16.810]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:16.810]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:16.810]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:16.811]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:16.811]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:16.811]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:16.811]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:16.811]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:16.811]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:16.811]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:16.811]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:16.892] 
+[23:27:16.900] Error occurred prerendering page "/ar/500". Read more: https://nextjs.org/docs/messages/prerender-error
+[23:27:16.900] 
+[23:27:16.900] Error: connect ECONNREFUSED 127.0.0.1:5055
+[23:27:16.900]     at AxiosError.from (file:///vercel/path0/node_modules/axios/lib/core/AxiosError.js:92:14)
+[23:27:16.900]     at RedirectableRequest.handleRequestError (file:///vercel/path0/node_modules/axios/lib/adapters/http.js:620:25)
+[23:27:16.901]     at RedirectableRequest.emit (node:events:530:35)
+[23:27:16.901]     at eventHandlers.<computed> (/vercel/path0/node_modules/follow-redirects/index.js:49:24)
+[23:27:16.901]     at ClientRequest.emit (node:events:518:28)
+[23:27:16.901]     at emitErrorEvent (node:_http_client:104:11)
+[23:27:16.901]     at Socket.socketErrorListener (node:_http_client:518:5)
+[23:27:16.901]     at Socket.emit (node:events:518:28)
+[23:27:16.901]     at emitErrorNT (node:internal/streams/destroy:170:8)
+[23:27:16.901]     at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+[23:27:16.901]     at Axios.request (file:///vercel/path0/node_modules/axios/lib/core/Axios.js:45:41)
+[23:27:16.901]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[23:27:16.901]     at async l.getInitialProps (/vercel/path0/.next/server/pages/_document.js:1:307)
+[23:27:16.901]     at async X (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:16:5045)
+[23:27:16.901]     at async n (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:3655)
+[23:27:16.901]     at async e9 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4549)
+[23:27:16.901]     at async e3 (/vercel/path0/node_modules/next/dist/compiled/next-server/pages.runtime.prod.js:31:4914)
+[23:27:16.901]     at async exportPages (/vercel/path0/node_modules/next/dist/export/routes/pages.js:84:28)
+[23:27:16.901]     at async exportPageImpl (/vercel/path0/node_modules/next/dist/export/worker.js:206:16)
+[23:27:16.901]     at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+[23:27:16.901]  ✓ Generating static pages (47/47)
+[23:27:16.934] 
+[23:27:16.934] > Export encountered errors on following paths:
+[23:27:16.935] 	/404: /ar/404
+[23:27:16.935] 	/404: /en/404
+[23:27:16.935] 	/: /ar
+[23:27:16.935] 	/: /en
+[23:27:16.935] 	/_error: /500
+[23:27:16.935] 	/_error: /ar/500
+[23:27:16.935] 	/_error: /en/500
+[23:27:16.935] 	/_offline: /ar/_offline
+[23:27:16.935] 	/_offline: /en/_offline
+[23:27:16.935] 	/about-us: /ar/about-us
+[23:27:16.935] 	/about-us: /en/about-us
+[23:27:16.935] 	/auth/error: /ar/auth/error
+[23:27:16.935] 	/auth/error: /en/auth/error
+[23:27:16.935] 	/auth/forget-password: /ar/auth/forget-password
+[23:27:16.935] 	/auth/forget-password: /en/auth/forget-password
+[23:27:16.935] 	/auth/login: /ar/auth/login
+[23:27:16.935] 	/auth/login: /en/auth/login
+[23:27:16.936] 	/auth/phone-signup: /ar/auth/phone-signup
+[23:27:16.936] 	/auth/phone-signup: /en/auth/phone-signup
+[23:27:16.936] 	/auth/signup: /ar/auth/signup
+[23:27:16.936] 	/auth/signup: /en/auth/signup
+[23:27:16.936] 	/contact-us: /ar/contact-us
+[23:27:16.936] 	/contact-us: /en/contact-us
+[23:27:16.936] 	/faq: /ar/faq
+[23:27:16.936] 	/faq: /en/faq
+[23:27:16.936] 	/privacy-policy: /ar/privacy-policy
+[23:27:16.936] 	/privacy-policy: /en/privacy-policy
+[23:27:16.936] 	/product-showcase: /ar/product-showcase
+[23:27:16.936] 	/product-showcase: /en/product-showcase
+[23:27:16.936] 	/terms-and-conditions: /ar/terms-and-conditions
+[23:27:16.936] 	/terms-and-conditions: /en/terms-and-conditions
+[23:27:16.936] 	/user/add-shipping-address: /ar/user/add-shipping-address
+[23:27:16.943] 	/user/add-shipping-address: /en/user/add-shipping-address
+[23:27:16.947] 	/user/change-password: /ar/user/change-password
+[23:27:16.948] 	/user/change-password: /en/user/change-password
+[23:27:16.952] 	/user/loyalty: /ar/user/loyalty
+[23:27:16.952] 	/user/loyalty: /en/user/loyalty
+[23:27:16.952] 	/user/my-account: /ar/user/my-account
+[23:27:16.952] 	/user/my-account: /en/user/my-account
+[23:27:16.952] 	/user/my-orders: /ar/user/my-orders
+[23:27:16.952] 	/user/my-orders: /en/user/my-orders
+[23:27:16.952] 	/user/purchase-history: /ar/user/purchase-history
+[23:27:16.952] 	/user/purchase-history: /en/user/purchase-history
+[23:27:16.952] 	/user/recent-order: /ar/user/recent-order
+[23:27:16.953] 	/user/recent-order: /en/user/recent-order
+[23:27:16.953] 	/user/update-profile: /ar/user/update-profile
+[23:27:16.953] 	/user/update-profile: /en/user/update-profile
+[23:27:17.029] Error: Command "npm run build" exited with 1
+[23:27:17.377] 
+[23:27:20.273] Exiting build container

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Get API base URL from environment or use default
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5055/api";
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://e-commerce-backend-l0s0.onrender.com/api";
 
 // Create axios instance with default config
 const httpServices = axios.create({

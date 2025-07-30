@@ -1195,9 +1195,9 @@ const checkCategoryHasProducts = async (req, res) => {
     }
 
     // Query for products in this category or its subcategories
+    // Remove stock restriction to show categories with products regardless of stock
     const queryObject = {
       status: "show",
-      stock: { $gt: 0 },
       $or: [
         { category: { $in: categoryIdsToQuery } },
         { categories: { $in: categoryIdsToQuery } }
