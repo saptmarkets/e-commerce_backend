@@ -65,6 +65,9 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
+    // Get CORS origins from environment variable or use defaults
+    const envCorsOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
+    
     const allowedOrigins = [
       'http://localhost:4100',
       'http://127.0.0.1:4100',
@@ -72,16 +75,12 @@ const corsOptions = {
       'http://127.0.0.1:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3001',
-      // Add your deployed frontend domains here
+      // Add your deployed admin domain
       'https://e-commerce-admin-five-sable.vercel.app',
-      'https://saptmarkets-admin.vercel.app',
-      'https://saptmarkets-customer.vercel.app',
-      'https://saptmarkets-admin.netlify.app',
-      'https://saptmarkets-customer.netlify.app',
       // Allow any vercel.app domain for development
       /^https:\/\/.*\.vercel\.app$/,
-      /^https:\/\/.*\.netlify\.app$/,
-      /^https:\/\/.*\.onrender\.com$/
+      // Add environment variable origins
+      ...envCorsOrigins
     ];
     
     // Check if origin is allowed
