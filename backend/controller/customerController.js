@@ -11,6 +11,7 @@ const {
   forgetPasswordEmailBody,
 } = require("../lib/email-sender/templates/forget-password");
 const { createWelcomeNotification } = require("./notificationController");
+const smsService = require("../lib/phone-verification/smsService");
 
 const verifyEmailAddress = async (req, res) => {
   try {
@@ -65,22 +66,21 @@ const verifyEmailAddress = async (req, res) => {
 const verifyPhoneNumber = async (req, res) => {
   const phoneNumber = req.body.phone;
 
-  // console.log("verifyPhoneNumber", phoneNumber);
+  console.log("📱 Phone verification request for:", phoneNumber);
 
-  // Check if phone number is provided and is in the correct format
+  // Check if phone number is provided
   if (!phoneNumber) {
     return res.status(400).send({
       message: "Phone number is required.",
     });
   }
 
-  // Optional: Add phone number format validation here (if required)
-  // const phoneRegex = /^[0-9]{10}$/; // Basic validation for 10-digit phone numbers
-  // if (!phoneRegex.test(phoneNumber)) {
-  //   return res.status(400).send({
-  //     message: "Invalid phone number format. Please provide a valid number.",
-  //   });
-  // }
+  // Validate phone number format
+  if (!smsService.validatePhoneNumber(phoneNumber)) {
+    return res.status(400).send({
+      message: "Invalid phone number format. Please provide a valid Saudi Arabia number.",
+    });
+  }
 
   try {
     // Check if the phone number is already associated with an existing customer
@@ -88,30 +88,128 @@ const verifyPhoneNumber = async (req, res) => {
 
     if (isAdded) {
       return res.status(403).send({
-        message: "This phone number is already added.",
+        message: "This phone number is already registered.",
       });
     }
 
-    // Generate a random 6-digit verification code
-    const verificationCode = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+    // Generate a 6-digit verification code
+    const verificationCode = smsService.generateVerificationCode();
+
+    // Store verification code temporarily (you might want to use Redis for production)
+    // For now, we'll store it in memory with expiration
+    global.phoneVerificationCodes = global.phoneVerificationCodes || new Map();
+    global.phoneVerificationCodes.set(phoneNumber, {
+      code: verificationCode,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+    });
 
     // Send verification code via SMS
-    const sent = await sendVerificationCode(phoneNumber, verificationCode);
+    const sent = await smsService.sendVerificationCode(phoneNumber, verificationCode);
 
     if (!sent) {
       return res.status(500).send({
-        message: "Failed to send verification code.",
+        message: "Failed to send verification code. Please try again.",
       });
     }
 
-    const message = "Please check your phone for the verification code!";
-    return res.send({ message });
+    const message = "Verification code sent to your phone number!";
+    return res.send({ 
+      message,
+      phoneNumber: phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1***$3') // Mask phone number
+    });
   } catch (err) {
-    console.error("Error during phone verification:", err);
+    console.error("❌ Error during phone verification:", err);
     res.status(500).send({
-      message: err.message,
+      message: "Failed to send verification code. Please try again.",
+    });
+  }
+};
+
+const verifyPhoneCode = async (req, res) => {
+  const { phone, code, name, email, password } = req.body;
+
+  console.log("📱 Phone code verification request for:", phone);
+
+  if (!phone || !code || !name || !email || !password) {
+    return res.status(400).send({
+      message: "Phone number, verification code, name, email, and password are required.",
+    });
+  }
+
+  try {
+    // Check if verification code exists and is valid
+    global.phoneVerificationCodes = global.phoneVerificationCodes || new Map();
+    const verificationData = global.phoneVerificationCodes.get(phone);
+
+    if (!verificationData) {
+      return res.status(400).send({
+        message: "No verification code found for this phone number. Please request a new code.",
+      });
+    }
+
+    // Check if code has expired
+    if (new Date() > verificationData.expiresAt) {
+      global.phoneVerificationCodes.delete(phone);
+      return res.status(400).send({
+        message: "Verification code has expired. Please request a new code.",
+      });
+    }
+
+    // Check if code matches
+    if (verificationData.code !== code) {
+      return res.status(400).send({
+        message: "Invalid verification code. Please check and try again.",
+      });
+    }
+
+    // Check if email is already registered
+    const existingCustomer = await Customer.findOne({ email });
+    if (existingCustomer) {
+      return res.status(400).send({
+        message: "This email is already registered!",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create new customer
+    const customer = new Customer({
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+    });
+
+    await customer.save();
+
+    // Clear the verification code
+    global.phoneVerificationCodes.delete(phone);
+
+    // Create welcome notification
+    try {
+      await createWelcomeNotification(customer._id);
+    } catch (notifError) {
+      console.error("Failed to create welcome notification:", notifError);
+    }
+
+    console.log("✅ Customer registered successfully via phone verification:", email);
+
+    res.status(201).send({
+      message: "Account created successfully! You can now login.",
+      customer: {
+        id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Error during phone code verification:", err);
+    res.status(500).send({
+      message: "Failed to verify code and create account. Please try again.",
     });
   }
 };
@@ -765,6 +863,7 @@ const verifyAndRegisterCustomer = async (req, res) => {
 module.exports = {
   loginCustomer,
   verifyPhoneNumber,
+  verifyPhoneCode,
   registerCustomer,
   addAllCustomers,
   signUpWithProvider,

@@ -6,6 +6,8 @@ const {
   signUpWithProvider,
   signUpWithOauthProvider,
   verifyEmailAddress,
+  verifyPhoneNumber,
+  verifyPhoneCode,
   verifyAndRegisterCustomer,
   forgetPassword,
   changePassword,
@@ -22,6 +24,12 @@ const {
 
 //verify email
 router.post("/verify-email", verifyEmailAddress);
+
+//verify phone number
+router.post("/verify-phone", verifyPhoneNumber);
+
+//verify phone code and register customer
+router.post("/verify-phone-code", verifyPhoneCode);
 
 //verify and register customer with token
 router.post("/verify-register", verifyAndRegisterCustomer);
