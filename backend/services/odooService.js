@@ -2,13 +2,24 @@ const axios = require('axios');
 
 class OdooService {
   constructor() {
-    this.host = process.env.ODOO_HOST || 'localhost';
-    this.port = process.env.ODOO_PORT || '8069';
-    this.database = process.env.ODOO_DATABASE || 'forapi_17';
+    // Support both localhost and remote ngrok configurations
+    if (process.env.ODOO_URL) {
+      // Remote/ngrok setup
+      this.baseUrl = process.env.ODOO_URL;
+      console.log(`🌐 Using remote Odoo URL: ${this.baseUrl}`);
+    } else {
+      // Localhost setup
+      this.host = process.env.ODOO_HOST || 'localhost';
+      this.port = process.env.ODOO_PORT || '8069';
+      this.baseUrl = `http://${this.host}:${this.port}`;
+      console.log(`🏠 Using localhost Odoo: ${this.baseUrl}`);
+    }
+    
+    // Database and credentials
+    this.database = process.env.ODOO_DATABASE || process.env.ODOO_DB || 'forapi_17';
     this.username = process.env.ODOO_USERNAME || 'admin';
     this.password = process.env.ODOO_PASSWORD || 'admin';
     
-    this.baseUrl = `http://${this.host}:${this.port}`;
     this.uid = null;
     this.isAuthenticated = false;
     
