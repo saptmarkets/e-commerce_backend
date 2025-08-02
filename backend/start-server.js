@@ -103,9 +103,10 @@ const corsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'company'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'company', 'Origin', 'X-Requested-With', 'Accept'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 };
 
 app.use(cors(corsOptions));
@@ -114,41 +115,21 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Check if origin is allowed (same logic as corsOptions)
-  const envCorsOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
-  const allowedOrigins = [
-    'http://localhost:4100',
-    'http://127.0.0.1:4100',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:3001',
-    'https://e-commerce-admin-five-sable.vercel.app',
-    'https://e-commerce-customer-three.vercel.app',
-    /^https:\/\/.*\.vercel\.app$/
-  ];
-  
-  const isAllowed = allowedOrigins.some(allowedOrigin => {
-    if (typeof allowedOrigin === 'string') {
-      return origin === allowedOrigin;
-    } else if (allowedOrigin instanceof RegExp) {
-      return allowedOrigin.test(origin);
-    }
-    return false;
-  });
-  
-  if (isAllowed || !origin) {
+  // Always set CORS headers for allowed origins
+  if (origin) {
     res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, company');
   }
   
+  // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
+    res.status(200).end();
+    return;
   }
+  
+  next();
 });
 
 // Serve static files
