@@ -77,6 +77,8 @@ const corsOptions = {
       'http://127.0.0.1:3001',
       // Add your deployed admin domain
       'https://e-commerce-admin-five-sable.vercel.app',
+      // Add your deployed customer domain
+      'https://e-commerce-customer-three.vercel.app',
       // Allow any vercel.app domain for development
       /^https:\/\/.*\.vercel\.app$/,
       // Add environment variable origins
@@ -110,10 +112,37 @@ app.use(cors(corsOptions));
 
 // Additional CORS headers for preflight requests
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
-  res.header('Access-Control-Allow-Credentials', true);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, company');
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed (same logic as corsOptions)
+  const envCorsOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
+  const allowedOrigins = [
+    'http://localhost:4100',
+    'http://127.0.0.1:4100',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'https://e-commerce-admin-five-sable.vercel.app',
+    'https://e-commerce-customer-three.vercel.app',
+    /^https:\/\/.*\.vercel\.app$/
+  ];
+  
+  const isAllowed = allowedOrigins.some(allowedOrigin => {
+    if (typeof allowedOrigin === 'string') {
+      return origin === allowedOrigin;
+    } else if (allowedOrigin instanceof RegExp) {
+      return allowedOrigin.test(origin);
+    }
+    return false;
+  });
+  
+  if (isAllowed || !origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, company');
+  }
   
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
