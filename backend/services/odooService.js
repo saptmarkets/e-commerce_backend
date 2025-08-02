@@ -350,22 +350,42 @@ class OdooService {
   }
 
   /**
-   * Fetch categories
+   * Fetch categories from Odoo
    */
   async fetchCategories(domain = [], limit = 1000, offset = 0) {
-    const categoryFields = [
-      'id', 'name', 'complete_name', 'parent_id',
-      'create_date', 'write_date'
-    ];
+    try {
+      console.log(`\n📂 Fetching categories from Odoo...`);
+      console.log(`   Domain:`, JSON.stringify(domain, null, 2));
+      console.log(`   Limit: ${limit}, Offset: ${offset}`);
 
-    return await this.searchRead(
-      'product.category',
-      domain,
-      categoryFields,
-      offset,
-      limit,
-      'write_date desc'
-    );
+      // Check if active field exists in product.category model
+      const fieldsResponse = await this.callOdoo('product.category', 'fields_get', [], {
+        attributes: ['string', 'type', 'required', 'readonly']
+      });
+
+      const hasActiveField = fieldsResponse && fieldsResponse.active;
+      
+      // Adjust domain based on field availability
+      let adjustedDomain = domain;
+      if (!hasActiveField && domain.some(condition => condition[0] === 'active')) {
+        console.log('⚠️  Active field not available in product.category, removing active filter');
+        adjustedDomain = domain.filter(condition => condition[0] !== 'active');
+      }
+
+      const categories = await this.searchRead(
+        'product.category',
+        adjustedDomain,
+        ['id', 'name', 'complete_name', 'parent_id'],
+        offset,
+        limit
+      );
+
+      console.log(`✅ Successfully fetched ${categories.length} categories`);
+      return categories;
+    } catch (error) {
+      console.error('❌ Error fetching categories:', error.message);
+      throw error;
+    }
   }
 
   /**
