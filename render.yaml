@@ -2,6 +2,7 @@ services:
   - type: web
     name: saptmarkets-backend
     env: node
+    rootDir: backend
     startCommand: npm start
     envVars:
       - key: MONGODB_URI
