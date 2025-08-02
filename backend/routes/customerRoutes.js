@@ -6,6 +6,7 @@ const {
   signUpWithProvider,
   signUpWithOauthProvider,
   verifyEmailAddress,
+  verifyEmailCode,
   verifyPhoneNumber,
   verifyPhoneCode,
   verifyAndRegisterCustomer,
