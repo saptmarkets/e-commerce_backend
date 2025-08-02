@@ -12,53 +12,67 @@ const {
 } = require("../lib/email-sender/templates/forget-password");
 const { createWelcomeNotification } = require("./notificationController");
 const smsService = require("../lib/phone-verification/smsService");
+const emailVerificationService = require("../lib/email-verification/emailVerificationService");
 
 const verifyEmailAddress = async (req, res) => {
   try {
-    console.log("Verification request for:", req.body.email);
-    const isAdded = await Customer.findOne({ email: req.body.email });
+    const { name, email, password } = req.body;
+    
+    console.log("📧 Email verification request for:", email);
+
+    // Check if email is provided
+    if (!email) {
+      return res.status(400).send({
+        message: "Email address is required.",
+      });
+    }
+
+    // Validate email format
+    if (!emailVerificationService.validateEmail(email)) {
+      return res.status(400).send({
+        message: "Invalid email format. Please provide a valid email address.",
+      });
+    }
+
+    // Check if the email is already associated with an existing customer
+    const isAdded = await Customer.findOne({ email });
     if (isAdded) {
       return res.status(403).send({
-        message: "This Email already Added!",
+        message: "This email is already registered.",
       });
-    } else {
-      console.log("Creating verification token with password");
-      const token = tokenForVerify({
-        name: req.body.name,
-        email: req.body.email,
-        password: req.body.password
-      });
-      
-      const option = {
-        name: req.body.name,
-        email: req.body.email,
-        token: token,
-      };
-
-      const body = customerRegisterBody(option);
-        
-      const emailData = {
-        to: req.body.email,
-        subject: 'Verify Your Email',
-        html: body,
-      };
-
-      try {
-        await sendEmail(emailData);
-        res.send({
-          message: "Please check your email to verify your account!"
-        });
-      } catch (emailError) {
-        console.error("Failed to send verification email:", emailError);
-        res.status(500).send({
-          message: "Failed to send verification email. Please try again."
-        });
-      }
     }
+
+    // Generate a 6-digit verification code
+    const verificationCode = emailVerificationService.generateVerificationCode();
+
+    // Store verification code temporarily (you might want to use Redis for production)
+    global.emailVerificationCodes = global.emailVerificationCodes || new Map();
+    global.emailVerificationCodes.set(email, {
+      code: verificationCode,
+      name: name,
+      password: password,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    });
+
+    // Send verification code via email
+    const sent = await emailVerificationService.sendVerificationCode(email, name, verificationCode);
+
+    if (!sent) {
+      return res.status(500).send({
+        message: "Failed to send verification code. Please try again.",
+      });
+    }
+
+    const message = "Verification code sent to your email address!";
+    return res.send({ 
+      message,
+      email: email // Return email for frontend reference
+    });
   } catch (err) {
-    console.error("Email verification error:", err);
+    console.error("❌ Error during email verification:", err);
     res.status(500).send({
-      message: err.message
+      message: "Failed to send verification code. Please try again.",
     });
   }
 };
@@ -122,6 +136,92 @@ const verifyPhoneNumber = async (req, res) => {
     console.error("❌ Error during phone verification:", err);
     res.status(500).send({
       message: "Failed to send verification code. Please try again.",
+    });
+  }
+};
+
+const verifyEmailCode = async (req, res) => {
+  const { email, code } = req.body;
+
+  console.log("📧 Email code verification request for:", email);
+
+  if (!email || !code) {
+    return res.status(400).send({
+      message: "Email and verification code are required.",
+    });
+  }
+
+  try {
+    // Check if verification code exists and is valid
+    global.emailVerificationCodes = global.emailVerificationCodes || new Map();
+    const verificationData = global.emailVerificationCodes.get(email);
+
+    if (!verificationData) {
+      return res.status(400).send({
+        message: "No verification code found for this email. Please request a new code.",
+      });
+    }
+
+    // Check if code has expired
+    if (new Date() > verificationData.expiresAt) {
+      global.emailVerificationCodes.delete(email);
+      return res.status(400).send({
+        message: "Verification code has expired. Please request a new code.",
+      });
+    }
+
+    // Check if code matches
+    if (verificationData.code !== code) {
+      return res.status(400).send({
+        message: "Invalid verification code. Please check and try again.",
+      });
+    }
+
+    // Check if email is already registered
+    const existingCustomer = await Customer.findOne({ email });
+    if (existingCustomer) {
+      return res.status(400).send({
+        message: "This email is already registered!",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(verificationData.password, 12);
+
+    // Create new customer
+    const customer = new Customer({
+      name: verificationData.name,
+      email,
+      password: hashedPassword,
+    });
+
+    await customer.save();
+
+    // Clear the verification code
+    global.emailVerificationCodes.delete(email);
+
+    // Create welcome notification
+    try {
+      await createWelcomeNotification(customer._id);
+    } catch (notifError) {
+      console.error("Failed to create welcome notification:", notifError);
+    }
+
+    console.log("✅ Customer registered successfully via email verification:", email);
+
+    res.status(201).send({
+      message: "Account created successfully! You can now login.",
+      customer: {
+        id: customer._id,
+        name: customer.name,
+        email: customer.email
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Error during email code verification:", err);
+    res.status(500).send({
+      message: "Failed to verify code and create account. Please try again.",
     });
   }
 };
@@ -864,6 +964,7 @@ module.exports = {
   loginCustomer,
   verifyPhoneNumber,
   verifyPhoneCode,
+  verifyEmailCode,
   registerCustomer,
   addAllCustomers,
   signUpWithProvider,

@@ -25,6 +25,9 @@ const {
 //verify email
 router.post("/verify-email", verifyEmailAddress);
 
+//verify email code and register customer
+router.post("/verify-email-code", verifyEmailCode);
+
 //verify phone number
 router.post("/verify-phone", verifyPhoneNumber);
 
