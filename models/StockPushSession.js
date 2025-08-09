@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const ProductsSummarySchema = new Schema(
   {
     product: { type: Schema.Types.ObjectId, ref: 'Product' },
-    productTitle: { type: String },
+    productTitle: { type: Schema.Types.Mixed },
     unitId: { type: Schema.Types.ObjectId, ref: 'ProductUnit' },
     unitName: { type: String },
     quantity_before: { type: Number, default: 0 },
@@ -25,7 +25,7 @@ const ProductsSummarySchema = new Schema(
 const ErrorLogSchema = new Schema(
   {
     storeProductId: { type: String },
-    storeProductName: { type: String },
+    storeProductName: { type: Schema.Types.Mixed },
     error: { type: String },
     timestamp: { type: Date, default: Date.now },
   },
@@ -35,7 +35,7 @@ const ErrorLogSchema = new Schema(
 const SuccessLogSchema = new Schema(
   {
     storeProductId: { type: String },
-    storeProductName: { type: String },
+    storeProductName: { type: Schema.Types.Mixed },
     odooProductId: { type: String },
     timestamp: { type: Date, default: Date.now },
   },
