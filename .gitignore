@@ -1,0 +1,90 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+env.local
+env.development
+env.production
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Uploads directory
+uploads/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files - EXCLUDE FROM PRODUCTION
+test-*.js
+check-*.js
+debug-*.js
+add-admin.js
+create-admin.js
+quick-add-driver.js
+fix-and-import-data.js
+import-basic-data.js
+
+# Local development files
+setup-*.bat
+update-*.ps1
+push.ps1
+
+# Backup files
+*-backup.js
+app-backup.js
+start-server-backup.js
+standalone-stock-push-server-backup.js
+backup/
+
+# Documentation files (keep only README.md)
+*.md
+!README.md
+
+# Temporary files
+*.tmp
+*.temp
+
+# Package lock (will be regenerated)
+package-lock.json
+
+# Platform-specific files
+railway.json
