@@ -7,7 +7,8 @@ exports.listSessions = async (req, res) => {
     const items = await StockPushSession.find({})
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate({ path: 'products_summary.product', select: 'title image name' });
 
     // Map additional compatibility fields expected by admin UI
     const mapped = items.map((s) => ({
@@ -27,12 +28,19 @@ exports.listSessions = async (req, res) => {
 
 exports.getStats = async (req, res) => {
   try {
-    const total = await StockPushSession.countDocuments({});
-    const inProgress = await StockPushSession.countDocuments({ status: 'in_progress' });
-    const completed = await StockPushSession.countDocuments({ status: 'completed' });
-    const partial = await StockPushSession.countDocuments({ status: 'partial' });
-    const failed = await StockPushSession.countDocuments({ status: 'failed' });
-    res.json({ success: true, data: { total, inProgress, completed, partial, failed } });
+    const [total, inProgress, completed, partial, failed] = await Promise.all([
+      StockPushSession.countDocuments({}),
+      StockPushSession.countDocuments({ status: 'in_progress' }),
+      StockPushSession.countDocuments({ status: 'completed' }),
+      StockPushSession.countDocuments({ status: 'partial' }),
+      StockPushSession.countDocuments({ status: 'failed' }),
+    ]);
+
+    const successful = completed; // treat only completed as successful
+    const pending = inProgress;   // align naming used by UI
+    const success_rate = total > 0 ? Math.round((successful / total) * 100) : 0;
+
+    res.json({ success: true, data: { total, successful, failed, partial, pending, success_rate } });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
@@ -59,7 +67,7 @@ exports.createSession = async (req, res) => {
 exports.syncSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const session = await StockPushSession.findById(id);
+    const session = await StockPushSession.findById(id).populate({ path: 'products_summary.product', select: 'title image name' });
     if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
     res.json({ success: true, data: session });
   } catch (e) {
