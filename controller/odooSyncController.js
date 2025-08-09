@@ -1006,9 +1006,8 @@ const pushBackStock = async (req, res) => {
   try {
     console.log('🚀 pushBackStock called with:', { sourceLocationId, destinationLocationId });
     console.log('🔍 DEBUG: Request user:', req.user ? `ID: ${req.user._id}, Name: ${req.user.name}` : 'No user in request');
-    
-    // Create a stock push session to track this operation
- 
+
+    // Resolve admin user
     let adminUser = null;
     if (req.user && req.user._id) {
       adminUser = await Admin.findById(req.user._id);
@@ -1019,7 +1018,14 @@ const pushBackStock = async (req, res) => {
         return res.status(500).json({ success: false, message: 'No admin user found. Please create an admin account first.' });
       }
     }
-    
+
+    // Find units with pending quantity before creating a session
+    const units = await ProductUnit.find({ pendingOdooQty: { $ne: 0 } }).populate('product');
+    if (!units || units.length === 0) {
+      return res.status(400).json({ success: false, message: "There isn't any unit to push" });
+    }
+
+    // Create a stock push session to track this operation
     const sessionId = `SPS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const session = new StockPushSession({
       name: `Stock Push - ${sourceLocationId} to ${destinationLocationId}`,
@@ -1036,9 +1042,6 @@ const pushBackStock = async (req, res) => {
         destinationLocationId: Number(destinationLocationId),
       }
     });
-    await session.save();
-
-    const units = await ProductUnit.find({ pendingOdooQty: { $ne: 0 } }).populate('product');
     session.totalProducts = units.length;
     await session.save();
 
@@ -1185,17 +1188,17 @@ const pushBackStock = async (req, res) => {
     session.completedAt = new Date();
     await session.save();
 
-    res.json({ 
-      success: errors.length === 0, 
-      pushed, 
+    res.json({
+      success: errors.length === 0,
+      pushed,
       errors,
       detailedReport,
       sessionId: session.sessionId,
       sessionStatus: session.status,
     });
   } catch (err) {
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: err.message,
       error: 'An error occurred during the stock push operation',
     });
