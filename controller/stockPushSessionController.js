@@ -4,11 +4,22 @@ exports.listSessions = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
-    const [items, total] = await Promise.all([
-      StockPushSession.find({}).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
-      StockPushSession.countDocuments({}),
-    ]);
-    res.json({ success: true, data: items, pagination: { page: Number(page), limit: Number(limit), total } });
+    const items = await StockPushSession.find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    // Map additional compatibility fields expected by admin UI
+    const mapped = items.map((s) => ({
+      ...s.toObject(),
+      session_id: s.sessionId,
+      push_timestamp: s.createdAt,
+      total_products_affected: s.totalProducts,
+      total_quantity_changed: s.totalQuantityChanged,
+    }));
+
+    const total = await StockPushSession.countDocuments({});
+    res.json({ success: true, data: mapped, pagination: { page: Number(page), limit: Number(limit), total } });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
@@ -50,7 +61,6 @@ exports.syncSession = async (req, res) => {
     const { id } = req.params;
     const session = await StockPushSession.findById(id);
     if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
-    // Placeholder – real sync handled by odooSyncController pushBackStock
     res.json({ success: true, data: session });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
