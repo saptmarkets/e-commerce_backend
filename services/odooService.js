@@ -1199,6 +1199,23 @@ class OdooService {
       uid: this.uid,
     };
   }
+
+  /**
+   * Convenience: fetch list of branch locations (internal and related types)
+   * Returns [{ id, name, usage }]
+   */
+  async getBranches(limit = 500) {
+    const relevantUsages = ['internal', 'inventory', 'inventory_loss', 'loss', 'view'];
+    const allLocations = await this.searchRead(
+      'stock.location',
+      [],
+      ['id', 'complete_name', 'usage'],
+      0,
+      limit
+    );
+    const locations = (allLocations || []).filter(l => relevantUsages.includes(l.usage));
+    return locations.map(l => ({ id: l.id, name: l.complete_name, usage: l.usage }));
+  }
 }
 
 module.exports = new OdooService(); 
