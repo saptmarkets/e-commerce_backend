@@ -11,8 +11,8 @@ const customerInvoiceEmailBody = require("../lib/email-sender/templates/order-to
 const VerificationCodeGenerator = require("../lib/verification-code/generator");
 const { createOrderNotification } = require("./notificationController");
 
-// Feature flag for revert-to-checkout functionality
-const REVERT_TO_CHECKOUT_ENABLED = process.env.REVERT_TO_CHECKOUT_ENABLED === 'true';
+// Feature flag for revert-to-checkout functionality (default enabled if not set)
+const REVERT_TO_CHECKOUT_ENABLED = (process.env.REVERT_TO_CHECKOUT_ENABLED ?? 'true') === 'true';
 
 const addOrder = async (req, res) => {
   try {
