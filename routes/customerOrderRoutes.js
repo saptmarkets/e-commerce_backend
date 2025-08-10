@@ -6,6 +6,7 @@ const {
   getOrderById,
   getOrderByInvoice,
   sendEmailInvoiceToCustomer,
+  revertToCheckout,
 } = require("../controller/customerOrderController");
 const { customerCancelOrder } = require("../controller/orderController");
 const { isAuth } = require("../config/auth");
@@ -22,10 +23,13 @@ router.get("/:id", isAuth, getOrderById);
 //get a order by invoice
 router.get("/invoice/:invoice", isAuth, getOrderByInvoice);
 
-// Customer cancel their own order
-router.put("/:id/cancel", isAuth, customerCancelOrder);
+//send invoice to customer email
+router.post("/email-invoice", sendEmailInvoiceToCustomer);
 
-//send email to customer
-router.post("/email-invoice", isAuth, sendEmailInvoiceToCustomer);
+//cancel order by customer
+router.put("/cancel/:id", isAuth, customerCancelOrder);
+
+//revert order to checkout (new feature - behind feature flag)
+router.post("/:id/revert-to-checkout", isAuth, revertToCheckout);
 
 module.exports = router;

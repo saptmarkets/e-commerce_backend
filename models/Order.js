@@ -51,17 +51,21 @@ const orderSchema = new mongoose.Schema(
     user_info: {
       name: {
         type: String,
-        required: false,
+        required: true,
+      },
+      contact: {
+        type: String,
+        required: true,
       },
       email: {
         type: String,
         required: false,
       },
-      contact: {
-        type: String,
-        required: false,
-      },
       address: {
+        type: String,
+        required: true,
+      },
+      country: {
         type: String,
         required: false,
       },
@@ -69,51 +73,9 @@ const orderSchema = new mongoose.Schema(
         type: String,
         required: false,
       },
-      country: {
-        type: String,
-        required: false,
-      },
       zipCode: {
         type: String,
         required: false,
-      },
-      // GPS delivery location data
-      deliveryLocation: {
-        latitude: {
-          type: Number,
-          required: false,
-        },
-        longitude: {
-          type: Number,
-          required: false,
-        },
-        accuracy: {
-          type: Number,
-          required: false,
-        },
-        googleMapsLink: {
-          type: String,
-          required: false,
-        },
-        googleMapsAddressLink: {
-          type: String,
-          required: false,
-        },
-        timestamp: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-      // Legacy coordinates field (for backward compatibility)
-      coordinates: {
-        latitude: {
-          type: Number,
-          required: false,
-        },
-        longitude: {
-          type: Number,
-          required: false,
-        },
       },
     },
     subTotal: {
@@ -123,33 +85,26 @@ const orderSchema = new mongoose.Schema(
     shippingCost: {
       type: Number,
       required: true,
+      default: 0,
     },
     discount: {
       type: Number,
-      required: true,
+      required: false,
       default: 0,
     },
-    loyaltyDiscount: {
-      type: Number,
-      default: 0,
-    },
-    loyaltyPointsUsed: {
-      type: Number,
-      default: 0,
-    },
-
     total: {
       type: Number,
       required: true,
-    },
-    shippingOption: {
-      type: String,
-      required: false,
     },
     paymentMethod: {
       type: String,
       required: true,
     },
+    paymentStatus: {
+      type: String,
+      default: "Pending",
+    },
+
     cardInfo: {
       type: Object,
       required: false,
@@ -169,6 +124,31 @@ const orderSchema = new mongoose.Schema(
     },
     cancelledAt: {
       type: Date,
+      required: false,
+    },
+    
+    // New fields for order editing functionality
+    version: {
+      type: Number,
+      default: 1,
+    },
+    lockedAt: {
+      type: Date,
+      required: false,
+    },
+    lockedReason: {
+      type: String,
+      enum: ["driver_accepted", "admin_locked", "processing_started"],
+      required: false,
+    },
+    cancelledReason: {
+      type: String,
+      enum: ["edit_revert", "customer_request", "admin_cancel", "payment_failed", "out_of_stock"],
+      required: false,
+    },
+    previousOrderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
       required: false,
     },
     
@@ -229,78 +209,68 @@ const orderSchema = new mongoose.Schema(
       // Product collection checklist
       productChecklist: [{
         productId: String,
-        title: String,
+        productTitle: String,
         quantity: Number,
-        price: Number,
-        originalPrice: Number,
-        image: String,
         collected: { type: Boolean, default: false },
         collectedAt: Date,
-        collectedBy: String, // Driver name/ID
-        notes: String,
-        
-        // Multi-unit information
-        unitName: String,
-        packQty: Number,
-        unitId: String,
-        selectedUnitId: String,
-        unitType: String,
-        unitValue: Number,
-        
-        // Enhanced display fields
-        displayQuantity: String,
-        unitCalculation: String,
-        totalPieces: Number,
-        pieceCalculation: String,
-        pricePerPiece: Number,
-        pricePerPieceDisplay: String,
-        pricePerBaseUnit: Number,
-        unitPrice: Number,
-        totalPrice: Number,
-        
-        // Product details
-        description: String,
-        sku: String,
-        barcode: String,
-        arabicTitle: String,
-        images: [String],
-        attributes: Object,
-        weight: Number,
-        dimensions: Object,
-        tags: [String],
-        
-        // Combo information
-        isCombo: { type: Boolean, default: false },
-        comboDetails: Object,
-        
-        // Bulk pricing and constraints
-        bulkPricing: [Object],
-        costPrice: Number,
-        minOrderQuantity: Number,
-        maxOrderQuantity: Number
+        notes: String
       }],
-      // Delivery completion tracking
-      allItemsCollected: {
-        type: Boolean,
-        default: false,
-      },
-      collectionCompletedAt: {
-        type: Date,
-        required: false,
-      },
-      deliveryNotes: {
-        type: String,
-        required: false,
-      },
-      deliveryProof: {
-        photo: String,
-        signature: String,
-        recipientName: String,
-        location: {
-          latitude: Number,
-          longitude: Number
-        }
-      }
+      allItemsCollected: { type: Boolean, default: false },
+      collectionCompletedAt: Date
+    },
+
+    // Loyalty system fields
+    loyaltyPointsUsed: {
+      type: Number,
+      default: 0,
+    },
+    loyaltyPointsEarned: {
+      type: Number,
+      default: 0,
+    },
+    loyaltyDiscount: {
+      type: Number,
+      default: 0,
+    },
+
+    // Coupon system fields
+    couponCode: {
+      type: String,
+      required: false,
+    },
+    couponDiscount: {
+      type: Number,
+      default: 0,
+    },
+
+    // Location data for delivery
+    coordinates: {
+      latitude: Number,
+      longitude: Number,
+    },
+    deliveryLocation: {
+      latitude: Number,
+      longitude: Number,
+      googleMapsLink: String,
+      googleMapsAddressLink: String,
+      accuracy: Number,
+    },
+
+    // Company information for invoice
+    company_info: {
+      company: String,
+      address: String,
+      phone: String,
+      email: String,
+      website: String,
+      currency: String,
+      vat_number: String,
+    },
+
+    // Notes field
+    notes: {
+      type: String,
+      required: false,
     },
   },
   {
@@ -308,11 +278,20 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-const Order = mongoose.model(
-  "Order",
-  orderSchema.plugin(AutoIncrement, {
-    inc_field: "invoice",
-    start_seq: 10000,
-  })
-);
+// Add indexes for better query performance
+orderSchema.index({ user: 1, status: 1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ invoice: 1 });
+orderSchema.index({ version: 1 });
+orderSchema.index({ lockedAt: 1 });
+orderSchema.index({ previousOrderId: 1 });
+
+// Auto-increment invoice number
+orderSchema.plugin(AutoIncrement, {
+  inc_field: "invoice",
+  start_seq: 100000,
+});
+
+const Order = mongoose.model("Order", orderSchema);
+
 module.exports = Order;

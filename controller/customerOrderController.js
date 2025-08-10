@@ -3,12 +3,16 @@ const mongoose = require("mongoose");
 const MailChecker = require("mailchecker");
 
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 const { sendEmail } = require("../lib/email-sender/sender");
 const { handleCreateInvoice } = require("../lib/email-sender/create");
-const { handleProductQuantity, handleLoyaltyPoints } = require("../lib/stock-controller/others");
+const { handleProductQuantity, handleLoyaltyPoints, handleOrderCancellation } = require("../lib/stock-controller/others");
 const customerInvoiceEmailBody = require("../lib/email-sender/templates/order-to-customer");
 const VerificationCodeGenerator = require("../lib/verification-code/generator");
 const { createOrderNotification } = require("./notificationController");
+
+// Feature flag for revert-to-checkout functionality
+const REVERT_TO_CHECKOUT_ENABLED = process.env.REVERT_TO_CHECKOUT_ENABLED === 'true';
 
 const addOrder = async (req, res) => {
   try {
@@ -75,6 +79,7 @@ const addOrder = async (req, res) => {
       user: req.user._id,
       paymentStatus: 'Pending', // For COD, payment is pending until delivery
       status: 'Received',
+      version: 1,
       verificationCode: verificationCode,
       verificationCodeUsed: false,
       deliveryInfo: {
@@ -131,6 +136,166 @@ const addOrder = async (req, res) => {
     console.error('Order creation error:', err.message);
     res.status(500).send({
       message: err.message || "Some error occurred while creating the order",
+    });
+  }
+};
+
+// Revert order to checkout (cancel and return cart data)
+const revertToCheckout = async (req, res) => {
+  try {
+    // Check if feature is enabled
+    if (!REVERT_TO_CHECKOUT_ENABLED) {
+      return res.status(404).send({
+        message: "Feature not available",
+      });
+    }
+
+    const { id } = req.params;
+    const { version } = req.headers['if-match'] ? { version: parseInt(req.headers['if-match']) } : { version: null };
+    const idempotencyKey = req.headers['idempotency-key'];
+
+    // Validate required headers
+    if (!version) {
+      return res.status(400).send({
+        message: "If-Match header with version is required",
+      });
+    }
+
+    if (!idempotencyKey) {
+      return res.status(400).send({
+        message: "Idempotency-Key header is required",
+      });
+    }
+
+    // Find the order
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).send({
+        message: "Order not found",
+      });
+    }
+
+    // Check ownership
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).send({
+        message: "You don't have permission to modify this order",
+      });
+    }
+
+    // Check version for optimistic concurrency
+    if (order.version !== version) {
+      return res.status(409).send({
+        message: "Order has been modified. Please refresh and try again.",
+        currentVersion: order.version,
+      });
+    }
+
+    // Check if order can be reverted
+    if (order.status !== 'Received') {
+      return res.status(423).send({
+        message: "Order cannot be modified. Current status: " + order.status,
+      });
+    }
+
+    // Check if order is locked (driver accepted)
+    if (order.lockedAt || order.deliveryInfo?.assignedDriver) {
+      return res.status(423).send({
+        message: "Order has been accepted by a driver and cannot be modified",
+      });
+    }
+
+    // Start transaction for atomic operations
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Update order status to cancelled
+      const updatedOrder = await Order.findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            status: 'Cancel',
+            cancelReason: 'Customer requested to edit order',
+            cancelledBy: 'customer',
+            cancelledAt: new Date(),
+            cancelledReason: 'edit_revert',
+            version: order.version + 1,
+          }
+        },
+        { new: true, session }
+      );
+
+      // Handle order cancellation (restore stock, handle loyalty points)
+      await handleOrderCancellation(order, session);
+
+      // Build rehydrated cart from order
+      const cart = order.cart.map(item => ({
+        id: item.productId || item.id,
+        productId: item.productId || item.id,
+        title: item.title,
+        quantity: item.quantity,
+        selectedUnitId: item.selectedUnitId,
+        unitName: item.unitName,
+        unitValue: item.unitValue,
+        packQty: item.packQty,
+        price: item.price,
+        basePrice: item.basePrice,
+        image: item.image,
+        sku: item.sku,
+        category: item.category,
+        isCombo: item.isCombo,
+        promotion: item.promotion,
+        selectedProducts: item.selectedProducts,
+        comboPrice: item.comboPrice,
+        comboDetails: item.comboDetails,
+      }));
+
+      // Prepare response with cart and address data
+      const response = {
+        cart,
+        address: {
+          name: order.user_info.name,
+          contact: order.user_info.contact,
+          email: order.user_info.email,
+          address: order.user_info.address,
+          country: order.user_info.country,
+          city: order.user_info.city,
+          zipCode: order.user_info.zipCode,
+        },
+        coordinates: order.coordinates,
+        deliveryLocation: order.deliveryLocation,
+        coupon: order.couponCode ? {
+          code: order.couponCode,
+          // Note: Coupon validity will be re-checked at checkout
+        } : null,
+        notes: order.notes,
+        message: "Order cancelled successfully. Your items have been restored to checkout.",
+      };
+
+      await session.commitTransaction();
+
+      // TODO: Emit socket event for delivery app
+      // io.emit('order_cancelled', { 
+      //   orderId: id, 
+      //   reason: 'edit_revert',
+      //   version: updatedOrder.version 
+      // });
+
+      console.log(`Order ${order.invoice} reverted to checkout by customer ${req.user._id}`);
+
+      res.status(200).send(response);
+
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+  } catch (err) {
+    console.error('Revert to checkout error:', err.message);
+    res.status(500).send({
+      message: err.message || "Some error occurred while reverting the order",
     });
   }
 };
@@ -220,6 +385,15 @@ const getOrderCustomer = async (req, res) => {
 const getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
+    
+    // Return 410 Gone if order is cancelled to prevent opening in delivery app
+    if (order && order.status === 'Cancel') {
+      return res.status(410).send({
+        code: 'ORDER_CANCELLED',
+        message: 'This order has been cancelled',
+      });
+    }
+    
     res.send(order);
   } catch (err) {
     res.status(500).send({
@@ -336,4 +510,5 @@ module.exports = {
   getOrderCustomer,
   getOrderByInvoice,
   sendEmailInvoiceToCustomer,
+  revertToCheckout,
 };
