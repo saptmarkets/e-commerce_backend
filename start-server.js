@@ -61,7 +61,9 @@ connectDB();
 const app = express();
 
 // Security & parsers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 app.use(express.json({ limit: "4mb" }));
 app.use(express.urlencoded({ extended: true, limit: "4mb" }));
 
@@ -101,6 +103,9 @@ const corsOptions = {
     "Accept",
     "Authorization",
     "company",
+    // Added for edit order flow
+    "If-Match",
+    "Idempotency-Key",
   ],
   optionsSuccessStatus: 200,
 };
@@ -116,7 +121,7 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     res.header(
       "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization, company"
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization, company, If-Match, Idempotency-Key"
     );
   }
   if (req.method === "OPTIONS") {
