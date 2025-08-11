@@ -26,8 +26,8 @@ router.get("/invoice/:invoice", isAuth, getOrderByInvoice);
 //send invoice to customer email
 router.post("/email-invoice", sendEmailInvoiceToCustomer);
 
-//cancel order by customer
-router.put("/cancel/:id", isAuth, customerCancelOrder);
+//cancel order by customer (match client: /customer-order/:id/cancel)
+router.put("/:id/cancel", isAuth, customerCancelOrder);
 
 //revert order to checkout (new feature - behind feature flag)
 router.post("/:id/revert-to-checkout", isAuth, revertToCheckout);
