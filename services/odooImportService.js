@@ -232,10 +232,10 @@ class OdooImportService {
       };
 
       // 2) Iterate through each Odoo category and build full path
+      const processedCatIds = [];
       for (const cat of odooCats) {
         try {
-          if (cat.store_category_id) continue; // already mapped
-
+          // Always process; if already mapped just record and continue
           const rawPath = (cat.complete_name || cat.name || '').trim();
           if (!rawPath) {
             console.warn(`⚠️  Category id ${cat.id} has no name, skipping`);
@@ -248,15 +248,66 @@ class OdooImportService {
             parentId = await ensureStoreCategory(seg, parentId);
           }
 
-          // Save mapping for leaf category
-          await OdooCategory.updateOne(
-            { _id: cat._id },
-            { store_category_id: parentId, _sync_status: 'imported' }
-          );
+          // Save mapping for leaf category if missing
+          if (!cat.store_category_id || String(cat.store_category_id) !== String(parentId)) {
+            await OdooCategory.updateOne(
+              { _id: cat._id },
+              { store_category_id: parentId, _sync_status: 'imported' }
+            );
+          }
+          processedCatIds.push(cat.id);
         } catch (catErr) {
           console.error(`Category import error (ID ${cat.id}):`, catErr.message);
           errors.push(`Category ${cat.name || cat.id}: ${catErr.message}`);
         }
+      }
+
+      // 3) Reconcile existing products that were imported earlier but have unknown/missing categories
+      try {
+        if (processedCatIds.length > 0) {
+          console.log('🔄 Reconciling products category assignments for imported Odoo categories...');
+
+          // Build a map: odooCategoryId -> storeCategoryId
+          const mappedCats = await OdooCategory.find({ id: { $in: processedCatIds } }, { id: 1, store_category_id: 1 }).lean();
+          const odooIdToStoreCat = new Map(mappedCats.filter(c => c.store_category_id).map(c => [Number(c.id), String(c.store_category_id)]));
+
+          if (odooIdToStoreCat.size > 0) {
+            // Find Odoo products under these categories that already have a store product mapping
+            const odooProducts = await OdooProduct.find({ categ_id: { $in: Array.from(odooIdToStoreCat.keys()) }, store_product_id: { $ne: null } }, { categ_id: 1, store_product_id: 1 }).lean();
+
+            // Group store product ids by target store category id
+            const storeCatToProductIds = new Map();
+            for (const op of odooProducts) {
+              const storeCatId = odooIdToStoreCat.get(Number(op.categ_id));
+              if (!storeCatId) continue;
+              if (!storeCatToProductIds.has(storeCatId)) storeCatToProductIds.set(storeCatId, []);
+              storeCatToProductIds.get(storeCatId).push(op.store_product_id);
+            }
+
+            // Bulk update per category to minimize roundtrips
+            let updatedCount = 0;
+            for (const [storeCatId, productIds] of storeCatToProductIds.entries()) {
+              if (!productIds || productIds.length === 0) continue;
+
+              const res = await Product.updateMany(
+                {
+                  _id: { $in: productIds },
+                  // Update if missing category or currently assigned to a placeholder/unknown
+                  $or: [
+                    { category: { $exists: false } },
+                    { category: null },
+                  ],
+                },
+                { $set: { category: storeCatId, categories: [storeCatId] } }
+              );
+              updatedCount += res.modifiedCount || 0;
+            }
+
+            console.log(`✅ Reconciled product categories: ${updatedCount} products updated`);
+          }
+        }
+      } catch (reconErr) {
+        console.warn('⚠️ Product category reconciliation skipped due to error:', reconErr.message);
       }
 
       return { imported, errors };
