@@ -275,6 +275,18 @@ class OdooImportService {
             // Find Odoo products under these categories that already have a store product mapping
             const odooProducts = await OdooProduct.find({ categ_id: { $in: Array.from(odooIdToStoreCat.keys()) }, store_product_id: { $ne: null } }, { categ_id: 1, store_product_id: 1 }).lean();
 
+            // Identify placeholder/unknown categories in the store by common patterns
+            const unknownCats = await Category.find({
+              $or: [
+                { slug: /unknown/i },
+                { 'name.en': /unknown/i },
+                { 'name.ar': /غير معروف/i },
+                { 'name.en': /uncategor/i },
+                { 'name.ar': /غير مصنف/i },
+              ]
+            }, { _id: 1 }).lean();
+            const unknownCatIds = new Set(unknownCats.map(c => String(c._id)));
+
             // Group store product ids by target store category id
             const storeCatToProductIds = new Map();
             for (const op of odooProducts) {
@@ -289,17 +301,16 @@ class OdooImportService {
             for (const [storeCatId, productIds] of storeCatToProductIds.entries()) {
               if (!productIds || productIds.length === 0) continue;
 
-              const res = await Product.updateMany(
-                {
-                  _id: { $in: productIds },
-                  // Update if missing category or currently assigned to a placeholder/unknown
-                  $or: [
-                    { category: { $exists: false } },
-                    { category: null },
-                  ],
-                },
-                { $set: { category: storeCatId, categories: [storeCatId] } }
-              );
+              const query = {
+                _id: { $in: productIds },
+                $or: [
+                  { category: { $exists: false } },
+                  { category: null },
+                  { category: { $in: Array.from(unknownCatIds) } },
+                ],
+              };
+
+              const res = await Product.updateMany(query, { $set: { category: storeCatId, categories: [storeCatId] } });
               updatedCount += res.modifiedCount || 0;
             }
 
