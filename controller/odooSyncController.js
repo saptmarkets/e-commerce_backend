@@ -755,6 +755,31 @@ const syncToStore = async (req, res) => {
 
     for (const op of odooProducts) {
       try {
+        // Ensure we have a store product mapping when syncing categories
+        if (!op.store_product_id && allowed.categories) {
+          try {
+            const orClauses = [];
+            if (op.default_code) {
+              orClauses.push({ sku: op.default_code });
+            }
+            if (op.barcode) {
+              orClauses.push({ barcode: op.barcode });
+            }
+            if (orClauses.length > 0) {
+              const matchedStoreProduct = await Product.findOne({ $or: orClauses }, { _id: 1 });
+              if (matchedStoreProduct) {
+                await OdooProduct.updateOne(
+                  { _id: op._id },
+                  { $set: { store_product_id: matchedStoreProduct._id, _sync_status: 'imported' } }
+                );
+                op.store_product_id = matchedStoreProduct._id;
+              }
+            }
+          } catch (mapErr) {
+            console.warn('Category sync mapping resolution failed for product', op.id, mapErr.message);
+          }
+        }
+
         if (!op.store_product_id) continue;
         
         const updateData = {};
