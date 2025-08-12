@@ -315,6 +315,72 @@ class OdooImportService {
             }
 
             console.log(`✅ Reconciled product categories: ${updatedCount} products updated`);
+
+            // Fallback reconciliation for remaining Uncategorized using barcode/SKU match within processed categories
+            try {
+              // Find products currently in unknown categories
+              const unknownCatsArr = Array.from(unknownCatIds);
+              const unknownProducts = await Product.find({ category: { $in: unknownCatsArr } }, { _id: 1, barcode: 1, sku: 1 }).lean();
+              if (unknownProducts && unknownProducts.length > 0) {
+                // Build maps for quick lookup
+                const barcodeToProductIds = new Map();
+                const skuToProductIds = new Map();
+                for (const p of unknownProducts) {
+                  if (p.barcode) {
+                    const key = String(p.barcode).trim();
+                    if (!barcodeToProductIds.has(key)) barcodeToProductIds.set(key, []);
+                    barcodeToProductIds.get(key).push(p._id);
+                  }
+                  if (p.sku) {
+                    const key = String(p.sku).trim();
+                    if (!skuToProductIds.has(key)) skuToProductIds.set(key, []);
+                    skuToProductIds.get(key).push(p._id);
+                  }
+                }
+
+                // Fetch OdooProducts limited to processed categories matching barcodes/SKUs
+                const odooMatches = await OdooProduct.find({
+                  categ_id: { $in: Array.from(odooIdToStoreCat.keys()) },
+                  $or: [
+                    { barcode: { $in: Array.from(barcodeToProductIds.keys()) } },
+                    { default_code: { $in: Array.from(skuToProductIds.keys()) } },
+                  ],
+                }, { categ_id: 1, barcode: 1, default_code: 1 }).lean();
+
+                const storeCatToUnknownProducts = new Map();
+                for (const op of odooMatches) {
+                  const targetStoreCat = odooIdToStoreCat.get(Number(op.categ_id));
+                  if (!targetStoreCat) continue;
+
+                  let matchedIds = [];
+                  if (op.barcode && barcodeToProductIds.has(String(op.barcode).trim())) {
+                    matchedIds.push(...barcodeToProductIds.get(String(op.barcode).trim()));
+                  }
+                  if (op.default_code && skuToProductIds.has(String(op.default_code).trim())) {
+                    matchedIds.push(...skuToProductIds.get(String(op.default_code).trim()));
+                  }
+                  if (matchedIds.length === 0) continue;
+
+                  if (!storeCatToUnknownProducts.has(targetStoreCat)) storeCatToUnknownProducts.set(targetStoreCat, new Set());
+                  const setRef = storeCatToUnknownProducts.get(targetStoreCat);
+                  matchedIds.forEach(id => setRef.add(id));
+                }
+
+                let fallbackUpdated = 0;
+                for (const [storeCatId, idSet] of storeCatToUnknownProducts.entries()) {
+                  const ids = Array.from(idSet);
+                  if (ids.length === 0) continue;
+                  const res2 = await Product.updateMany(
+                    { _id: { $in: ids } },
+                    { $set: { category: storeCatId, categories: [storeCatId] } }
+                  );
+                  fallbackUpdated += res2.modifiedCount || 0;
+                }
+                console.log(`✅ Fallback (barcode/SKU) reconciliation updated ${fallbackUpdated} products`);
+              }
+            } catch (fbErr) {
+              console.warn('⚠️ Fallback reconciliation failed:', fbErr.message);
+            }
           }
         }
       } catch (reconErr) {
@@ -1267,6 +1333,64 @@ class OdooImportService {
 
         const res = await Product.updateMany(query, { $set: { category: storeCatId, categories: [storeCatId] } });
         updatedCount += res.modifiedCount || 0;
+      }
+
+      // Fallback: scan Uncategorized products and match by barcode/SKU against OdooProduct (all mappings)
+      try {
+        const unknownCatsArr = Array.from(unknownCatIds);
+        const unknownProducts = await Product.find({ category: { $in: unknownCatsArr } }, { _id: 1, barcode: 1, sku: 1 }).lean();
+        if (unknownProducts && unknownProducts.length > 0) {
+          const barcodeToIds = new Map();
+          const skuToIds = new Map();
+          for (const p of unknownProducts) {
+            if (p.barcode) {
+              const key = String(p.barcode).trim();
+              if (!barcodeToIds.has(key)) barcodeToIds.set(key, []);
+              barcodeToIds.get(key).push(p._id);
+            }
+            if (p.sku) {
+              const key = String(p.sku).trim();
+              if (!skuToIds.has(key)) skuToIds.set(key, []);
+              skuToIds.get(key).push(p._id);
+            }
+          }
+
+          const odooMatches = await OdooProduct.find({
+            $or: [
+              { barcode: { $in: Array.from(barcodeToIds.keys()) } },
+              { default_code: { $in: Array.from(skuToIds.keys()) } },
+            ],
+          }, { categ_id: 1, barcode: 1, default_code: 1 }).lean();
+
+          const storeCatToUnknownProducts = new Map();
+          for (const op of odooMatches) {
+            const storeCatId = odooIdToStoreCat.get(Number(op.categ_id));
+            if (!storeCatId) continue;
+            let ids = [];
+            if (op.barcode && barcodeToIds.has(String(op.barcode).trim())) {
+              ids.push(...barcodeToIds.get(String(op.barcode).trim()));
+            }
+            if (op.default_code && skuToIds.has(String(op.default_code).trim())) {
+              ids.push(...skuToIds.get(String(op.default_code).trim()));
+            }
+            if (ids.length === 0) continue;
+            if (!storeCatToUnknownProducts.has(storeCatId)) storeCatToUnknownProducts.set(storeCatId, new Set());
+            const setRef = storeCatToUnknownProducts.get(storeCatId);
+            ids.forEach(id => setRef.add(id));
+          }
+
+          let fbUpdated = 0;
+          for (const [storeCatId, idSet] of storeCatToUnknownProducts.entries()) {
+            const ids = Array.from(idSet);
+            if (ids.length === 0) continue;
+            const res2 = await Product.updateMany({ _id: { $in: ids } }, { $set: { category: storeCatId, categories: [storeCatId] } });
+            fbUpdated += res2.modifiedCount || 0;
+          }
+          updatedCount += fbUpdated;
+          console.log(`✅ Full reconciliation fallback updated ${fbUpdated} products`);
+        }
+      } catch (fbErr) {
+        console.warn('⚠️ Full reconciliation fallback failed:', fbErr.message);
       }
 
       console.log(`✅ Full reconciliation updated ${updatedCount} products`);

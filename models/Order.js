@@ -218,7 +218,7 @@ const orderSchema = new mongoose.Schema(
       allItemsCollected: { type: Boolean, default: false },
       collectionCompletedAt: Date
     },
-
+        
     // Loyalty system fields
     loyaltyPointsUsed: {
       type: Number,
@@ -231,13 +231,13 @@ const orderSchema = new mongoose.Schema(
     loyaltyDiscount: {
       type: Number,
       default: 0,
-    },
+      },
 
     // Coupon system fields
     couponCode: {
-      type: String,
-      required: false,
-    },
+        type: String,
+        required: false,
+      },
     couponDiscount: {
       type: Number,
       default: 0,
@@ -249,7 +249,7 @@ const orderSchema = new mongoose.Schema(
       longitude: Number,
     },
     deliveryLocation: {
-      latitude: Number,
+          latitude: Number,
       longitude: Number,
       googleMapsLink: String,
       googleMapsAddressLink: String,
@@ -287,8 +287,8 @@ orderSchema.index({ lockedAt: 1 });
 orderSchema.index({ previousOrderId: 1 });
 
 // Auto-increment invoice number
-orderSchema.plugin(AutoIncrement, {
-  inc_field: "invoice",
+  orderSchema.plugin(AutoIncrement, {
+    inc_field: "invoice",
   start_seq: 100000,
 });
 
