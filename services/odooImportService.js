@@ -1213,6 +1213,69 @@ class OdooImportService {
       console.error('❌ Data consistency validation failed:', error);
     }
   }
+
+  /**
+   * Reconcile all existing products' categories using Odoo mappings.
+   * Safe: only updates products with missing/null or placeholder/unknown categories.
+   */
+  async reconcileAllProductCategories() {
+    try {
+      console.log('🔄 Full reconciliation: products category assignments by Odoo mapping...');
+
+      // Build mapping of odoo category -> store category
+      const mappedCats = await OdooCategory.find({ store_category_id: { $ne: null } }, { id: 1, store_category_id: 1 }).lean();
+      if (!mappedCats || mappedCats.length === 0) {
+        console.log('ℹ️ No Odoo category mappings found');
+        return { updated: 0 };
+      }
+      const odooIdToStoreCat = new Map(mappedCats.map(c => [Number(c.id), String(c.store_category_id)]));
+
+      // Identify unknown categories in store
+      const unknownCats = await Category.find({
+        $or: [
+          { slug: /unknown/i },
+          { 'name.en': /unknown/i },
+          { 'name.ar': /غير معروف/i },
+          { 'name.en': /uncategor/i },
+          { 'name.ar': /غير مصنف/i },
+        ]
+      }, { _id: 1 }).lean();
+      const unknownCatIds = new Set(unknownCats.map(c => String(c._id)));
+
+      // Collect store product ids grouped by target store category based on OdooProduct mapping
+      const odooProducts = await OdooProduct.find({ store_product_id: { $ne: null }, categ_id: { $ne: null } }, { categ_id: 1, store_product_id: 1 }).lean();
+      const storeCatToProductIds = new Map();
+      for (const op of odooProducts) {
+        const storeCatId = odooIdToStoreCat.get(Number(op.categ_id));
+        if (!storeCatId) continue;
+        if (!storeCatToProductIds.has(storeCatId)) storeCatToProductIds.set(storeCatId, []);
+        storeCatToProductIds.get(storeCatId).push(op.store_product_id);
+      }
+
+      let updatedCount = 0;
+      for (const [storeCatId, productIds] of storeCatToProductIds.entries()) {
+        if (!productIds || productIds.length === 0) continue;
+
+        const query = {
+          _id: { $in: productIds },
+          $or: [
+            { category: { $exists: false } },
+            { category: null },
+            { category: { $in: Array.from(unknownCatIds) } },
+          ],
+        };
+
+        const res = await Product.updateMany(query, { $set: { category: storeCatId, categories: [storeCatId] } });
+        updatedCount += res.modifiedCount || 0;
+      }
+
+      console.log(`✅ Full reconciliation updated ${updatedCount} products`);
+      return { updated: updatedCount };
+    } catch (err) {
+      console.warn('⚠️ Full reconciliation failed:', err.message);
+      return { updated: 0, error: err.message };
+    }
+  }
 }
 
 module.exports = new OdooImportService(); 
