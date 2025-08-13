@@ -758,22 +758,29 @@ const syncToStore = async (req, res) => {
         // Ensure we have a store product mapping when syncing categories
         if (!op.store_product_id && allowed.categories) {
           try {
-            const orClauses = [];
-            if (op.default_code) {
-              orClauses.push({ sku: op.default_code });
-            }
-            if (op.barcode) {
-              orClauses.push({ barcode: op.barcode });
-            }
-            if (orClauses.length > 0) {
-              const matchedStoreProduct = await Product.findOne({ $or: orClauses }, { _id: 1 });
-              if (matchedStoreProduct) {
-                await OdooProduct.updateOne(
-                  { _id: op._id },
-                  { $set: { store_product_id: matchedStoreProduct._id, _sync_status: 'imported' } }
-                );
-                op.store_product_id = matchedStoreProduct._id;
+            // 1) Prefer mapping via Product.odooProductId
+            let matchedStoreProduct = await Product.findOne({ odooProductId: op.id }, { _id: 1 });
+
+            // 2) Fallback to SKU/barcode mapping if needed
+            if (!matchedStoreProduct) {
+              const orClauses = [];
+              if (op.default_code) {
+                orClauses.push({ sku: op.default_code });
               }
+              if (op.barcode) {
+                orClauses.push({ barcode: op.barcode });
+              }
+              if (orClauses.length > 0) {
+                matchedStoreProduct = await Product.findOne({ $or: orClauses }, { _id: 1 });
+              }
+            }
+
+            if (matchedStoreProduct) {
+              await OdooProduct.updateOne(
+                { _id: op._id },
+                { $set: { store_product_id: matchedStoreProduct._id, _sync_status: 'imported' } }
+              );
+              op.store_product_id = matchedStoreProduct._id;
             }
           } catch (mapErr) {
             console.warn('Category sync mapping resolution failed for product', op.id, mapErr.message);
@@ -801,12 +808,25 @@ const syncToStore = async (req, res) => {
           updateData.stock = stockQty;
         }
 
-        // 🚀 PERFORMANCE OPTIMIZATION: Use pre-fetched category map
+        // 🚀 Ensure category mapping exists and use it
         if (allowed.categories && op.categ_id) {
-          const categoryId = categoryMap.get(op.categ_id);
-        if (categoryId) {
-          updateData.category = categoryId;
-          updateData.categories = [categoryId];
+          let categoryId = categoryMap.get(op.categ_id);
+          if (!categoryId) {
+            try {
+              // Import this category to build mapping if missing
+              await odooImportService.importCategories([op.categ_id]);
+              const cat = await OdooCategory.findOne({ id: op.categ_id }).lean();
+              if (cat && cat.store_category_id) {
+                categoryId = cat.store_category_id;
+                categoryMap.set(op.categ_id, categoryId);
+              }
+            } catch (impErr) {
+              console.warn('Failed to import category for', op.categ_id, impErr.message);
+            }
+          }
+          if (categoryId) {
+            updateData.category = categoryId;
+            updateData.categories = [categoryId];
           }
         }
 
