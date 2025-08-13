@@ -104,10 +104,16 @@ const updateCategory = async (req, res) => {
       category.icon = req.body.icon;
       category.headerImage = req.body.headerImage;
       category.status = req.body.status;
-      category.parentId = req.body.parentId
-        ? req.body.parentId
-        : category.parentId;
-      category.parentName = req.body.parentName;
+      // Respect explicit parentId updates, including null to make it a main category
+      if (Object.prototype.hasOwnProperty.call(req.body, 'parentId')) {
+        category.parentId = req.body.parentId === null ? null : req.body.parentId;
+      }
+      // If parentId cleared, default parentName to Home
+      if (req.body.parentName !== undefined) {
+        category.parentName = req.body.parentName;
+      } else if (req.body.parentId === null) {
+        category.parentName = 'Home';
+      }
 
       await category.save();
       res.send({ message: "Category Updated Successfully!" });
