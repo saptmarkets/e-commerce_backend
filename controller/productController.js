@@ -770,6 +770,7 @@ const checkProductStockAvailability = async (req, res) => {
 
 const getShowingStoreProducts = async (req, res) => {
   const { category, title, slug, page, limit } = req.query; // Added page and limit
+  const includeOutOfStock = String(req.query.include_out_of_stock || '').toLowerCase() === 'true';
 
   let queryObject = {};
   let sortObject = { _id: -1 }; // Default sort by latest
@@ -788,8 +789,10 @@ const getShowingStoreProducts = async (req, res) => {
   // Base query conditions
   queryObject = {
     status: "show",
-    stock: { $gt: 0 },
   };
+  if (!includeOutOfStock) {
+    queryObject.stock = { $gt: 0 };
+  }
 
   if (title) {
     // Enhanced comprehensive search: search across multiple fields
