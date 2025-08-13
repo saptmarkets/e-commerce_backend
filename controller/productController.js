@@ -11,7 +11,7 @@ const getAllChildCategoryIds = async (categoryId) => {
   // We already validate/convert categoryId in the calling functions (getAllProducts, getShowingStoreProducts)
   // so at this point, categoryId is expected to be a valid mongoose.Types.ObjectId instance.
   
-  const children = await Category.find({ parentId: categoryId }, { _id: 1 }).lean();
+  const children = await Category.find({ parentId: categoryId.toString() }, { _id: 1 }).lean();
   
   const childObjectIds = children.map(child => child._id);
   
