@@ -49,23 +49,45 @@ async function main() {
     let errors = 0;
 
     // Cursor approach to stream through large sets
-    const cursor = Product.find(matchQuery, { _id: 1, sku: 1, barcode: 1 }).lean().cursor();
+    const cursor = Product.find(matchQuery, { _id: 1, sku: 1, barcode: 1, odooProductId: 1 }).lean().cursor();
 
     for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
       processed++;
       const productId = doc._id;
       const sku = doc.sku && String(doc.sku).trim();
       const barcode = doc.barcode && String(doc.barcode).trim();
+      const odooProductId = typeof doc.odooProductId === 'number' ? doc.odooProductId : (doc.odooProductId ? Number(doc.odooProductId) : null);
 
       try {
-        // Resolve Odoo product mapping
-        let odooProd = await OdooProduct.findOne({ store_product_id: productId }).lean();
+        // Resolve Odoo product mapping - preference order:
+        // 1) Product.odooProductId -> OdooProduct.id
+        // 2) OdooProduct.store_product_id -> productId
+        // 3) Fallback via barcode/sku
+        let odooProd = null;
+
+        if (odooProductId) {
+          odooProd = await OdooProduct.findOne({ id: odooProductId }).lean();
+        }
+
+        if (!odooProd) {
+          odooProd = await OdooProduct.findOne({ store_product_id: productId }).lean();
+        }
+
         if (!odooProd) {
           const orClauses = [];
           if (barcode) orClauses.push({ barcode });
           if (sku) orClauses.push({ default_code: sku });
           if (orClauses.length > 0) {
             odooProd = await OdooProduct.findOne({ $or: orClauses }).lean();
+
+            // If we found via fallback, persist mapping for future
+            if (odooProd && !odooProd.store_product_id) {
+              try {
+                await OdooProduct.updateOne({ _id: odooProd._id }, { $set: { store_product_id: productId } });
+              } catch (mapSaveErr) {
+                console.warn('⚠️ Failed to persist store_product_id mapping on OdooProduct', mapSaveErr.message);
+              }
+            }
           }
         }
 
