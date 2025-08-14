@@ -11,12 +11,31 @@ const getAllChildCategoryIds = async (categoryId) => {
   // We already validate/convert categoryId in the calling functions (getAllProducts, getShowingStoreProducts)
   // so at this point, categoryId is expected to be a valid mongoose.Types.ObjectId instance.
   
-  const children = await Category.find({ parentId: categoryId.toString() }, { _id: 1 }).lean();
+  const allIds = [categoryId];
+  const queue = [categoryId.toString()];
+  const seen = new Set(queue);
   
-  const childObjectIds = children.map(child => child._id);
+  while (queue.length) {
+    const currentParentIds = [...queue];
+    queue.length = 0;
+    
+    const children = await Category.find(
+      { parentId: { $in: currentParentIds } },
+      { _id: 1, parentId: 1 }
+    ).lean();
+    
+    for (const child of children) {
+      const childIdStr = child._id.toString();
+      if (!seen.has(childIdStr)) {
+        allIds.push(child._id);
+        seen.add(childIdStr);
+        queue.push(childIdStr);
+      }
+    }
+  }
   
-  // Return parent ID and all children IDs as ObjectIds
-  return [categoryId, ...childObjectIds];
+  // Return parent ID and all descendant IDs as ObjectIds
+  return allIds;
 };
 
 const addProduct = async (req, res) => {
