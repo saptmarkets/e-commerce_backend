@@ -78,7 +78,11 @@ const bannerController = {
         layoutType: layoutType || 'single',
         leftImageAnimation: leftImageAnimation || 'slideUp',
         rightImageAnimation: rightImageAnimation || 'slideUp',
-        centerImageAnimation: centerImageAnimation || 'slideRight'
+        centerImageAnimation: centerImageAnimation || 'slideRight',
+        textAlignment: {
+          en: req.body.textAlignment?.en || 'left',
+          ar: req.body.textAlignment?.ar || 'right'
+        }
       });
 
       await newBanner.save();

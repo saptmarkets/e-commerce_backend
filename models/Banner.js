@@ -55,6 +55,19 @@ const bannerSchema = new mongoose.Schema(
       enum: ['slideRight', 'slideLeft', 'fadeIn'],
       default: 'slideRight',
     },
+    // Text alignment settings for different languages
+    textAlignment: {
+      en: {
+        type: String,
+        enum: ['left', 'center', 'right'],
+        default: 'left',
+      },
+      ar: {
+        type: String,
+        enum: ['left', 'center', 'right'],
+        default: 'right',
+      }
+    },
     layoutType: {
       type: String,
       enum: ['single', 'triple'],
