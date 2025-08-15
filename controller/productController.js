@@ -11,12 +11,19 @@ const getAllChildCategoryIds = async (categoryId) => {
   // We already validate/convert categoryId in the calling functions (getAllProducts, getShowingStoreProducts)
   // so at this point, categoryId is expected to be a valid mongoose.Types.ObjectId instance.
   
+  console.log(`🔍 getAllChildCategoryIds: Starting with categoryId: ${categoryId}`);
+  
   const children = await Category.find({ parentId: categoryId }, { _id: 1 }).lean();
+  console.log(`🔍 getAllChildCategoryIds: Found ${children.length} children for parent ${categoryId}`);
   
   const childObjectIds = children.map(child => child._id);
+  console.log(`🔍 getAllChildCategoryIds: Child IDs: ${childObjectIds.map(id => id.toString()).join(', ')}`);
   
   // Return parent ID and all children IDs as ObjectIds
-  return [categoryId, ...childObjectIds];
+  const result = [categoryId, ...childObjectIds];
+  console.log(`🔍 getAllChildCategoryIds: Final result: ${result.map(id => id.toString()).join(', ')}`);
+  
+  return result;
 };
 
 const addProduct = async (req, res) => {
@@ -814,6 +821,8 @@ const getShowingStoreProducts = async (req, res) => {
 
     if (categoryIdsToQuery.length > 0) {
       const categoryQuery = { $in: categoryIdsToQuery }; // This array now contains ObjectIds
+      console.log(`🔍 getShowingStoreProducts: Category query: ${JSON.stringify(categoryQuery)}`);
+      
       // Check both category (single) and categories (array) fields
       if (queryObject.$or) {
         // If there's already a $or query (from title search), we need to use $and
@@ -825,11 +834,13 @@ const getShowingStoreProducts = async (req, res) => {
           ]}
         ];
         delete queryObject.$or;
+        console.log(`🔍 getShowingStoreProducts: Using $and query: ${JSON.stringify(queryObject.$and)}`);
       } else {
         queryObject.$or = [
           { category: categoryQuery },
           { categories: categoryQuery }
         ];
+        console.log(`🔍 getShowingStoreProducts: Using $or query: ${JSON.stringify(queryObject.$or)}`);
       }
     }
 
@@ -892,8 +903,40 @@ const getShowingStoreProducts = async (req, res) => {
       
       products = productResults;
       totalProducts = totalCount;
+      
+      console.log(`🔍 getShowingStoreProducts: Query returned ${products.length} products out of ${totalProducts} total`);
+      
       // Debug: Print the products found
-      console.log('Products found:', products.map(p => ({ _id: p._id, title: p.title, category: p.category, categories: p.categories })));
+      if (products.length > 0) {
+        console.log('🔍 getShowingStoreProducts: Sample products found:', products.slice(0, 3).map(p => ({ 
+          _id: p._id, 
+          title: p.title, 
+          category: p.category, 
+          categories: p.categories 
+        })));
+      } else {
+        console.log('🔍 getShowingStoreProducts: No products found. Let\'s check what\'s in the database...');
+        
+        // Check if there are any products at all
+        const totalProductsInDB = await Product.countDocuments({ status: 'show' });
+        console.log(`🔍 getShowingStoreProducts: Total products in database: ${totalProductsInDB}`);
+        
+        if (totalProductsInDB > 0) {
+          // Check a few products to see their category structure
+          const sampleProducts = await Product.find({ status: 'show' })
+            .populate('category', 'name _id')
+            .populate('categories', 'name _id')
+            .limit(3)
+            .lean();
+          
+          console.log('🔍 getShowingStoreProducts: Sample products from database:', sampleProducts.map(p => ({
+            _id: p._id,
+            title: p.title,
+            category: p.category,
+            categories: p.categories
+          })));
+        }
+      }
     }
 
     if (!slug) {
