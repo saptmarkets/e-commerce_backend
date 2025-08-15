@@ -148,7 +148,10 @@ app.get("/api/health", (req, res) => {
 // Mount API routes (prefix with /api)
 app.use("/api/admin", adminRoutes);
 app.use("/api/attribute", attributeRoutes);
-// Banner routes - mount both singular and plural for compatibility
+// Banner routes - mount under admin for admin management and public for frontend
+app.use("/api/admin/banner", bannerRoutes);
+app.use("/api/admin/banners", bannerRoutes);
+// Public banner routes for frontend
 app.use("/api/banner", bannerRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/bulk-upload", bulkUploadRoutes);
