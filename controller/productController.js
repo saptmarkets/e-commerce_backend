@@ -15,24 +15,36 @@ const getAllChildCategoryIds = async (categoryId) => {
   const queue = [categoryId.toString()];
   const seen = new Set(queue);
   
+  console.log(`🔍 getAllChildCategoryIds: Starting with categoryId: ${categoryId}`);
+  
   while (queue.length) {
     const currentParentIds = [...queue];
     queue.length = 0;
     
-    const children = await Category.find(
-      { parentId: { $in: currentParentIds } },
-      { _id: 1, parentId: 1 }
-    ).lean();
+    console.log(`🔍 getAllChildCategoryIds: Processing parent IDs: ${currentParentIds.join(', ')}`);
+    
+    // Query for children using both string and ObjectId comparisons
+    const children = await Category.find({
+      $or: [
+        { parentId: { $in: currentParentIds } },
+        { parentId: { $in: currentParentIds.map(id => id.toString()) } }
+      ]
+    }, { _id: 1, parentId: 1, name: 1 }).lean();
+    
+    console.log(`🔍 getAllChildCategoryIds: Found ${children.length} children for parents: ${currentParentIds.join(', ')}`);
     
     for (const child of children) {
       const childIdStr = child._id.toString();
       if (!seen.has(childIdStr)) {
+        console.log(`🔍 getAllChildCategoryIds: Adding child category: ${child.name?.en || child.name} (${child._id})`);
         allIds.push(child._id);
         seen.add(childIdStr);
         queue.push(childIdStr);
       }
     }
   }
+  
+  console.log(`🔍 getAllChildCategoryIds: Final result - ${allIds.length} category IDs: ${allIds.map(id => id.toString()).join(', ')}`);
   
   // Return parent ID and all descendant IDs as ObjectIds
   return allIds;
@@ -798,7 +810,9 @@ const getShowingStoreProducts = async (req, res) => {
   if (category) {
     try {
       const categoryObjectId = new mongoose.Types.ObjectId(category);
+      console.log(`🔍 getShowingStoreProducts: Converting category ID: ${category} to ObjectId: ${categoryObjectId}`);
       categoryIdsToQuery = await getAllChildCategoryIds(categoryObjectId);
+      console.log(`🔍 getShowingStoreProducts: Final category IDs to query: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
     } catch (error) {
       console.error("Error in getShowingStoreProducts when converting category ID:", error);
       categoryIdsToQuery = [];
@@ -915,9 +929,10 @@ const getShowingStoreProducts = async (req, res) => {
         { categories: categoryQuery }
       ];
     }
+    console.log(`🔍 getShowingStoreProducts: Added category query: ${JSON.stringify(queryObject.$or || queryObject.$and)}`);
   }
 
-  console.log('getShowingStoreProducts final queryObject:', JSON.stringify(queryObject));
+  console.log('🔍 getShowingStoreProducts final queryObject:', JSON.stringify(queryObject, null, 2));
 
   const pages = Number(page) || 1;
   const limits = Math.min(Number(limit) || 20, 50000); // Default limit 20, cap at 50000
@@ -925,6 +940,7 @@ const getShowingStoreProducts = async (req, res) => {
 
   try {
     const totalDoc = await Product.countDocuments(queryObject);
+    console.log(`🔍 getShowingStoreProducts: Total documents found: ${totalDoc}`);
 
     const products = await Product.find(queryObject)
       .populate({ path: "category", select: "name _id" })
@@ -934,6 +950,16 @@ const getShowingStoreProducts = async (req, res) => {
       .skip(skip)
       .limit(limits)
       .lean(); // Add lean() for performance if not modifying docs after query
+
+    console.log(`🔍 getShowingStoreProducts: Products returned: ${products.length}`);
+    if (products.length > 0) {
+      console.log(`🔍 getShowingStoreProducts: Sample product categories:`, products.slice(0, 3).map(p => ({
+        id: p._id,
+        title: p.title?.en || p.title,
+        category: p.category,
+        categories: p.categories
+      })));
+    }
 
     // Get popular products (based on recent orders and sales)
     // First try to get products with sales > 0, if not enough, get recent products
