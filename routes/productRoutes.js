@@ -17,6 +17,7 @@ const {
   getEnhancedProductById,
   getEnhancedProductBySlug,
   checkCategoryHasProducts,
+  testCategoryHierarchy,
 } = require("../controller/productController");
 
 // Test route to verify product routes are working
@@ -233,6 +234,9 @@ router.get("/:productId/stock-availability", checkProductStockAvailability);
 
 // Check if category has products
 router.get("/category/:categoryId/has-products", checkCategoryHasProducts);
+
+// Test category hierarchy
+router.get('/test-category-hierarchy', testCategoryHierarchy);
 
 // Live import status check for Odoo products
 router.post('/check-imported', async (req, res) => {

@@ -1382,6 +1382,69 @@ const checkCategoryHasProducts = async (req, res) => {
   }
 };
 
+// Test endpoint to debug category hierarchy
+const testCategoryHierarchy = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    console.log(`🧪 testCategoryHierarchy: Testing category ID: ${categoryId}`);
+    
+    if (!categoryId) {
+      return res.status(400).send({ message: "Category ID is required" });
+    }
+    
+    // Test the getAllChildCategoryIds function
+    const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
+    const allCategoryIds = await getAllChildCategoryIds(categoryObjectId);
+    
+    // Get category details
+    const category = await Category.findById(categoryId).lean();
+    const subcategories = await Category.find({ 
+      $or: [
+        { parentId: categoryId },
+        { parentId: categoryObjectId },
+        { parentId: categoryId.toString() }
+      ],
+      status: 'show' 
+    }).lean();
+    
+    // Get products for the original category
+    const originalProducts = await Product.find({ 
+      $or: [
+        { category: categoryId },
+        { categories: categoryId }
+      ],
+      status: 'show'
+    }).countDocuments();
+    
+    // Get products for all found categories
+    const allProducts = await Product.find({ 
+      $or: [
+        { category: { $in: allCategoryIds } },
+        { categories: { $in: allCategoryIds } }
+      ],
+      status: 'show'
+    }).countDocuments();
+    
+    res.send({
+      categoryId,
+      category,
+      subcategories: subcategories.map(sub => ({
+        id: sub._id,
+        name: sub.name,
+        parentId: sub.parentId
+      })),
+      allCategoryIds: allCategoryIds.map(id => id.toString()),
+      originalProducts,
+      allProducts,
+      hierarchyWorking: allCategoryIds.length > 1
+    });
+    
+  } catch (error) {
+    console.error("Error in testCategoryHierarchy:", error);
+    res.status(500).send({ message: error.message });
+  }
+};
+
 module.exports = {
   addProduct,
   addAllProducts,
@@ -1399,4 +1462,5 @@ module.exports = {
   getEnhancedProductById,
   getEnhancedProductBySlug,
   checkCategoryHasProducts,
+  testCategoryHierarchy,
 };
