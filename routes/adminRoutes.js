@@ -12,6 +12,9 @@ const {
   deleteStaff,
   updatedStatus,
 } = require("../controller/adminController");
+
+// Import banner controller for admin banner management
+const bannerController = require("../controller/bannerController");
 const { passwordVerificationLimit } = require("../lib/email-sender/sender");
 const { isAuth, handleDecryptData } = require("../config/auth");
 
@@ -44,6 +47,17 @@ router.put("/update-status/:id", isAuth, updatedStatus);
 
 //delete a staff
 router.delete("/staff/:id", isAuth, deleteStaff);
+
+// Banner management routes
+router.get("/banners", isAuth, bannerController.getAllBanners);
+router.post("/banners", isAuth, bannerController.addBanner);
+router.get("/banners/:id", isAuth, bannerController.getBannerById);
+router.put("/banners/:id", isAuth, bannerController.updateBanner);
+router.delete("/banners/:id", isAuth, bannerController.deleteBanner);
+router.patch("/banners/delete/many", isAuth, bannerController.deleteManyBanners);
+router.patch("/banners/sort-order", isAuth, bannerController.updateSortOrder);
+router.put("/banners/status/:id", isAuth, bannerController.updateStatus);
+router.get("/banners/analytics", isAuth, bannerController.getBannerAnalytics);
 
 // Decrypt data
 router.post("/decrypt", isAuth, async (req, res) => {
