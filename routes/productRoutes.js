@@ -215,6 +215,76 @@ router.get("/test-db", async (req, res) => {
   }
 });
 
+// Debug endpoint to show all category relationships
+router.get("/debug-categories", async (req, res) => {
+  try {
+    console.log("🔍 Debugging category relationships...");
+    
+    // Get all categories
+    const allCategories = await Category.find({ status: 'show' }).lean();
+    
+    // Find the Deli Section that's being accessed
+    const accessedDeliSection = await Category.findById('689cb22ffc3a4400485a3e05').lean();
+    
+    // Find the actual parent of Soft & Hard Cheeses
+    const softHardCheeses = await Category.findById('689c6b259e326547f0af4639').lean();
+    const actualParent = softHardCheeses ? await Category.findById(softHardCheeses.parentId).lean() : null;
+    
+    // Find all categories with parentId = 689cb22ffc3a4400485a3e05 (the accessed Deli Section)
+    const childrenOfAccessedDeli = allCategories.filter(cat => 
+      cat.parentId === '689cb22ffc3a4400485a3e05'
+    );
+    
+    // Find all categories with parentId = 689c6b259e326547f0af4635 (the actual parent of Soft & Hard Cheeses)
+    const childrenOfActualParent = allCategories.filter(cat => 
+      cat.parentId === '689c6b259e326547f0af4635'
+    );
+    
+    const result = {
+      accessedDeliSection: accessedDeliSection ? {
+        id: accessedDeliSection._id,
+        name: accessedDeliSection.name,
+        parentId: accessedDeliSection.parentId
+      } : null,
+      
+      softHardCheeses: softHardCheeses ? {
+        id: softHardCheeses._id,
+        name: softHardCheeses.name,
+        parentId: softHardCheeses.parentId
+      } : null,
+      
+      actualParent: actualParent ? {
+        id: actualParent._id,
+        name: actualParent.name,
+        parentId: actualParent.parentId
+      } : null,
+      
+      childrenOfAccessedDeli: childrenOfAccessedDeli.map(cat => ({
+        id: cat._id,
+        name: cat.name,
+        parentId: cat.parentId
+      })),
+      
+      childrenOfActualParent: childrenOfActualParent.map(cat => ({
+        id: cat._id,
+        name: cat.name,
+        parentId: cat.parentId
+      })),
+      
+      allCategories: allCategories.map(cat => ({
+        id: cat._id,
+        name: cat.name,
+        parentId: cat.parentId
+      }))
+    };
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Error debugging categories:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 //add a product
 router.post("/add", addProduct);
 
