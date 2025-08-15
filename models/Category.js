@@ -13,6 +13,8 @@ const categorySchema = new mongoose.Schema(
     slug: {
       type: String,
       required: false,
+      unique: true, // Prevent duplicate slugs
+      index: true,  // Create index for faster lookups
     },
     parentId: {
       type: String,
@@ -113,6 +115,15 @@ categorySchema.pre('save', async function(next) {
       }
     }
 
+    // 4. VALIDATE SLUG UNIQUENESS
+    if (this.isModified('slug') && this.slug) {
+      try {
+        await this.validateSlugUniqueness();
+      } catch (error) {
+        return next(error);
+      }
+    }
+
     next();
   } catch (error) {
     console.error('🚨 Category pre-save hook error:', error);
@@ -128,6 +139,22 @@ categorySchema.methods.getLocalizedName = function(language = 'en') {
   return this.name[language] || this.name.en || this.name.ar || Object.values(this.name)[0] || 'Untitled Category';
 };
 
+// Add validation method for duplicate slug
+categorySchema.methods.validateSlugUniqueness = async function() {
+  if (!this.slug) return true;
+  
+  const existingCategory = await this.constructor.findOne({ 
+    slug: this.slug, 
+    _id: { $ne: this._id } // Exclude current document when updating
+  });
+  
+  if (existingCategory) {
+    throw new Error(`Category with slug '${this.slug}' already exists`);
+  }
+  
+  return true;
+};
+
 categorySchema.methods.getLocalizedDescription = function(language = 'en') {
   if (!this.description || typeof this.description !== 'object') {
     return this.description || '';
@@ -141,6 +168,16 @@ categorySchema.index({ 'name.ar': 1 });
 categorySchema.index({ slug: 1 });
 categorySchema.index({ parentId: 1 });
 categorySchema.index({ status: 1 });
+
+// Add unique compound index to prevent duplicate names within same parent
+categorySchema.index(
+  { 'name.en': 1, parentId: 1 }, 
+  { 
+    unique: true, 
+    name: 'unique_category_name_parent',
+    partialFilterExpression: { status: 'show' } // Only apply to active categories
+  }
+);
 
 const Category = mongoose.model('Category', categorySchema);
 module.exports = Category;
