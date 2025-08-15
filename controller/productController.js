@@ -8,74 +8,15 @@ const { languageCodes } = require("../utils/data");
 // Helper function to get all child category IDs for a parent, or just itself if no children
 // This function expects a Mongoose ObjectId as input for categoryId
 const getAllChildCategoryIds = async (categoryId) => {
-  console.log(`🔍 getAllChildCategoryIds: Starting with categoryId: ${categoryId}`);
+  // We already validate/convert categoryId in the calling functions (getAllProducts, getShowingStoreProducts)
+  // so at this point, categoryId is expected to be a valid mongoose.Types.ObjectId instance.
   
-  try {
-    // First, let's get the category itself to understand its structure
-    const category = await Category.findById(categoryId).lean();
-    if (!category) {
-      console.log(`🔍 getAllChildCategoryIds: Category not found: ${categoryId}`);
-      return [categoryId];
-    }
-    
-    console.log(`🔍 getAllChildCategoryIds: Found category: ${JSON.stringify(category, null, 2)}`);
-    
-    // Get all categories to understand the full hierarchy
-    const allCategories = await Category.find({ status: 'show' }).lean();
-    console.log(`🔍 getAllChildCategoryIds: Total categories in database: ${allCategories.length}`);
-    
-    // Build a map of parent to children
-    const parentToChildren = new Map();
-    const categoryMap = new Map();
-    
-    allCategories.forEach(cat => {
-      categoryMap.set(cat._id.toString(), cat);
-      if (cat.parentId) {
-        const parentId = cat.parentId.toString();
-        if (!parentToChildren.has(parentId)) {
-          parentToChildren.set(parentId, []);
-        }
-        parentToChildren.get(parentId).push(cat);
-      }
-    });
-    
-    console.log(`🔍 getAllChildCategoryIds: Parent to children mapping:`, 
-      Array.from(parentToChildren.entries()).map(([parent, children]) => 
-        `${parent}: [${children.map(c => c.name?.en || c.name).join(', ')}]`
-      )
-    );
-    
-    // Find all descendants recursively
-    const allIds = [categoryId];
-    const queue = [categoryId.toString()];
-    const seen = new Set(queue);
-    
-    while (queue.length > 0) {
-      const currentParentId = queue.shift();
-      console.log(`🔍 getAllChildCategoryIds: Processing parent ID: ${currentParentId}`);
-      
-      const children = parentToChildren.get(currentParentId) || [];
-      console.log(`🔍 getAllChildCategoryIds: Found ${children.length} children for parent: ${currentParentId}`);
-      
-      for (const child of children) {
-        const childIdStr = child._id.toString();
-        if (!seen.has(childIdStr)) {
-          console.log(`🔍 getAllChildCategoryIds: Adding child: ${child.name?.en || child.name} (${childIdStr})`);
-          allIds.push(child._id);
-          seen.add(childIdStr);
-          queue.push(childIdStr);
-        }
-      }
-    }
-    
-    console.log(`🔍 getAllChildCategoryIds: Final result - ${allIds.length} category IDs: ${allIds.map(id => id.toString()).join(', ')}`);
-    return allIds;
-    
-  } catch (error) {
-    console.error(`🔍 getAllChildCategoryIds: Error:`, error);
-    // Fallback: return just the original category ID
-    return [categoryId];
-  }
+  const children = await Category.find({ parentId: categoryId }, { _id: 1 }).lean();
+  
+  const childObjectIds = children.map(child => child._id);
+  
+  // Return parent ID and all children IDs as ObjectIds
+  return [categoryId, ...childObjectIds];
 };
 
 const addProduct = async (req, res) => {
@@ -828,319 +769,195 @@ const checkProductStockAvailability = async (req, res) => {
 };
 
 const getShowingStoreProducts = async (req, res) => {
-  const { category, title, slug, page, limit } = req.query; // Added page and limit
-  const includeOutOfStock = String(req.query.include_out_of_stock || '').toLowerCase() === 'true';
+  try {
+    const queryObject = { 
+      status: "show",
+      stock: { $gt: 0 }  // Only show products with stock > 0
+    };
+    const { category, title, slug, page = 1, limit = 50 } = req.query;
+    
+    // DEBUG: Log the raw category parameter received from frontend
+    console.log('Received category parameter from frontend:', category);
 
-  let queryObject = {};
-  let sortObject = { _id: -1 }; // Default sort by latest
+    // Convert page and limit to numbers
+    const pageNum = parseInt(page) || 1;
+    const limitNum = Math.min(parseInt(limit) || 50, 50000); // Cap at 50,000 for customer app
+    const skip = (pageNum - 1) * limitNum;
 
-  let categoryIdsToQuery = [];
-  if (category) {
-    try {
-      const categoryObjectId = new mongoose.Types.ObjectId(category);
-      console.log(`🔍 getShowingStoreProducts: Converting category ID: ${category} to ObjectId: ${categoryObjectId}`);
-      categoryIdsToQuery = await getAllChildCategoryIds(categoryObjectId);
-      console.log(`🔍 getShowingStoreProducts: Final category IDs to query: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
-      
-      // If we only got the original category ID (no children found), let's try a manual approach
-      if (categoryIdsToQuery.length === 1 && categoryIdsToQuery[0].toString() === category) {
-        console.log(`🔍 getShowingStoreProducts: No child categories found, trying manual subcategory search...`);
-        
-        // Manually find subcategories - try different parentId formats
-        const subcategories = await Category.find({ 
-          $or: [
-            { parentId: category },
-            { parentId: categoryObjectId },
-            { parentId: category.toString() }
-          ],
-          status: 'show' 
-        }).lean();
-        
-        console.log(`🔍 getShowingStoreProducts: Manual search found ${subcategories.length} subcategories`);
-        console.log(`🔍 getShowingStoreProducts: Subcategories:`, subcategories.map(sub => ({
-          id: sub._id,
-          name: sub.name?.en || sub.name,
-          parentId: sub.parentId
-        })));
-        
-        if (subcategories.length > 0) {
-          // Add subcategory IDs to the query
-          const subcategoryIds = subcategories.map(sub => sub._id);
-          categoryIdsToQuery = [categoryObjectId, ...subcategoryIds];
-          console.log(`🔍 getShowingStoreProducts: Updated category IDs to query: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
-        } else {
-          console.log(`🔍 getShowingStoreProducts: Still no subcategories found. Let's check the category structure...`);
-          
-          // Debug: Check what categories exist and their parentId values
-          const allCategories = await Category.find({ status: 'show' }).lean();
-          const potentialChildren = allCategories.filter(cat => 
-            cat.parentId && (
-              cat.parentId.toString() === category ||
-              cat.parentId.toString() === categoryObjectId.toString()
-            )
-          );
-          
-          console.log(`🔍 getShowingStoreProducts: Potential children found:`, potentialChildren.map(cat => ({
-            id: cat._id,
-            name: cat.name?.en || cat.name,
-            parentId: cat.parentId,
-            parentIdType: typeof cat.parentId
-          })));
-          
-          if (potentialChildren.length > 0) {
-            const subcategoryIds = potentialChildren.map(sub => sub._id);
-            categoryIdsToQuery = [categoryObjectId, ...subcategoryIds];
-            console.log(`🔍 getShowingStoreProducts: Using potential children: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
-          }
-        }
+    let categoryIdsToQuery = [];
+    if (category) {
+      try {
+        // Convert the incoming category string to ObjectId
+        const categoryObjectId = new mongoose.Types.ObjectId(category);
+        categoryIdsToQuery = await getAllChildCategoryIds(categoryObjectId);
+        console.log('getShowingStoreProducts categoryIdsToQuery (after conversion):', categoryIdsToQuery); // Debug log
+      } catch (error) {
+        console.error("Error in getShowingStoreProducts when converting category ID:", error);
+        // If the category ID is invalid, treat as if no category was provided
+        categoryIdsToQuery = [];
       }
-    } catch (error) {
-      console.error("Error in getShowingStoreProducts when converting category ID:", error);
-      categoryIdsToQuery = [];
     }
-  }
 
-  // Base query conditions
-  queryObject = {
-    status: "show",
-  };
-  if (!includeOutOfStock) {
-    queryObject.stock = { $gt: 0 };
-  }
+    // Build efficient query object
+    if (title) {
+      // Enhanced multi-word search: split words and match in order with flexible gap
+      const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const words = title.trim().split(/\s+/).filter(Boolean);
+      const lookaheadPattern = words.map(w => `(?=.*${escapeRegExp(w)})`).join('');
+      const regexMatch = { $regex: `${lookaheadPattern}.*`, $options: 'i' };
 
-  if (title) {
-    // Enhanced comprehensive search: search across multiple fields
-    const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const searchTerm = title.trim();
-    
-    // Create regex patterns for different search strategies
-    const exactMatch = { $regex: `^${escapeRegExp(searchTerm)}$`, $options: 'i' };
-    const startsWithMatch = { $regex: `^${escapeRegExp(searchTerm)}`, $options: 'i' };
-    const containsMatch = { $regex: escapeRegExp(searchTerm), $options: 'i' };
-    
-    // For multi-word searches, use lookahead pattern
-    const words = searchTerm.split(/\s+/).filter(Boolean);
-    const lookaheadPattern = words.map(w => `(?=.*${escapeRegExp(w)})`).join('');
-    const multiWordMatch = { $regex: `${lookaheadPattern}.*`, $options: 'i' };
+      queryObject.$or = [
+        { "title.en": regexMatch },
+        { "title.ar": regexMatch }
+      ];
+    }
 
-    queryObject.$or = [
-      // Title searches (all languages including Arabic)
-      { "title.en": exactMatch },
-      { "title.en": startsWithMatch },
-      { "title.en": containsMatch },
-      { "title.en": multiWordMatch },
-      { "title.ar": exactMatch },
-      { "title.ar": startsWithMatch },
-      { "title.ar": containsMatch },
-      { "title.ar": multiWordMatch },
-      { "title.es": exactMatch },
-      { "title.es": startsWithMatch },
-      { "title.es": containsMatch },
-      { "title.es": multiWordMatch },
-      { "title.fr": exactMatch },
-      { "title.fr": startsWithMatch },
-      { "title.fr": containsMatch },
-      { "title.fr": multiWordMatch },
-      { "title.de": exactMatch },
-      { "title.de": startsWithMatch },
-      { "title.de": containsMatch },
-      { "title.de": multiWordMatch },
-      
-      // Name searches (fallback field)
-      { "name": exactMatch },
-      { "name": startsWithMatch },
-      { "name": containsMatch },
-      { "name": multiWordMatch },
-      
-      // Barcode and SKU searches (exact matches first)
-      { "barcode": exactMatch },
-      { "barcode": startsWithMatch },
-      { "barcode": containsMatch },
-      { "sku": exactMatch },
-      { "sku": startsWithMatch },
-      { "sku": containsMatch },
-      { "default_code": exactMatch },
-      { "default_code": startsWithMatch },
-      { "default_code": containsMatch },
-      
-      // Product ID searches - only add _id search if it's a valid ObjectId
-      ...(mongoose.Types.ObjectId.isValid(searchTerm) ? [{ "_id": searchTerm }] : []),
-      
-      // Slug searches
-      { "slug": containsMatch },
-      
-      // Description searches
-      { "description.en": containsMatch },
-      { "description.ar": containsMatch },
-      
-      // Brand/Manufacturer searches
-      { "brand": containsMatch },
-      { "manufacturer": containsMatch },
-      
-      // Tags searches - use $in only for exact matches
-      { "tags": containsMatch },
-      
-      // Category name searches (if populated)
-      { "categoryName": containsMatch },
-      
-      // Product unit searches (if populated)
-      { "productUnits.name": containsMatch },
-      { "productUnits.shortCode": containsMatch }
-    ];
-  }
-
-  if (slug) {
-    queryObject.slug = slug;
-  }
-
-  if (categoryIdsToQuery.length > 0) {
-    const categoryQuery = { $in: categoryIdsToQuery };
-    if (queryObject.$or) {
-      queryObject.$and = [
-        { $or: queryObject.$or },
-        { $or: [
+    if (categoryIdsToQuery.length > 0) {
+      const categoryQuery = { $in: categoryIdsToQuery }; // This array now contains ObjectIds
+      // Check both category (single) and categories (array) fields
+      if (queryObject.$or) {
+        // If there's already a $or query (from title search), we need to use $and
+        queryObject.$and = [
+          { $or: queryObject.$or },
+          { $or: [
+            { category: categoryQuery },
+            { categories: categoryQuery }
+          ]}
+        ];
+        delete queryObject.$or;
+      } else {
+        queryObject.$or = [
           { category: categoryQuery },
           { categories: categoryQuery }
-        ]}
-      ];
-      delete queryObject.$or;
-    } else {
-      queryObject.$or = [
-        { category: categoryQuery },
-        { categories: categoryQuery }
-      ];
-    }
-    console.log(`🔍 getShowingStoreProducts: Added category query: ${JSON.stringify(queryObject.$or || queryObject.$and)}`);
-  }
-
-  console.log('🔍 getShowingStoreProducts final queryObject:', JSON.stringify(queryObject, null, 2));
-
-  const pages = Number(page) || 1;
-  const limits = Math.min(Number(limit) || 20, 50000); // Default limit 20, cap at 50000
-  const skip = (pages - 1) * limits;
-
-  try {
-    const totalDoc = await Product.countDocuments(queryObject);
-    console.log(`🔍 getShowingStoreProducts: Total documents found: ${totalDoc}`);
-
-    const products = await Product.find(queryObject)
-      .populate({ path: "category", select: "name _id" })
-      .populate({ path: "categories", select: "name _id" })
-      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
-      .sort(sortObject)
-      .skip(skip)
-      .limit(limits)
-      .lean(); // Add lean() for performance if not modifying docs after query
-
-    console.log(`🔍 getShowingStoreProducts: Products returned: ${products.length}`);
-    if (products.length > 0) {
-      console.log(`🔍 getShowingStoreProducts: Sample product categories:`, products.slice(0, 3).map(p => ({
-        id: p._id,
-        title: p.title?.en || p.title,
-        category: p.category,
-        categories: p.categories
-      })));
-    } else {
-      console.log(`🔍 getShowingStoreProducts: No products found. Let's debug the category structure...`);
-      
-      // Debug: Check what categories exist and their relationships
-      const allCategories = await Category.find({ status: 'show' }).lean();
-      console.log(`🔍 getShowingStoreProducts: All categories in database:`, 
-        allCategories.map(cat => ({
-          id: cat._id,
-          name: cat.name?.en || cat.name,
-          parentId: cat.parentId,
-          hasChildren: allCategories.some(c => c.parentId === cat._id.toString())
-        }))
-      );
-      
-      // Debug: Check if there are any products at all
-      const totalProducts = await Product.countDocuments({ status: 'show' });
-      console.log(`🔍 getShowingStoreProducts: Total products in database: ${totalProducts}`);
-      
-      if (totalProducts > 0) {
-        const sampleProducts = await Product.find({ status: 'show' })
-          .populate('category', 'name _id')
-          .populate('categories', 'name _id')
-          .limit(3)
-          .lean();
-        
-        console.log(`🔍 getShowingStoreProducts: Sample products with categories:`, 
-          sampleProducts.map(p => ({
-            id: p._id,
-            title: p.title?.en || p.title,
-            category: p.category,
-            categories: p.categories
-          }))
-        );
+        ];
       }
     }
 
-    // Get popular products (based on recent orders and sales)
-    // First try to get products with sales > 0, if not enough, get recent products
-    let popularProducts = await Product.find({
-      status: "show",
-      stock: { $gt: 0 },
-      sales: { $gt: 0 }
-    })
-      .populate({ path: "category", select: "name _id" })
-      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
-      .sort({ sales: -1 })
-      .limit(20)
-      .lean();
-
-    // If we don't have enough popular products (less than 8), add recent products
-    if (popularProducts.length < 8) {
-      const recentProducts = await Product.find({
-        status: "show",
-        stock: { $gt: 0 },
-        _id: { $nin: popularProducts.map(p => p._id) }
-      })
-        .populate({ path: "category", select: "name _id" })
-        .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
-        .sort({ createdAt: -1 })
-        .limit(20 - popularProducts.length)
-        .lean();
-
-      popularProducts = [...popularProducts, ...recentProducts];
+    if (slug) {
+      queryObject.slug = { $regex: slug, $options: "i" };
     }
 
-    // Get discounted products
-    const discountedProducts = await Product.find({
-      status: "show",
-      stock: { $gt: 0 },
-      $or: [
-        {
-          $and: [
-            { isCombination: true },
-            { "variants.discount": { $gt: 0 } }
-          ]
-        },
-        {
-          $and: [
-            { isCombination: false },
-            { "prices.discount": { $gt: 0 } }
-          ]
-        }
-      ]
-    })
-      .populate({ path: "category", select: "name _id" })
-      .populate({ path: "basicUnit", select: "name nameAr shortCode _id" })
-      .sort({ _id: -1 })
-      .limit(20)
-      .lean();
+    // Debug log to check categoryIdsToQuery
+    console.log('getShowingStoreProducts categoryIdsToQuery:', categoryIdsToQuery.map(id => id.toString()));
+    console.log('getShowingStoreProducts final queryObject:', JSON.stringify(queryObject));
 
+    // Optimize field selection for better performance
+    const productFields = 'title slug image price originalPrice discount stock status category categories basicUnit hasMultiUnits availableUnits createdAt updatedAt';
+    const categoryFields = 'name _id';
+    const unitFields = 'name nameAr shortCode _id';
+
+    let products = [];
+    let popularProducts = [];
+    let discountedProducts = [];
+    let relatedProducts = [];
+    let totalProducts = 0;
+
+    if (slug) {
+      // Single product query for slug
+      products = await Product.find(queryObject)
+        .select(productFields)
+        .populate({ path: "category", select: categoryFields })
+        .populate({ path: "categories", select: categoryFields })
+        .populate({ path: "basicUnit", select: unitFields })
+        .sort({ _id: -1 })
+        .limit(limitNum)
+        .lean(); // Use lean() for better performance
+
+      if (products.length > 0) {
+        relatedProducts = await Product.find({
+          category: products[0]?.category?._id,
+          _id: { $ne: products[0]._id },
+          stock: { $gt: 0 }  // Also filter related products
+        })
+        .select(productFields)
+        .populate({ path: "category", select: categoryFields })
+        .populate({ path: "basicUnit", select: unitFields })
+        .limit(12)
+        .lean();
+      }
+    } else {
+      // Paginated search results
+      const [productResults, totalCount] = await Promise.all([
+        Product.find(queryObject)
+          .select(productFields)
+          .populate({ path: "category", select: categoryFields })
+          .populate({ path: "categories", select: categoryFields })
+          .populate({ path: "basicUnit", select: unitFields })
+          .sort({ _id: -1 })
+          .skip(skip)
+          .limit(limitNum)
+          .lean(),
+        Product.countDocuments(queryObject)
+      ]);
+      
+      products = productResults;
+      totalProducts = totalCount;
+      // Debug: Print the products found
+      console.log('Products found:', products.map(p => ({ _id: p._id, title: p.title, category: p.category, categories: p.categories })));
+    }
+
+    if (!slug) {
+      // Home page - fetch all categories in parallel with stock filtering
+      const [popularResults, discountedResults] = await Promise.all([        
+        Product.find({ 
+          status: "show",
+          stock: { $gt: 0 }  // Filter popular products
+        })
+          .select(productFields)
+          .populate({ path: "category", select: categoryFields })
+          .populate({ path: "basicUnit", select: unitFields })
+          .sort({ sales: -1 })
+          .limit(20)
+          .lean(),
+        
+        Product.find({
+          status: "show",
+          stock: { $gt: 0 },  // Filter discounted products
+          $or: [
+            {
+              $and: [
+                { isCombination: true },
+                { "variants.discount": { $gt: 0 } }
+              ]
+            },
+            {
+              $and: [
+                { isCombination: false },
+                { "prices.discount": { $gt: 0 } }
+              ]
+            }
+          ]
+        })
+        .select(productFields)
+        .populate({ path: "category", select: categoryFields })
+        .populate({ path: "basicUnit", select: unitFields })
+        .sort({ _id: -1 })
+        .limit(20)
+        .lean()
+      ]);
+
+      popularProducts = popularResults;
+      discountedProducts = discountedResults;
+    }
+
+    // Send response
     res.send({
       products,
       popularProducts,
       discountedProducts,
-      totalDoc,
-      pages,
-      limits,
+      relatedProducts,
+      totalProducts,
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalProducts / limitNum),
+      hasNextPage: pageNum < Math.ceil(totalProducts / limitNum),
+      hasPrevPage: pageNum > 1
     });
+
   } catch (err) {
+    console.error("Error in getShowingStoreProducts:", err.message);
     res.status(500).send({
-      message: err.message,
+      message: "Error fetching products",
+      error: err.message
     });
   }
 };
