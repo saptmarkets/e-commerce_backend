@@ -138,6 +138,83 @@ router.get("/direct-test/:id", async (req, res) => {
   }
 });
 
+// Test endpoint to check database contents
+router.get("/test-db", async (req, res) => {
+  try {
+    console.log("🔍 Testing database contents...");
+    
+    // Check categories
+    const categories = await Category.find({ status: 'show' }).lean();
+    console.log(`🔍 Found ${categories.length} categories`);
+    
+    // Check products
+    const products = await Product.find({ status: 'show' }).lean();
+    console.log(`🔍 Found ${products.length} products`);
+    
+    // Check specific category relationships
+    const deliCategory = await Category.findOne({ 
+      'name.en': 'Deli Section' 
+    }).lean();
+    
+    let result = {
+      totalCategories: categories.length,
+      totalProducts: products.length,
+      sampleCategories: categories.slice(0, 3).map(cat => ({
+        id: cat._id,
+        name: cat.name,
+        parentId: cat.parentId
+      })),
+      sampleProducts: products.slice(0, 3).map(prod => ({
+        id: prod._id,
+        title: prod.title,
+        category: prod.category,
+        categories: prod.categories
+      }))
+    };
+    
+    if (deliCategory) {
+      result.deliCategory = {
+        id: deliCategory._id,
+        name: deliCategory.name,
+        parentId: deliCategory.parentId
+      };
+      
+      // Find subcategories
+      const subcategories = await Category.find({ 
+        parentId: deliCategory._id.toString() 
+      }).lean();
+      
+      result.deliSubcategories = subcategories.map(sub => ({
+        id: sub._id,
+        name: sub.name,
+        parentId: sub.parentId
+      }));
+      
+      // Find products in subcategories
+      const subcategoryIds = subcategories.map(sub => sub._id);
+      const productsInSubcategories = await Product.find({
+        $or: [
+          { category: { $in: subcategoryIds } },
+          { categories: { $in: subcategoryIds } }
+        ]
+      }).lean();
+      
+      result.productsInDeliSubcategories = productsInSubcategories.length;
+      result.sampleDeliProducts = productsInSubcategories.slice(0, 3).map(prod => ({
+        id: prod._id,
+        title: prod.title,
+        category: prod.category,
+        categories: prod.categories
+      }));
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Error testing database:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 //add a product
 router.post("/add", addProduct);
 
