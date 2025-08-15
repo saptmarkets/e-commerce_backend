@@ -17,14 +17,20 @@ const uploadImage = async (req, res) => {
     const publicId = req.body.public_id || undefined;
     const folder = req.body.folder || "uploads";
 
+    // Make public_id unique by adding timestamp if not provided or if it's a generic name
+    let uniquePublicId = publicId;
+    if (!publicId || publicId.includes('cropped-image') || publicId.includes('image')) {
+      uniquePublicId = `${publicId || 'image'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
     // Upload using an upload_stream so we can work directly with the in-memory buffer
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           resource_type: 'image',
-          public_id: publicId,
+          public_id: uniquePublicId,
           folder: folder,
-          overwrite: true,
+          overwrite: false, // Changed to false to prevent overwriting
           invalidate: true, // ← ensures Cloudinary purges CDN cached versions
         },
         (error, uploaded) => {
