@@ -8,46 +8,74 @@ const { languageCodes } = require("../utils/data");
 // Helper function to get all child category IDs for a parent, or just itself if no children
 // This function expects a Mongoose ObjectId as input for categoryId
 const getAllChildCategoryIds = async (categoryId) => {
-  // We already validate/convert categoryId in the calling functions (getAllProducts, getShowingStoreProducts)
-  // so at this point, categoryId is expected to be a valid mongoose.Types.ObjectId instance.
-  
-  const allIds = [categoryId];
-  const queue = [categoryId.toString()];
-  const seen = new Set(queue);
-  
   console.log(`🔍 getAllChildCategoryIds: Starting with categoryId: ${categoryId}`);
   
-  while (queue.length) {
-    const currentParentIds = [...queue];
-    queue.length = 0;
+  try {
+    // First, let's get the category itself to understand its structure
+    const category = await Category.findById(categoryId).lean();
+    if (!category) {
+      console.log(`🔍 getAllChildCategoryIds: Category not found: ${categoryId}`);
+      return [categoryId];
+    }
     
-    console.log(`🔍 getAllChildCategoryIds: Processing parent IDs: ${currentParentIds.join(', ')}`);
+    console.log(`🔍 getAllChildCategoryIds: Found category: ${JSON.stringify(category, null, 2)}`);
     
-    // Query for children using both string and ObjectId comparisons
-    const children = await Category.find({
-      $or: [
-        { parentId: { $in: currentParentIds } },
-        { parentId: { $in: currentParentIds.map(id => id.toString()) } }
-      ]
-    }, { _id: 1, parentId: 1, name: 1 }).lean();
+    // Get all categories to understand the full hierarchy
+    const allCategories = await Category.find({ status: 'show' }).lean();
+    console.log(`🔍 getAllChildCategoryIds: Total categories in database: ${allCategories.length}`);
     
-    console.log(`🔍 getAllChildCategoryIds: Found ${children.length} children for parents: ${currentParentIds.join(', ')}`);
+    // Build a map of parent to children
+    const parentToChildren = new Map();
+    const categoryMap = new Map();
     
-    for (const child of children) {
-      const childIdStr = child._id.toString();
-      if (!seen.has(childIdStr)) {
-        console.log(`🔍 getAllChildCategoryIds: Adding child category: ${child.name?.en || child.name} (${child._id})`);
-        allIds.push(child._id);
-        seen.add(childIdStr);
-        queue.push(childIdStr);
+    allCategories.forEach(cat => {
+      categoryMap.set(cat._id.toString(), cat);
+      if (cat.parentId) {
+        const parentId = cat.parentId.toString();
+        if (!parentToChildren.has(parentId)) {
+          parentToChildren.set(parentId, []);
+        }
+        parentToChildren.get(parentId).push(cat);
+      }
+    });
+    
+    console.log(`🔍 getAllChildCategoryIds: Parent to children mapping:`, 
+      Array.from(parentToChildren.entries()).map(([parent, children]) => 
+        `${parent}: [${children.map(c => c.name?.en || c.name).join(', ')}]`
+      )
+    );
+    
+    // Find all descendants recursively
+    const allIds = [categoryId];
+    const queue = [categoryId.toString()];
+    const seen = new Set(queue);
+    
+    while (queue.length > 0) {
+      const currentParentId = queue.shift();
+      console.log(`🔍 getAllChildCategoryIds: Processing parent ID: ${currentParentId}`);
+      
+      const children = parentToChildren.get(currentParentId) || [];
+      console.log(`🔍 getAllChildCategoryIds: Found ${children.length} children for parent: ${currentParentId}`);
+      
+      for (const child of children) {
+        const childIdStr = child._id.toString();
+        if (!seen.has(childIdStr)) {
+          console.log(`🔍 getAllChildCategoryIds: Adding child: ${child.name?.en || child.name} (${childIdStr})`);
+          allIds.push(child._id);
+          seen.add(childIdStr);
+          queue.push(childIdStr);
+        }
       }
     }
+    
+    console.log(`🔍 getAllChildCategoryIds: Final result - ${allIds.length} category IDs: ${allIds.map(id => id.toString()).join(', ')}`);
+    return allIds;
+    
+  } catch (error) {
+    console.error(`🔍 getAllChildCategoryIds: Error:`, error);
+    // Fallback: return just the original category ID
+    return [categoryId];
   }
-  
-  console.log(`🔍 getAllChildCategoryIds: Final result - ${allIds.length} category IDs: ${allIds.map(id => id.toString()).join(', ')}`);
-  
-  // Return parent ID and all descendant IDs as ObjectIds
-  return allIds;
 };
 
 const addProduct = async (req, res) => {
@@ -813,6 +841,28 @@ const getShowingStoreProducts = async (req, res) => {
       console.log(`🔍 getShowingStoreProducts: Converting category ID: ${category} to ObjectId: ${categoryObjectId}`);
       categoryIdsToQuery = await getAllChildCategoryIds(categoryObjectId);
       console.log(`🔍 getShowingStoreProducts: Final category IDs to query: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
+      
+      // If we only got the original category ID (no children found), let's try a manual approach
+      if (categoryIdsToQuery.length === 1 && categoryIdsToQuery[0].toString() === category) {
+        console.log(`🔍 getShowingStoreProducts: No child categories found, trying manual subcategory search...`);
+        
+        // Manually find subcategories
+        const subcategories = await Category.find({ 
+          parentId: category,
+          status: 'show' 
+        }).lean();
+        
+        if (subcategories.length > 0) {
+          console.log(`🔍 getShowingStoreProducts: Found ${subcategories.length} subcategories manually:`, 
+            subcategories.map(sub => ({ id: sub._id, name: sub.name?.en || sub.name }))
+          );
+          
+          // Add subcategory IDs to the query
+          const subcategoryIds = subcategories.map(sub => sub._id);
+          categoryIdsToQuery = [categoryObjectId, ...subcategoryIds];
+          console.log(`🔍 getShowingStoreProducts: Updated category IDs to query: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
+        }
+      }
     } catch (error) {
       console.error("Error in getShowingStoreProducts when converting category ID:", error);
       categoryIdsToQuery = [];
@@ -959,6 +1009,40 @@ const getShowingStoreProducts = async (req, res) => {
         category: p.category,
         categories: p.categories
       })));
+    } else {
+      console.log(`🔍 getShowingStoreProducts: No products found. Let's debug the category structure...`);
+      
+      // Debug: Check what categories exist and their relationships
+      const allCategories = await Category.find({ status: 'show' }).lean();
+      console.log(`🔍 getShowingStoreProducts: All categories in database:`, 
+        allCategories.map(cat => ({
+          id: cat._id,
+          name: cat.name?.en || cat.name,
+          parentId: cat.parentId,
+          hasChildren: allCategories.some(c => c.parentId === cat._id.toString())
+        }))
+      );
+      
+      // Debug: Check if there are any products at all
+      const totalProducts = await Product.countDocuments({ status: 'show' });
+      console.log(`🔍 getShowingStoreProducts: Total products in database: ${totalProducts}`);
+      
+      if (totalProducts > 0) {
+        const sampleProducts = await Product.find({ status: 'show' })
+          .populate('category', 'name _id')
+          .populate('categories', 'name _id')
+          .limit(3)
+          .lean();
+        
+        console.log(`🔍 getShowingStoreProducts: Sample products with categories:`, 
+          sampleProducts.map(p => ({
+            id: p._id,
+            title: p.title?.en || p.title,
+            category: p.category,
+            categories: p.categories
+          }))
+        );
+      }
     }
 
     // Get popular products (based on recent orders and sales)
