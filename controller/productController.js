@@ -846,21 +846,52 @@ const getShowingStoreProducts = async (req, res) => {
       if (categoryIdsToQuery.length === 1 && categoryIdsToQuery[0].toString() === category) {
         console.log(`🔍 getShowingStoreProducts: No child categories found, trying manual subcategory search...`);
         
-        // Manually find subcategories
+        // Manually find subcategories - try different parentId formats
         const subcategories = await Category.find({ 
-          parentId: category,
+          $or: [
+            { parentId: category },
+            { parentId: categoryObjectId },
+            { parentId: category.toString() }
+          ],
           status: 'show' 
         }).lean();
         
+        console.log(`🔍 getShowingStoreProducts: Manual search found ${subcategories.length} subcategories`);
+        console.log(`🔍 getShowingStoreProducts: Subcategories:`, subcategories.map(sub => ({
+          id: sub._id,
+          name: sub.name?.en || sub.name,
+          parentId: sub.parentId
+        })));
+        
         if (subcategories.length > 0) {
-          console.log(`🔍 getShowingStoreProducts: Found ${subcategories.length} subcategories manually:`, 
-            subcategories.map(sub => ({ id: sub._id, name: sub.name?.en || sub.name }))
-          );
-          
           // Add subcategory IDs to the query
           const subcategoryIds = subcategories.map(sub => sub._id);
           categoryIdsToQuery = [categoryObjectId, ...subcategoryIds];
           console.log(`🔍 getShowingStoreProducts: Updated category IDs to query: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
+        } else {
+          console.log(`🔍 getShowingStoreProducts: Still no subcategories found. Let's check the category structure...`);
+          
+          // Debug: Check what categories exist and their parentId values
+          const allCategories = await Category.find({ status: 'show' }).lean();
+          const potentialChildren = allCategories.filter(cat => 
+            cat.parentId && (
+              cat.parentId.toString() === category ||
+              cat.parentId.toString() === categoryObjectId.toString()
+            )
+          );
+          
+          console.log(`🔍 getShowingStoreProducts: Potential children found:`, potentialChildren.map(cat => ({
+            id: cat._id,
+            name: cat.name?.en || cat.name,
+            parentId: cat.parentId,
+            parentIdType: typeof cat.parentId
+          })));
+          
+          if (potentialChildren.length > 0) {
+            const subcategoryIds = potentialChildren.map(sub => sub._id);
+            categoryIdsToQuery = [categoryObjectId, ...subcategoryIds];
+            console.log(`🔍 getShowingStoreProducts: Using potential children: ${categoryIdsToQuery.map(id => id.toString()).join(', ')}`);
+          }
         }
       }
     } catch (error) {
