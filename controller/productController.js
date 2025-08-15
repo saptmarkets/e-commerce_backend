@@ -19,9 +19,11 @@ const getAllChildCategoryIds = async (categoryId) => {
   const childObjectIds = children.map(child => child._id);
   console.log(`🔍 getAllChildCategoryIds: Child IDs: ${childObjectIds.map(id => id.toString()).join(', ')}`);
   
-  // Return parent ID and all children IDs as ObjectIds
-  const result = [categoryId, ...childObjectIds];
-  console.log(`🔍 getAllChildCategoryIds: Final result: ${result.map(id => id.toString()).join(', ')}`);
+  // Create a Set to ensure no duplicate IDs, then convert back to array
+  const uniqueIds = new Set([categoryId.toString(), ...childObjectIds.map(id => id.toString())]);
+  const result = Array.from(uniqueIds).map(id => new mongoose.Types.ObjectId(id));
+  
+  console.log(`🔍 getAllChildCategoryIds: Final result (unique): ${result.map(id => id.toString()).join(', ')}`);
   
   return result;
 };
