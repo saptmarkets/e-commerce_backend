@@ -14,7 +14,10 @@
     "migrate:categories-units": "node scripts/categories-units-migration.js",
     "clean:home-category": "node scripts/clean-home-category.js",
     "optimize": "node create-performance-indexes.js",
-    "seed": "node migration-script.js"
+    "seed": "node migration-script.js",
+    "fix:aboutus": "node scripts/fix-aboutus-data.js",
+    "fix:sapt-aboutus": "node scripts/fix-sapt-aboutus-data.js",
+    "import:settings": "node scripts/importSettings.js"
   },
   "author": "htmlLover",
   "license": "ISC",

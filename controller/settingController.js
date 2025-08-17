@@ -185,11 +185,68 @@ const updateStoreCustomizationSetting = async (req, res) => {
   try {
     const { setting } = req.body;
 
+    // Validate About Us data structure if it exists
+    if (setting.about_us) {
+      console.log('🔧 Validating About Us data structure...');
+      
+      // Helper function to ensure proper language structure
+      const ensureLanguageStructure = (value) => {
+        if (!value) return value;
+        
+        if (typeof value === 'string') {
+          // Convert string to language object if it contains non-empty content
+          return value.trim() ? { en: value, ar: "" } : value;
+        }
+        
+        if (typeof value === 'object' && (value.en !== undefined || value.ar !== undefined)) {
+          // Already in correct format
+          return value;
+        }
+        
+        return value;
+      };
+
+      // Process team member fields
+      const teamFields = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+      teamFields.forEach(num => {
+        ['name', 'position', 'sub'].forEach(field => {
+          const key = `founder_${num}_${field}`;
+          if (setting.about_us[key]) {
+            setting.about_us[key] = ensureLanguageStructure(setting.about_us[key]);
+          }
+        });
+      });
+
+      // Process core value fields
+      ['one', 'two', 'three', 'four'].forEach(num => {
+        ['title', 'description'].forEach(field => {
+          const key = `value_${num}_${field}`;
+          if (setting.about_us[key]) {
+            setting.about_us[key] = ensureLanguageStructure(setting.about_us[key]);
+          }
+        });
+      });
+
+      // Process branch fields
+      const branchFields = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+      branchFields.forEach(num => {
+        ['name', 'address', 'hours', 'phone'].forEach(field => {
+          const key = `branch_${num}_${field}`;
+          if (setting.about_us[key]) {
+            setting.about_us[key] = ensureLanguageStructure(setting.about_us[key]);
+          }
+        });
+      });
+
+      console.log('✅ About Us data structure validated');
+    }
+
     // Dynamically build the update fields
     const updateFields = Object.keys(setting).reduce((acc, key) => {
       acc[`setting.${key}`] = setting[key];
       return acc;
     }, {});
+    
     // Update the online store setting document
     const storeCustomizationSetting = await Setting.findOneAndUpdate(
       { name: "storeCustomizationSetting" },
