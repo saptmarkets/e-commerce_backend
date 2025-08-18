@@ -239,6 +239,17 @@ const updateStoreCustomizationSetting = async (req, res) => {
       });
 
       console.log('✅ About Us data structure validated');
+
+      // NEW: Drop empty-object updates to avoid wiping existing DB values
+      Object.keys(setting.about_us).forEach((key) => {
+        const val = setting.about_us[key];
+        if (val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) {
+          delete setting.about_us[key];
+        }
+        if (val === '' || val === null || val === undefined) {
+          delete setting.about_us[key];
+        }
+      });
     }
 
     // Dynamically build the update fields
