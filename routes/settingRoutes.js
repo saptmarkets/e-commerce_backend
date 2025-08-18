@@ -45,12 +45,4 @@ router.get("/store/customization/all", getStoreCustomizationSetting);
 //update online store customization setting
 router.put("/store/customization/update", updateStoreCustomizationSetting);
 
-// New: dedicated About Us endpoints
-const { getAboutUs, updateAboutUs, getAllStoreCustomization } = require('../controller/aboutUsController');
-router.get('/store/customization/about-us', getAboutUs);
-router.put('/store/customization/about-us', updateAboutUs);
-
-// NEW: Get all store customization data (merged from both collections)
-router.get('/store/customization/merged', getAllStoreCustomization);
-
 module.exports = router;

@@ -1,6 +1,5 @@
 //models
 const Setting = require("../models/Setting");
-const AboutUs = require("../models/AboutUs");
 
 //global setting controller
 const addGlobalSetting = async (req, res) => {
@@ -185,21 +184,6 @@ const getStoreSeoSetting = async (req, res) => {
 const updateStoreCustomizationSetting = async (req, res) => {
   try {
     const { setting } = req.body;
-
-    // If About Us is present, persist it in the new AboutUs collection and remove from settings payload
-    if (setting?.about_us) {
-      try {
-        await AboutUs.findOneAndUpdate(
-          { name: 'aboutUs' },
-          { $set: { data: setting.about_us } },
-          { new: true, upsert: true }
-        );
-      } catch (e) {
-        console.error('Failed to upsert AboutUs collection:', e?.message || e);
-      }
-      // Do not write about_us into settings anymore
-      delete setting.about_us;
-    }
 
     // Dynamically build the update fields
     const updateFields = Object.keys(setting).reduce((acc, key) => {
