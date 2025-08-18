@@ -31,28 +31,40 @@ exports.getAboutUs = async (req, res) => {
 				...legacyData
 			};
 			
-			doc = await AboutUs.create({ name: 'aboutUs', data: defaultStructure });
+			// Store in the nested structure to match existing data format
+			doc = await AboutUs.create({ 
+				name: 'aboutUs', 
+				data: {
+					name: 'storeCustomizationSetting',
+					setting: {
+						about_us: defaultStructure
+					}
+				}
+			});
 		}
+		
+		// Extract the actual about_us data from the nested structure
+		const aboutUsData = doc.data?.setting?.about_us || doc.data;
 		
 		// Ensure the response has all required boolean fields with defaults if missing
 		const responseData = {
-			header_status: doc.data?.header_status ?? true,
-			header_bg: doc.data?.header_bg ?? "",
-			content_left_status: doc.data?.content_left_status ?? true,
-			content_right_status: doc.data?.content_right_status ?? true,
-			top_section_image: doc.data?.top_section_image ?? "",
-			content_middle_status: doc.data?.content_middle_status ?? true,
-			content_middle_Img: doc.data?.content_middle_Img ?? "",
-			founder_status: doc.data?.founder_status ?? true,
-			founder_one_img: doc.data?.founder_one_img ?? "",
-			founder_two_img: doc.data?.founder_two_img ?? "",
-			founder_three_img: doc.data?.founder_three_img ?? "",
-			founder_four_img: doc.data?.founder_four_img ?? "",
-			founder_five_img: doc.data?.founder_five_img ?? "",
-			founder_six_img: doc.data?.founder_six_img ?? "",
-			branches_status: doc.data?.branches_status ?? true,
-			// Include all other data
-			...doc.data
+			header_status: aboutUsData?.header_status ?? true,
+			header_bg: aboutUsData?.header_bg ?? "",
+			content_left_status: aboutUsData?.content_left_status ?? true,
+			content_right_status: aboutUsData?.content_right_status ?? true,
+			top_section_image: aboutUsData?.top_section_image ?? "",
+			content_middle_status: aboutUsData?.content_middle_status ?? true,
+			content_middle_Img: aboutUsData?.content_middle_Img ?? "",
+			founder_status: aboutUsData?.founder_status ?? true,
+			founder_one_img: aboutUsData?.founder_one_img ?? "",
+			founder_two_img: aboutUsData?.founder_two_img ?? "",
+			founder_three_img: aboutUsData?.founder_three_img ?? "",
+			founder_four_img: aboutUsData?.founder_four_img ?? "",
+			founder_five_img: aboutUsData?.founder_five_img ?? "",
+			founder_six_img: aboutUsData?.founder_six_img ?? "",
+			branches_status: aboutUsData?.branches_status ?? true,
+			// Include all other data from the correct path
+			...aboutUsData
 		};
 		
 		return res.json(responseData);
@@ -73,15 +85,26 @@ exports.getAllStoreCustomization = async (req, res) => {
 		if (!aboutUsDoc) {
 			// Fallback: try to migrate from settings if exists
 			const legacyData = baseData?.about_us || {};
-			aboutUsDoc = await AboutUs.create({ name: 'aboutUs', data: legacyData });
+			aboutUsDoc = await AboutUs.create({ 
+				name: 'aboutUs', 
+				data: {
+					name: 'storeCustomizationSetting',
+					setting: {
+						about_us: legacyData
+					}
+				}
+			});
 		}
+		
+		// Extract the actual about_us data from the nested structure
+		const aboutUsData = aboutUsDoc.data?.setting?.about_us || aboutUsDoc.data || {};
 		
 		// Merge the data: base settings + about us data merged into about_us section
 		const mergedData = {
 			...baseData,
 			about_us: {
 				...baseData?.about_us, // Keep existing boolean fields and structure
-				...aboutUsDoc.data      // Override with new bilingual content
+				...aboutUsData          // Override with new bilingual content
 			}
 		};
 		
@@ -95,12 +118,23 @@ exports.getAllStoreCustomization = async (req, res) => {
 exports.updateAboutUs = async (req, res) => {
 	try {
 		const payload = req.body?.data || req.body || {};
+		
+		// Store in the nested structure to match existing data format
+		const nestedData = {
+			name: 'storeCustomizationSetting',
+			setting: {
+				about_us: payload
+			}
+		};
+		
 		const updated = await AboutUs.findOneAndUpdate(
 			{ name: 'aboutUs' },
-			{ $set: { data: payload } },
+			{ $set: { data: nestedData } },
 			{ new: true, upsert: true }
 		);
-		return res.json({ message: 'About Us updated', data: updated.data });
+		
+		// Return the actual about_us data, not the nested structure
+		return res.json(updated.data?.setting?.about_us || {});
 	} catch (err) {
 		return res.status(500).json({ message: err.message });
 	}
