@@ -16,43 +16,9 @@ exports.getAboutUs = async (req, res) => {
 		});
 		
 		if (!doc) {
-			console.log('🔍 BACKEND: No AboutUs document found, creating new one with defaults');
-			// Fallback: try to migrate from settings if exists
-			const legacy = await Setting.findOne({ name: 'storeCustomizationSetting' });
-			const legacyData = legacy?.setting?.about_us || {};
-			
-			// Create default structure with all required boolean fields
-			const defaultStructure = {
-				header_status: true,
-				header_bg: "",
-				content_left_status: true,
-				content_right_status: true,
-				top_section_image: "",
-				content_middle_status: true,
-				content_middle_Img: "",
-				founder_status: true,
-				founder_one_img: "",
-				founder_two_img: "",
-				founder_three_img: "",
-				founder_four_img: "",
-				founder_five_img: "",
-				founder_six_img: "",
-				branches_status: true,
-				// Merge legacy data with defaults
-				...legacyData
-			};
-			
-			// Store in the nested structure to match existing data format
-			doc = await AboutUs.create({ 
-				name: 'aboutUs', 
-				data: {
-					name: 'storeCustomizationSetting',
-					setting: {
-						about_us: defaultStructure
-					}
-				}
-			});
-			console.log('🔍 BACKEND: Created new AboutUs document with ID:', doc._id);
+			console.log('🔍 BACKEND: No AboutUs document found, returning empty response');
+			// Don't create default data automatically - let the frontend handle this
+			return res.json({ data: null });
 		}
 		
 		// Extract the actual about_us data from the nested structure
@@ -72,6 +38,27 @@ exports.getAboutUs = async (req, res) => {
 				branches_status: aboutUsData?.branches_status
 			}
 		});
+		
+		// Only return data if it actually exists and has content
+		if (!aboutUsData || Object.keys(aboutUsData).length === 0) {
+			console.log('🔍 BACKEND: AboutUs data is empty, returning empty response');
+			return res.json({ data: null });
+		}
+		
+		// Check if we have actual content, not just empty objects
+		const hasContent = Object.values(aboutUsData).some(value => {
+			if (typeof value === 'object' && value !== null) {
+				return Object.values(value).some(subValue => 
+					subValue && typeof subValue === 'string' && subValue.trim() !== ''
+				);
+			}
+			return value && value !== '';
+		});
+		
+		if (!hasContent) {
+			console.log('🔍 BACKEND: AboutUs data has no content, returning empty response');
+			return res.json({ data: null });
+		}
 		
 		// Ensure the response has all required boolean fields with defaults if missing
 		const responseData = {
@@ -104,7 +91,7 @@ exports.getAboutUs = async (req, res) => {
 			}
 		});
 		
-		return res.json(responseData);
+		return res.json({ data: responseData });
 	} catch (err) {
 		console.error('🔍 BACKEND: Error in getAboutUs:', err);
 		return res.status(500).json({ message: err.message });
