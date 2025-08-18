@@ -56,7 +56,7 @@ exports.getAboutUs = async (req, res) => {
 		}
 		
 		// Extract the actual about_us data from the nested structure
-		const aboutUsData = doc.data?.setting?.about_us || doc.data;
+		const aboutUsData = doc.data?.setting?.about_us;
 		console.log('🔍 BACKEND: Extracted aboutUsData:', {
 			aboutUsDataKeys: Object.keys(aboutUsData || {}),
 			sampleValues: {
@@ -129,7 +129,7 @@ exports.getAllStoreCustomization = async (req, res) => {
 		}
 		
 		// Extract the actual about_us data from the nested structure
-		const aboutUsData = aboutUsDoc.data?.setting?.about_us || aboutUsDoc.data || {};
+		const aboutUsData = aboutUsDoc.data?.setting?.about_us || {};
 		
 		// Merge the data: base settings + about us data merged into about_us section
 		const mergedData = {
