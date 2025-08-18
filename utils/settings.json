@@ -190,15 +190,35 @@
         "founder_six_img": "https://res.cloudinary.com/ahossain/image/upload/v1697439689/settings/team-6_gmlts4.webp",
         "title": {
           "en": "About Us",
-          "de": "Über uns"
+          "ar": "معلومات عنا"
         },
-        "top_title": {
-          "en": "Welcome to our saptmarkets shop",
-          "de": "Willkommen in unserem saptmarkets-Shop"
+        "hero_description": {
+          "en": "Learn more about SAPT Markets and our story...",
+          "ar": "تعرف على المزيد عن أسواق سابت وقصتنا..."
         },
-        "top_description": {
-          "en": "Holisticly seize parallel metrics and functional ROI.Seamlessly revolutionize error-free internal or organic sources before effective scenarios. Progressively incentivize state of the art applications for efficient intellectual capital. Credibly leverage existing distinctive mindshare through cutting-edge schemas. Proactively procrastinate team building paradigms coordinate client-centric total transparent internal.\n\nDynamically embrace diverse customer service and installed base paradigms. Credibly seize enterprise-wide experiences for end-to-end data. Professionally brand flexible alignments and cost effective architectures. Enthusiastically incentivize seamless communities with seamlessly facilitate revolutionary metrics with strategic theme areas.",
-          "de": "Erfassen Sie parallele Metriken und funktionalen ROI ganzheitlich. Revolutionieren Sie nahtlos fehlerfreie interne oder organische Quellen vor effektiven Szenarien. Fördern Sie nach und nach hochmoderne Anwendungen für effizientes intellektuelles Kapital. Nutzen Sie glaubwürdig vorhandenes unverwechselbares Mindshare durch hochmoderne Schemata. Teambuilding-Paradigmen proaktiv aufschieben koordinieren kundenzentriert total transparent intern. Umfassen Sie dynamisch unterschiedliche Kundendienst- und Installed-Base-Paradigmen. Nutzen Sie glaubwürdig unternehmensweite Erfahrungen für End-to-End-Daten. Professionelles Branding flexibler Ausrichtungen und kostengünstiger Architekturen. Schaffen Sie enthusiastische Anreize für nahtlose Gemeinschaften, indem Sie revolutionäre Metriken mit strategischen Themenbereichen nahtlos erleichtern."
+        "top_section_title": {
+          "en": "A Trusted Name in Qassim Retail",
+          "ar": "اسم موثوق في تجارة القصيم"
+        },
+        "top_section_description": {
+          "en": "At SAPT Markets, we've built our reputation on providing quality products and exceptional service to our community. Our commitment to excellence has made us a trusted partner for families across the region.",
+          "ar": "في أسواق سابت، بنينا سمعتنا على تقديم منتجات عالية الجودة وخدمة استثنائية لمجتمعنا. التزامنا بالتميز جعلنا شريكًا موثوقًا للعائلات في جميع أنحاء المنطقة."
+        },
+        "trusted_badge_one_pill": {
+          "en": "Since 1989",
+          "ar": "منذ 1989"
+        },
+        "trusted_badge_one_text": {
+          "en": "From Family Business",
+          "ar": "من عمل عائلي"
+        },
+        "trusted_badge_two_pill": {
+          "en": "35+ Years",
+          "ar": "35+ سنة"
+        },
+        "trusted_badge_two_text": {
+          "en": "Serving the Community",
+          "ar": "خدمة المجتمع"
         },
         "card_one_title": {
           "en": "10K",

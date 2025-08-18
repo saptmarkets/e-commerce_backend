@@ -131,9 +131,7 @@ const addStoreCustomizationSetting = async (req, res) => {
 const getStoreCustomizationSetting = async (req, res) => {
   try {
     const { key, keyTwo } = req.query;
-    // console.log("getStoreCustomizationSetting");
-
-    // console.log("req query", req.query, "key", key, "keyTwo", keyTwo);
+    console.log("🔍 getStoreCustomizationSetting - Query params:", { key, keyTwo });
 
     let projection = {};
     if (key) {
@@ -148,17 +146,24 @@ const getStoreCustomizationSetting = async (req, res) => {
       projection = { setting: 1 };
     }
 
+    console.log("🔍 getStoreCustomizationSetting - Projection:", projection);
+
     const storeCustomizationSetting = await Setting.findOne(
       { name: "storeCustomizationSetting" },
       projection
     );
 
     if (!storeCustomizationSetting) {
+      console.log("❌ getStoreCustomizationSetting - Settings not found");
       return res.status(404).send({ message: "Settings not found" });
     }
 
+    console.log("✅ getStoreCustomizationSetting - Successfully fetched data");
+    console.log("🔍 getStoreCustomizationSetting - About Us data:", JSON.stringify(storeCustomizationSetting.setting?.about_us, null, 2));
+
     res.send(storeCustomizationSetting.setting);
   } catch (err) {
+    console.error("❌ getStoreCustomizationSetting - Error:", err.message);
     res.status(500).send({ message: err.message });
   }
 };
@@ -185,11 +190,17 @@ const updateStoreCustomizationSetting = async (req, res) => {
   try {
     const { setting } = req.body;
 
+    // Log the incoming data for debugging
+    console.log("🔍 updateStoreCustomizationSetting - Incoming data:", JSON.stringify(setting, null, 2));
+
     // Dynamically build the update fields
     const updateFields = Object.keys(setting).reduce((acc, key) => {
       acc[`setting.${key}`] = setting[key];
       return acc;
     }, {});
+
+    console.log("🔍 updateStoreCustomizationSetting - Update fields:", JSON.stringify(updateFields, null, 2));
+
     // Update the online store setting document
     const storeCustomizationSetting = await Setting.findOneAndUpdate(
       { name: "storeCustomizationSetting" },
@@ -197,11 +208,14 @@ const updateStoreCustomizationSetting = async (req, res) => {
       { new: true, upsert: true } // upsert to create the document if it doesn't exist
     );
 
+    console.log("✅ updateStoreCustomizationSetting - Successfully updated");
+
     res.send({
       data: storeCustomizationSetting,
       message: "Online Store Customization Setting Update Successfully!",
     });
   } catch (err) {
+    console.error("❌ updateStoreCustomizationSetting - Error:", err.message);
     res.status(500).send({
       message: err.message,
     });
