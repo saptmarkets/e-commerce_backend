@@ -56,6 +56,12 @@ exports.getAboutUs = async (req, res) => {
 		}
 		
 		// Extract the actual about_us data from the nested structure
+		console.log('🔍 BACKEND: Raw doc.data structure:', {
+			docDataKeys: Object.keys(doc.data || {}),
+			docDataSettingKeys: Object.keys(doc.data?.setting || {}),
+			docDataSettingAboutUsKeys: Object.keys(doc.data?.setting?.about_us || {})
+		});
+		
 		const aboutUsData = doc.data?.setting?.about_us;
 		console.log('🔍 BACKEND: Extracted aboutUsData:', {
 			aboutUsDataKeys: Object.keys(aboutUsData || {}),
