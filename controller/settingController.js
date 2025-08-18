@@ -1,5 +1,6 @@
 //models
 const Setting = require("../models/Setting");
+const AboutUs = require("../models/AboutUs");
 
 //global setting controller
 const addGlobalSetting = async (req, res) => {
@@ -185,71 +186,19 @@ const updateStoreCustomizationSetting = async (req, res) => {
   try {
     const { setting } = req.body;
 
-    // Validate About Us data structure if it exists
-    if (setting.about_us) {
-      console.log('🔧 Validating About Us data structure...');
-      
-      // Helper function to ensure proper language structure
-      const ensureLanguageStructure = (value) => {
-        if (!value) return value;
-        
-        if (typeof value === 'string') {
-          // Convert string to language object if it contains non-empty content
-          return value.trim() ? { en: value, ar: "" } : value;
-        }
-        
-        if (typeof value === 'object' && (value.en !== undefined || value.ar !== undefined)) {
-          // Already in correct format
-          return value;
-        }
-        
-        return value;
-      };
-
-      // Process team member fields
-      const teamFields = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-      teamFields.forEach(num => {
-        ['name', 'position', 'sub'].forEach(field => {
-          const key = `founder_${num}_${field}`;
-          if (setting.about_us[key]) {
-            setting.about_us[key] = ensureLanguageStructure(setting.about_us[key]);
-          }
-        });
-      });
-
-      // Process core value fields
-      ['one', 'two', 'three', 'four'].forEach(num => {
-        ['title', 'description'].forEach(field => {
-          const key = `value_${num}_${field}`;
-          if (setting.about_us[key]) {
-            setting.about_us[key] = ensureLanguageStructure(setting.about_us[key]);
-          }
-        });
-      });
-
-      // Process branch fields
-      const branchFields = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
-      branchFields.forEach(num => {
-        ['name', 'address', 'hours', 'phone'].forEach(field => {
-          const key = `branch_${num}_${field}`;
-          if (setting.about_us[key]) {
-            setting.about_us[key] = ensureLanguageStructure(setting.about_us[key]);
-          }
-        });
-      });
-
-      console.log('✅ About Us data structure validated');
-
-      // NEW: Drop empty-object updates to avoid wiping existing DB values
-      Object.keys(setting.about_us).forEach((key) => {
-        const val = setting.about_us[key];
-        if (val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) {
-          delete setting.about_us[key];
-        }
-        if (val === '' || val === null || val === undefined) {
-          delete setting.about_us[key];
-        }
-      });
+    // If About Us is present, persist it in the new AboutUs collection and remove from settings payload
+    if (setting?.about_us) {
+      try {
+        await AboutUs.findOneAndUpdate(
+          { name: 'aboutUs' },
+          { $set: { data: setting.about_us } },
+          { new: true, upsert: true }
+        );
+      } catch (e) {
+        console.error('Failed to upsert AboutUs collection:', e?.message || e);
+      }
+      // Do not write about_us into settings anymore
+      delete setting.about_us;
     }
 
     // Dynamically build the update fields
@@ -257,7 +206,6 @@ const updateStoreCustomizationSetting = async (req, res) => {
       acc[`setting.${key}`] = setting[key];
       return acc;
     }, {});
-    
     // Update the online store setting document
     const storeCustomizationSetting = await Setting.findOneAndUpdate(
       { name: "storeCustomizationSetting" },

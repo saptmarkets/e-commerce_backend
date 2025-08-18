@@ -45,4 +45,9 @@ router.get("/store/customization/all", getStoreCustomizationSetting);
 //update online store customization setting
 router.put("/store/customization/update", updateStoreCustomizationSetting);
 
+// New: dedicated About Us endpoints
+const { getAboutUs, updateAboutUs } = require('../controller/aboutUsController');
+router.get('/store/customization/about-us', getAboutUs);
+router.put('/store/customization/about-us', updateAboutUs);
+
 module.exports = router;
