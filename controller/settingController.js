@@ -158,24 +158,6 @@ const getStoreCustomizationSetting = async (req, res) => {
       return res.status(404).send({ message: "Settings not found" });
     }
 
-    // If fetching all settings (no specific keys), merge with AboutUs data
-    if (!key && !keyTwo) {
-      try {
-        const aboutUsDoc = await AboutUs.findOne({ name: 'aboutUs' });
-        if (aboutUsDoc && aboutUsDoc.data) {
-          // Merge AboutUs data into the response
-          const mergedData = {
-            ...storeCustomizationSetting.setting,
-            ...aboutUsDoc.data
-          };
-          return res.send(mergedData);
-        }
-      } catch (aboutUsErr) {
-        console.error('Failed to fetch AboutUs data:', aboutUsErr?.message || aboutUsErr);
-        // Continue with just the base settings if AboutUs fetch fails
-      }
-    }
-
     res.send(storeCustomizationSetting.setting);
   } catch (err) {
     res.status(500).send({ message: err.message });

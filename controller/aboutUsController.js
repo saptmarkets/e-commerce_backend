@@ -9,9 +9,53 @@ exports.getAboutUs = async (req, res) => {
 			// Fallback: try to migrate from settings if exists
 			const legacy = await Setting.findOne({ name: 'storeCustomizationSetting' });
 			const legacyData = legacy?.setting?.about_us || {};
-			doc = await AboutUs.create({ name: 'aboutUs', data: legacyData });
+			
+			// Create default structure with all required boolean fields
+			const defaultStructure = {
+				header_status: true,
+				header_bg: "",
+				content_left_status: true,
+				content_right_status: true,
+				top_section_image: "",
+				content_middle_status: true,
+				content_middle_Img: "",
+				founder_status: true,
+				founder_one_img: "",
+				founder_two_img: "",
+				founder_three_img: "",
+				founder_four_img: "",
+				founder_five_img: "",
+				founder_six_img: "",
+				branches_status: true,
+				// Merge legacy data with defaults
+				...legacyData
+			};
+			
+			doc = await AboutUs.create({ name: 'aboutUs', data: defaultStructure });
 		}
-		return res.json(doc.data || {});
+		
+		// Ensure the response has all required boolean fields with defaults if missing
+		const responseData = {
+			header_status: doc.data?.header_status ?? true,
+			header_bg: doc.data?.header_bg ?? "",
+			content_left_status: doc.data?.content_left_status ?? true,
+			content_right_status: doc.data?.content_right_status ?? true,
+			top_section_image: doc.data?.top_section_image ?? "",
+			content_middle_status: doc.data?.content_middle_status ?? true,
+			content_middle_Img: doc.data?.content_middle_Img ?? "",
+			founder_status: doc.data?.founder_status ?? true,
+			founder_one_img: doc.data?.founder_one_img ?? "",
+			founder_two_img: doc.data?.founder_two_img ?? "",
+			founder_three_img: doc.data?.founder_three_img ?? "",
+			founder_four_img: doc.data?.founder_four_img ?? "",
+			founder_five_img: doc.data?.founder_five_img ?? "",
+			founder_six_img: doc.data?.founder_six_img ?? "",
+			branches_status: doc.data?.branches_status ?? true,
+			// Include all other data
+			...doc.data
+		};
+		
+		return res.json(responseData);
 	} catch (err) {
 		return res.status(500).json({ message: err.message });
 	}
@@ -32,10 +76,13 @@ exports.getAllStoreCustomization = async (req, res) => {
 			aboutUsDoc = await AboutUs.create({ name: 'aboutUs', data: legacyData });
 		}
 		
-		// Merge the data: base settings + about us data
+		// Merge the data: base settings + about us data merged into about_us section
 		const mergedData = {
 			...baseData,
-			...aboutUsDoc.data
+			about_us: {
+				...baseData?.about_us, // Keep existing boolean fields and structure
+				...aboutUsDoc.data      // Override with new bilingual content
+			}
 		};
 		
 		return res.json(mergedData);
