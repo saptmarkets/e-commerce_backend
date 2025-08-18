@@ -4,8 +4,19 @@ const Setting = require('../models/Setting');
 // Fetch About Us data, with fallback/migration from settings.storeCustomizationSetting.setting.about_us
 exports.getAboutUs = async (req, res) => {
 	try {
+		console.log('🔍 BACKEND: getAboutUs called');
+		
 		let doc = await AboutUs.findOne({ name: 'aboutUs' });
+		console.log('🔍 BACKEND: Found AboutUs document:', {
+			hasDoc: !!doc,
+			docId: doc?._id,
+			docDataKeys: Object.keys(doc?.data || {}),
+			docDataStructure: doc?.data?.name,
+			aboutUsKeys: Object.keys(doc?.data?.setting?.about_us || {})
+		});
+		
 		if (!doc) {
+			console.log('🔍 BACKEND: No AboutUs document found, creating new one with defaults');
 			// Fallback: try to migrate from settings if exists
 			const legacy = await Setting.findOne({ name: 'storeCustomizationSetting' });
 			const legacyData = legacy?.setting?.about_us || {};
@@ -41,10 +52,20 @@ exports.getAboutUs = async (req, res) => {
 					}
 				}
 			});
+			console.log('🔍 BACKEND: Created new AboutUs document with ID:', doc._id);
 		}
 		
 		// Extract the actual about_us data from the nested structure
 		const aboutUsData = doc.data?.setting?.about_us || doc.data;
+		console.log('🔍 BACKEND: Extracted aboutUsData:', {
+			aboutUsDataKeys: Object.keys(aboutUsData || {}),
+			sampleValues: {
+				title: aboutUsData?.title,
+				header_status: aboutUsData?.header_status,
+				founder_status: aboutUsData?.founder_status,
+				branches_status: aboutUsData?.branches_status
+			}
+		});
 		
 		// Ensure the response has all required boolean fields with defaults if missing
 		const responseData = {
@@ -67,8 +88,19 @@ exports.getAboutUs = async (req, res) => {
 			...aboutUsData
 		};
 		
+		console.log('🔍 BACKEND: Final response data:', {
+			responseKeys: Object.keys(responseData),
+			sampleResponseValues: {
+				title: responseData?.title,
+				header_status: responseData?.header_status,
+				founder_status: responseData?.founder_status,
+				branches_status: responseData?.branches_status
+			}
+		});
+		
 		return res.json(responseData);
 	} catch (err) {
+		console.error('🔍 BACKEND: Error in getAboutUs:', err);
 		return res.status(500).json({ message: err.message });
 	}
 };
@@ -119,6 +151,17 @@ exports.updateAboutUs = async (req, res) => {
 	try {
 		const payload = req.body?.data || req.body || {};
 		
+		console.log('🔍 BACKEND: updateAboutUs called with payload:', {
+			payloadType: typeof payload,
+			payloadKeys: Object.keys(payload || {}),
+			sampleValues: {
+				title: payload?.title,
+				header_status: payload?.header_status,
+				founder_status: payload?.founder_status,
+				branches_status: payload?.branches_status
+			}
+		});
+		
 		// Store in the nested structure to match existing data format
 		const nestedData = {
 			name: 'storeCustomizationSetting',
@@ -127,15 +170,38 @@ exports.updateAboutUs = async (req, res) => {
 			}
 		};
 		
+		console.log('🔍 BACKEND: Storing nested data structure:', {
+			nestedDataKeys: Object.keys(nestedData),
+			aboutUsKeys: Object.keys(nestedData.setting.about_us || {})
+		});
+		
 		const updated = await AboutUs.findOneAndUpdate(
 			{ name: 'aboutUs' },
 			{ $set: { data: nestedData } },
 			{ new: true, upsert: true }
 		);
 		
+		console.log('🔍 BACKEND: Database update result:', {
+			updatedId: updated._id,
+			updatedDataKeys: Object.keys(updated.data || {}),
+			aboutUsDataKeys: Object.keys(updated.data?.setting?.about_us || {})
+		});
+		
 		// Return the actual about_us data, not the nested structure
-		return res.json(updated.data?.setting?.about_us || {});
+		const responseData = updated.data?.setting?.about_us || {};
+		console.log('🔍 BACKEND: Returning response data:', {
+			responseKeys: Object.keys(responseData),
+			sampleResponseValues: {
+				title: responseData?.title,
+				header_status: responseData?.header_status,
+				founder_status: responseData?.founder_status,
+				branches_status: responseData?.branches_status
+			}
+		});
+		
+		return res.json(responseData);
 	} catch (err) {
+		console.error('🔍 BACKEND: Error in updateAboutUs:', err);
 		return res.status(500).json({ message: err.message });
 	}
 }; 
