@@ -17,6 +17,33 @@ exports.getAboutUs = async (req, res) => {
 	}
 };
 
+// NEW: Get ALL store customization data by merging Setting and AboutUs collections
+exports.getAllStoreCustomization = async (req, res) => {
+	try {
+		// Get base store customization data (navbar, homepage, contact, etc.)
+		const baseSettings = await Setting.findOne({ name: 'storeCustomizationSetting' });
+		const baseData = baseSettings?.setting || {};
+		
+		// Get About Us data from dedicated collection
+		let aboutUsDoc = await AboutUs.findOne({ name: 'aboutUs' });
+		if (!aboutUsDoc) {
+			// Fallback: try to migrate from settings if exists
+			const legacyData = baseData?.about_us || {};
+			aboutUsDoc = await AboutUs.create({ name: 'aboutUs', data: legacyData });
+		}
+		
+		// Merge the data: base settings + about us data
+		const mergedData = {
+			...baseData,
+			...aboutUsDoc.data
+		};
+		
+		return res.json(mergedData);
+	} catch (err) {
+		return res.status(500).json({ message: err.message });
+	}
+};
+
 // Update About Us data; upsert document and persist full bilingual objects
 exports.updateAboutUs = async (req, res) => {
 	try {
