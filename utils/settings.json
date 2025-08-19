@@ -336,53 +336,94 @@
           "en": "We're impartial and independent, and every day we create distinctive, world-class reintermediate backend supply programmes.",
           "de": "Wir sind unparteiisch und unabhängig und erstellen jeden Tag unverwechselbare, erstklassige Reintermediate-Backend-Lieferprogramme."
         },
-        "founder_one_name": {
-          "en": "Niamh Shea",
-          "de": "Niamh Shea "
-        },
-        "founder_one_sub": {
-          "en": "Co-founder & Executive",
-          "de": "Co-founder & Executive"
-        },
+
         "founder_two_name": {
           "en": "Orla Dwyer",
-          "de": "Orla Dwyer "
+          "ar": "أورلا دوير"
         },
-        "founder_two_sub": {
-          "en": "Orla Dwyer",
-          "de": "Orla Dwyer "
+        "founder_two_position": {
+          "en": "Co-founder & COO",
+          "ar": "مؤسس مشارك والمدير التنفيذي للعمليات"
         },
         "founder_three_name": {
           "en": "Danien James",
-          "de": "Danien James "
+          "ar": "دانيال جيمس"
         },
-        "founder_three_sub": {
+        "founder_three_position": {
           "en": "Co-founder, Chairman",
-          "de": "Co-founder, Chairman"
+          "ar": "مؤسس مشارك، رئيس مجلس الإدارة"
         },
         "founder_four_name": {
           "en": "Dara Frazier",
-          "de": "Dara Frazier "
+          "ar": "دارا فريزر"
         },
-        "founder_four_sub": {
+        "founder_four_position": {
           "en": "Chief Strategy Officer",
-          "de": "Chief Strategy Officer"
+          "ar": "كبير مسؤولي الاستراتيجية"
         },
         "founder_five_name": {
           "en": "Glenda Arvidson",
-          "de": "Glenda Arvidson"
+          "ar": "جليندا أرفيدسون"
         },
-        "founder_five_sub": {
+        "founder_five_position": {
           "en": "HR Officer",
-          "de": " HR Officer"
+          "ar": "مسؤول الموارد البشرية"
         },
         "founder_six_name": {
-          "en": "Melvin Davis ",
-          "de": "Melvin Davis "
+          "en": "Melvin Davis",
+          "ar": "ميلفين ديفيس"
         },
-        "founder_six_sub": {
+        "founder_six_position": {
           "en": "Lead Developer",
-          "de": "Lead Developer"
+          "ar": "مطور رئيسي"
+        },
+        "founder_seven_name": {
+          "en": "Sarah Johnson",
+          "ar": "سارة جونسون"
+        },
+        "founder_seven_position": {
+          "en": "Marketing Director",
+          "ar": "مدير التسويق"
+        },
+        "founder_eight_name": {
+          "en": "Michael Chen",
+          "ar": "مايكل تشين"
+        },
+        "founder_eight_position": {
+          "en": "Operations Manager",
+          "ar": "مدير العمليات"
+        },
+        "founder_nine_name": {
+          "en": "Lisa Rodriguez",
+          "ar": "ليزا رودريغيز"
+        },
+        "founder_nine_position": {
+          "en": "Customer Relations",
+          "ar": "علاقات العملاء"
+        },
+        "founder_ten_name": {
+          "en": "David Thompson",
+          "ar": "ديفيد طومسون"
+        },
+        "founder_ten_position": {
+          "en": "Supply Chain Manager",
+          "ar": "مدير سلسلة التوريد"
+        },
+        "founder_eleven_name": {
+          "en": "Emma Wilson",
+          "ar": "إيما ويلسون"
+        },
+        "founder_eleven_position": {
+          "en": "Quality Assurance",
+          "ar": "ضمان الجودة"
+        },
+        "founder_twelve_name": {
+          "en": "James Brown",
+          "ar": "جيمس براون"
+        },
+        "founder_twelve_position": {
+          "en": "Business Development",
+          "ar": "تطوير الأعمال"
         }
       },
       "contact_us": {
