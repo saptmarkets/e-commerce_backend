@@ -424,6 +424,315 @@
         "founder_twelve_position": {
           "en": "Business Development",
           "ar": "تطوير الأعمال"
+        },
+        
+        // Branches Section - Bilingual
+        "branches_title": {
+          "en": "Our Locations",
+          "ar": "مواقعنا"
+        },
+        "branches_description": {
+          "en": "Visit any of our convenient locations throughout Buraidah and experience the SAPT Markets difference.",
+          "ar": "زر أي من مواقعنا المريحة في جميع أنحاء بريدة واختبر فرق أسواق سابت."
+        },
+        "branches_cta_title": {
+          "en": "Can't Find Us?",
+          "ar": "لا تجدنا؟"
+        },
+        "branches_cta_description": {
+          "en": "We're expanding! New locations opening soon in your area.",
+          "ar": "نحن نتوسع! مواقع جديدة قريباً في منطقتك."
+        },
+        
+        // Upcoming Branches Section - Bilingual
+        "upcoming_branches_title": {
+          "en": "Coming Soon to New Areas",
+          "ar": "ريبًا في مواقع جديدة"
+        },
+        
+        // Upcoming Branch One - Bilingual
+        "upcoming_branch_one_name": {
+          "en": "Downtown Express Store",
+          "ar": "متجر وسط المدينة السريع"
+        },
+        "upcoming_branch_one_address": {
+          "en": "Downtown District, Buraidah",
+          "ar": "حي وسط المدينة، بريدة"
+        },
+        "upcoming_branch_one_quarter": {
+          "en": "Q2 2025",
+          "ar": "الربع الثاني 2025"
+        },
+        "upcoming_branch_one_features": {
+          "en": "Express Service, Fresh Produce, Pharmacy",
+          "ar": "خدمة سريعة، خضار وفواكه طازجة، صيدلية"
+        },
+        "upcoming_branch_one_emoji": {
+          "en": "🏪",
+          "ar": "🏪"
+        },
+        
+        // Upcoming Branch Two - Bilingual
+        "upcoming_branch_two_name": {
+          "en": "North District Store",
+          "ar": "متجر الحي الشمالي"
+        },
+        "upcoming_branch_two_address": {
+          "en": "North District, Buraidah",
+          "ar": "الحي الشمالي، بريدة"
+        },
+        "upcoming_branch_two_quarter": {
+          "en": "Q3 2025",
+          "ar": "الربع الثالث 2025"
+        },
+        "upcoming_branch_two_features": {
+          "en": "Full Service, Food Court, Electronics",
+          "ar": "خدمة كاملة، مطعم، إلكترونيات"
+        },
+        "upcoming_branch_two_emoji": {
+          "en": "🏬",
+          "ar": "🏬"
+        },
+        
+        // Current Branches 1-8 - Bilingual
+        // Branch One
+        "branch_one_name": {
+          "en": "Main Store",
+          "ar": "المتجر الرئيسي"
+        },
+        "branch_one_address": {
+          "en": "123 Main Street, Buraidah",
+          "ar": "١٢٣ الشارع الرئيسي، بريدة"
+        },
+        "branch_one_phone": {
+          "en": "+966 16 123 4567",
+          "ar": "+966 16 123 4567"
+        },
+        "branch_one_hours": {
+          "en": "Daily: 7:00 AM - 11:00 PM",
+          "ar": "يومياً: 7:00 ص - 11:00 م"
+        },
+        "branch_one_subtitle": {
+          "en": "Main Store, Full Service",
+          "ar": "متجر رئيسي، خدمة كاملة"
+        },
+        "branch_one_services": {
+          "en": "Fresh Produce, Bakery, Pharmacy, Electronics",
+          "ar": "خضار وفواكه طازجة، مخبز، صيدلية، إلكترونيات"
+        },
+        "branch_one_directions": {
+          "en": "https://maps.google.com/?q=123+Main+Street+Buraidah",
+          "ar": "https://maps.google.com/?q=123+Main+Street+Buraidah"
+        },
+        
+        // Branch Two
+        "branch_two_name": {
+          "en": "Express Store",
+          "ar": "متجر سريع"
+        },
+        "branch_two_address": {
+          "en": "456 Express Lane, Buraidah",
+          "ar": "٤٥٦ شارع السريع، بريدة"
+        },
+        "branch_two_phone": {
+          "en": "+966 16 123 4568",
+          "ar": "+966 16 123 4568"
+        },
+        "branch_two_hours": {
+          "en": "Daily: 6:00 AM - 12:00 AM",
+          "ar": "يومياً: 6:00 ص - 12:00 ص"
+        },
+        "branch_two_subtitle": {
+          "en": "Express Store, Quick Service",
+          "ar": "متجر سريع، خدمة سريعة"
+        },
+        "branch_two_services": {
+          "en": "Quick Groceries, Fresh Food, Convenience Items",
+          "ar": "بقالة سريعة، طعام طازج، عناصر راحة"
+        },
+        "branch_two_directions": {
+          "en": "https://maps.google.com/?q=456+Express+Lane+Buraidah",
+          "ar": "https://maps.google.com/?q=456+Express+Lane+Buraidah"
+        },
+        
+        // Branch Three
+        "branch_three_name": {
+          "en": "South District Store",
+          "ar": "متجر الحي الجنوبي"
+        },
+        "branch_three_address": {
+          "en": "789 South Road, Buraidah",
+          "ar": "٧٨٩ الطريق الجنوبي، بريدة"
+        },
+        "branch_three_phone": {
+          "en": "+966 16 123 4569",
+          "ar": "+966 16 123 4569"
+        },
+        "branch_three_hours": {
+          "en": "Daily: 8:00 AM - 10:00 PM",
+          "ar": "يومياً: 8:00 ص - 10:00 م"
+        },
+        "branch_three_subtitle": {
+          "en": "Community Store, Local Focus",
+          "ar": "متجر المجتمع، تركيز محلي"
+        },
+        "branch_three_services": {
+          "en": "Local Products, Fresh Market, Community Services",
+          "ar": "منتجات محلية، سوق طازج، خدمات المجتمع"
+        },
+        "branch_three_directions": {
+          "en": "https://maps.google.com/?q=789+South+Road+Buraidah",
+          "ar": "https://maps.google.com/?q=789+South+Road+Buraidah"
+        },
+        
+        // Branch Four
+        "branch_four_name": {
+          "en": "East District Store",
+          "ar": "متجر الحي الشرقي"
+        },
+        "branch_four_address": {
+          "en": "321 East Avenue, Buraidah",
+          "ar": "٣٢١ الجادة الشرقية، بريدة"
+        },
+        "branch_four_phone": {
+          "en": "+966 16 123 4570",
+          "ar": "+966 16 123 4570"
+        },
+        "branch_four_hours": {
+          "en": "Daily: 7:30 AM - 10:30 PM",
+          "ar": "يومياً: 7:30 ص - 10:30 م"
+        },
+        "branch_four_subtitle": {
+          "en": "Family Store, Kid-Friendly",
+          "ar": "متجر العائلة، صديق للأطفال"
+        },
+        "branch_four_services": {
+          "en": "Family Products, Kids Section, Play Area",
+          "ar": "منتجات العائلة، قسم الأطفال، منطقة لعب"
+        },
+        "branch_four_directions": {
+          "en": "https://maps.google.com/?q=321+East+Avenue+Buraidah",
+          "ar": "https://maps.google.com/?q=321+East+Avenue+Buraidah"
+        },
+        
+        // Branch Five
+        "branch_five_name": {
+          "en": "West District Store",
+          "ar": "متجر الحي الغربي"
+        },
+        "branch_five_address": {
+          "en": "654 West Boulevard, Buraidah",
+          "ar": "٦٥٤ الجادة الغربية، بريدة"
+        },
+        "branch_five_phone": {
+          "en": "+966 16 123 4571",
+          "ar": "+966 16 123 4571"
+        },
+        "branch_five_hours": {
+          "en": "Daily: 6:30 AM - 11:30 PM",
+          "ar": "يومياً: 6:30 ص - 11:30 م"
+        },
+        "branch_five_subtitle": {
+          "en": "Premium Store, Luxury Items",
+          "ar": "متجر مميز، عناصر فاخرة"
+        },
+        "branch_five_services": {
+          "en": "Premium Products, Luxury Items, Special Services",
+          "ar": "منتجات مميزة، عناصر فاخرة، خدمات خاصة"
+        },
+        "branch_five_directions": {
+          "en": "https://maps.google.com/?q=654+West+Boulevard+Buraidah",
+          "ar": "https://maps.google.com/?q=654+West+Boulevard+Buraidah"
+        },
+        
+        // Branch Six
+        "branch_six_name": {
+          "en": "Central Market Store",
+          "ar": "متجر السوق المركزي"
+        },
+        "branch_six_address": {
+          "en": "987 Central Market, Buraidah",
+          "ar": "٩٨٧ السوق المركزي، بريدة"
+        },
+        "branch_six_phone": {
+          "en": "+966 16 123 4572",
+          "ar": "+966 16 123 4572"
+        },
+        "branch_six_hours": {
+          "en": "Daily: 5:00 AM - 1:00 AM",
+          "ar": "يومياً: 5:00 ص - 1:00 ص"
+        },
+        "branch_six_subtitle": {
+          "en": "Market Store, Fresh Products",
+          "ar": "متجر السوق، منتجات طازجة"
+        },
+        "branch_six_services": {
+          "en": "Fresh Market, Local Vendors, Daily Specials",
+          "ar": "سوق طازج، بائعون محليون، عروض يومية"
+        },
+        "branch_six_directions": {
+          "en": "https://maps.google.com/?q=987+Central+Market+Buraidah",
+          "ar": "https://maps.google.com/?q=987+Central+Market+Buraidah"
+        },
+        
+        // Branch Seven
+        "branch_seven_name": {
+          "en": "University Store",
+          "ar": "متجر الجامعة"
+        },
+        "branch_seven_address": {
+          "en": "147 University Road, Buraidah",
+          "ar": "١٤٧ طريق الجامعة، بريدة"
+        },
+        "branch_seven_phone": {
+          "en": "+966 16 123 4573",
+          "ar": "+966 16 123 4573"
+        },
+        "branch_seven_hours": {
+          "en": "Daily: 8:00 AM - 9:00 PM",
+          "ar": "يومياً: 8:00 ص - 9:00 م"
+        },
+        "branch_seven_subtitle": {
+          "en": "Student Store, Academic Focus",
+          "ar": "متجر الطلاب، تركيز أكاديمي"
+        },
+        "branch_seven_services": {
+          "en": "Student Essentials, Study Materials, Quick Meals",
+          "ar": "ضروريات الطلاب، مواد الدراسة، وجبات سريعة"
+        },
+        "branch_seven_directions": {
+          "en": "https://maps.google.com/?q=147+University+Road+Buraidah",
+          "ar": "https://maps.google.com/?q=147+University+Road+Buraidah"
+        },
+        
+        // Branch Eight
+        "branch_eight_name": {
+          "en": "Airport Store",
+          "ar": "متجر المطار"
+        },
+        "branch_eight_address": {
+          "en": "258 Airport Highway, Buraidah",
+          "ar": "٢٥٨ طريق المطار، بريدة"
+        },
+        "branch_eight_phone": {
+          "en": "+966 16 123 4574",
+          "ar": "+966 16 123 4574"
+        },
+        "branch_eight_hours": {
+          "en": "Daily: 24/7",
+          "ar": "يومياً: 24/7"
+        },
+        "branch_eight_subtitle": {
+          "en": "Travel Store, Convenience Focus",
+          "ar": "متجر السفر، تركيز على الراحة"
+        },
+        "branch_eight_services": {
+          "en": "Travel Essentials, Quick Meals, Convenience Items",
+          "ar": "ضروريات السفر، وجبات سريعة، عناصر راحة"
+        },
+        "branch_eight_directions": {
+          "en": "https://maps.google.com/?q=258+Airport+Highway+Buraidah",
+          "ar": "https://maps.google.com/?q=258+Airport+Highway+Buraidah"
         }
       },
       "contact_us": {
