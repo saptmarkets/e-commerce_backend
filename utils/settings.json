@@ -825,9 +825,17 @@
           "en": "February 15, 2022",
           "ar": "15 فبراير 2022"
         },
+        "effective_date_label": {
+          "en": "Effective Date:",
+          "ar": "تاريخ السريان:"
+        },
         "last_updated": {
           "en": "February 15, 2022",
           "ar": "15 فبراير 2022"
+        },
+        "last_updated_label": {
+          "en": "Last Updated:",
+          "ar": "آخر تحديث:"
         },
         "tagline": {
           "en": "Your privacy is our priority. Learn how we protect and handle your data.",
@@ -874,9 +882,17 @@
           "en": "February 15, 2022",
           "ar": "15 فبراير 2022"
         },
+        "effective_date_label": {
+          "en": "Effective Date:",
+          "ar": "تاريخ السريان:"
+        },
         "last_updated": {
           "en": "February 15, 2022",
           "ar": "15 فبراير 2022"
+        },
+        "last_updated_label": {
+          "en": "Last Updated:",
+          "ar": "آخر تحديث:"
         },
         "cta_title": {
           "en": "Questions About Our Terms?",
