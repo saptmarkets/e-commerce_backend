@@ -71,7 +71,47 @@ const addOrder = async (req, res) => {
 
     // Generate verification code and product checklist
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const productChecklist = VerificationCodeGenerator.generateProductChecklist(req.body.cart);
+    
+    // Debug: Log cart data structure
+    console.log('🔍 Cart data received:', {
+      cartLength: req.body.cart?.length,
+      sampleItem: req.body.cart?.[0],
+      cartKeys: req.body.cart?.[0] ? Object.keys(req.body.cart[0]) : []
+    });
+    
+    // Generate simple product checklist from cart items (more reliable than complex generator)
+    const productChecklist = req.body.cart.map((item, index) => {
+      const productTitle = item.title || 
+                          item.name || 
+                          item.productTitle || 
+                          `Product ${index + 1}`;
+                          
+      const checklistItem = {
+        productId: item.id || item.productId || `product_${index}`,
+        title: productTitle,
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+        originalPrice: item.originalPrice || item.price || 0,
+        image: item.image,
+        collected: false,
+        collectedAt: null,
+        notes: '',
+        unitName: item.unitName || item.unit || 'Unit',
+        packQty: item.packQty || 1,
+        sku: item.sku || '',
+        isFromCombo: false
+      };
+      
+      console.log(`📦 Generated checklist item ${index}:`, {
+        title: checklistItem.title,
+        quantity: checklistItem.quantity,
+        unitName: checklistItem.unitName
+      });
+      
+      return checklistItem;
+    });
+    
+    console.log(`✅ Generated ${productChecklist.length} checklist items`);
 
     // Create and save order
     const newOrder = new Order({
