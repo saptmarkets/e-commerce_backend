@@ -17,22 +17,13 @@ const { createOrderNotification } = require("./notificationController");
 const ensureDeliveryInfoStructure = async (order) => {
   let updated = false;
   
-  console.log('🔧 ensureDeliveryInfoStructure called for order:', {
-    orderId: order._id,
-    hasDeliveryInfo: !!order.deliveryInfo,
-    hasProductChecklist: !!(order.deliveryInfo?.productChecklist),
-    cartLength: order.cart?.length || 0,
-    existingChecklistLength: order.deliveryInfo?.productChecklist?.length || 0
-  });
-  
   if (!order.deliveryInfo) {
     order.deliveryInfo = {};
     updated = true;
-    console.log('✅ Created new deliveryInfo object');
   }
   
   if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
-    console.log('🔄 Creating new productChecklist from cart items...');
+
     
     // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];
@@ -46,17 +37,12 @@ const ensureDeliveryInfoStructure = async (order) => {
                           cartItem.product?.name || 
                           `Product ${index + 1}`;
                           
-      console.log(`🔧 Processing cart item ${index}:`, {
+      console.log(`🔧 Initializing cart item ${index}:`, {
         id: cartItem.id,
-        _id: cartItem._id,
         title: cartItem.title,
-        name: cartItem.name,
-        productTitle: cartItem.productTitle,
         isCombo: cartItem.isCombo,
         hasComboDetails: !!cartItem.comboDetails,
-        extractedTitle: productTitle,
-        quantity: cartItem.quantity,
-        price: cartItem.price
+        extractedTitle: productTitle
       });
 
       // Check if this is a combo product
@@ -88,7 +74,7 @@ const ensureDeliveryInfoStructure = async (order) => {
           };
           
           order.deliveryInfo.productChecklist.push(comboItem);
-          console.log(`  ├─ Added combo item: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
+          console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
         });
         
       } else {
@@ -116,17 +102,12 @@ const ensureDeliveryInfoStructure = async (order) => {
         console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
       }
     });
-    
-    console.log(`✅ Created checklist with ${order.deliveryInfo.productChecklist.length} items`);
     updated = true;
-  } else {
-    console.log('✅ Product checklist already exists, no need to create');
   }
   
   if (updated) {
-    console.log('💾 Saving order with updated delivery info structure...');
     await order.save();
-    console.log('✅ Order delivery info structure initialized and saved');
+    console.log('✅ Order delivery info structure initialized');
   }
   
   return order;
@@ -426,112 +407,40 @@ const getMobileOrderDetails = async (req, res) => {
         console.log('✅ Using existing product checklist with complete product information.');
         productChecklist = order.deliveryInfo.productChecklist;
       } else {
-        console.log('🔧 Existing checklist is incomplete (missing title, unitName, price, etc.), enhancing with product data...');
-        
-        // Instead of regenerating completely, enhance the existing checklist with product data
-        // This preserves the collection status and other saved information
-        const enhancedChecklist = [];
-        
-        for (const existingItem of order.deliveryInfo.productChecklist) {
-          try {
-            // Find the corresponding cart item to get product details
-            const cartItem = order.cart.find(cart => 
-              cart.id === existingItem.productId || 
-              cart.productId === existingItem.productId ||
-              cart._id?.toString() === existingItem.productId
-            );
-            
-            if (cartItem) {
-              // Enhance the existing item with product data while preserving collection status
-              const enhancedItem = {
-                ...existingItem, // 🔴 Preserve all existing data (collected, collectedAt, notes, etc.)
-                title: [cartItem.title || 'Unknown Product', cartItem.title || 'Unknown Product'], // Add dual-language title
-                price: cartItem.price || 0,
-                originalPrice: cartItem.originalPrice || cartItem.price || 0,
-                image: cartItem.image,
-                unitName: cartItem.unitName || cartItem.unit || 'Unit',
-                packQty: cartItem.packQty || 1,
-                sku: cartItem.sku || '',
-                arabicTitle: cartItem.title || 'Unknown Product',
-                englishTitle: cartItem.title || 'Unknown Product'
-              };
-              
-              enhancedChecklist.push(enhancedItem);
-              console.log(`  ├─ Enhanced item: ${enhancedItem.title[1]} (Collected: ${enhancedItem.collected})`);
-            } else {
-              // If cart item not found, keep the existing item as is
-              enhancedChecklist.push(existingItem);
-              console.log(`  ├─ Kept existing item: ${existingItem.productId} (Collected: ${existingItem.collected})`);
-            }
-          } catch (itemError) {
-            console.error(`❌ Error enhancing item ${existingItem.productId}:`, itemError);
-            // Keep the existing item even if enhancement fails
-            enhancedChecklist.push(existingItem);
-          }
-        }
-        
-        productChecklist = enhancedChecklist;
-        
-        // Save the enhanced checklist back to the order
-        try {
-          await Order.findByIdAndUpdate(
-            orderId,
-            {
-              "deliveryInfo.productChecklist": enhancedChecklist,
-            },
-            { new: true }
-          );
-          console.log("💾 Saved enhanced checklist to the database.");
-        } catch (updateError) {
-          console.error("⚠️ Failed to save enhanced checklist:", updateError.message);
-        }
+        console.log('🔧 Existing checklist is incomplete (missing title, unitName, price, etc.), regenerating...');
+        productChecklist = null; // Force regeneration
       }
     }
     
     // Generate new checklist if needed
-    if (!productChecklist || productChecklist.length === 0) {
+    if (!productChecklist) {
       console.log(
-        "🔄 No checklist found or checklist is completely empty. Generating a new one from the order cart."
+        "�� No checklist found or checklist incomplete. Generating a new one from the order cart."
       );
       if (order.cart && order.cart.length > 0) {
-        // 🔴 CRITICAL FIX: Call ensureDeliveryInfoStructure for new orders
-        console.log('🔄 Calling ensureDeliveryInfoStructure to generate proper checklist...');
-        await ensureDeliveryInfoStructure(order);
+        productChecklist = await regenerateIncompleteChecklist(order);
         
-        // Refresh the order to get the newly generated checklist
-        const refreshedOrder = await Order.findById(orderId);
-        if (refreshedOrder && refreshedOrder.deliveryInfo && refreshedOrder.deliveryInfo.productChecklist) {
-          productChecklist = refreshedOrder.deliveryInfo.productChecklist;
-          console.log(`✅ Generated new checklist with ${productChecklist.length} items using ensureDeliveryInfoStructure`);
-        } else {
-          // Fallback to regenerateIncompleteChecklist if ensureDeliveryInfoStructure didn't work
-          console.log('⚠️ ensureDeliveryInfoStructure didn\'t generate checklist, falling back to regenerateIncompleteChecklist...');
-          productChecklist = await regenerateIncompleteChecklist(order);
-          
-          // Save the newly generated checklist back to the order
-          try {
-            await Order.findByIdAndUpdate(
-              orderId,
-              {
-                "deliveryInfo.productChecklist": productChecklist,
-                "deliveryInfo.allItemsCollected": false,
-              },
-              { new: true }
-            );
-            console.log("💾 Saved newly generated checklist to the database.");
-          } catch (updateError) {
-            console.error(
-              "⚠️ Failed to save newly generated checklist to order:",
-              updateError.message
-            );
-          }
+        // IMPORTANT: Save the newly generated checklist back to the order
+        try {
+          await Order.findByIdAndUpdate(
+            orderId,
+            {
+              "deliveryInfo.productChecklist": productChecklist,
+              "deliveryInfo.allItemsCollected": false,
+            },
+            { new: true }
+          );
+          console.log("💾 Saved newly generated checklist to the database.");
+        } catch (updateError) {
+          console.error(
+            "⚠️ Failed to save newly generated checklist to order:",
+            updateError.message
+          );
         }
       } else {
         console.log("⚠️ No cart items found to generate checklist from.");
         productChecklist = [];
       }
-    } else {
-      console.log(`✅ Using existing checklist with ${productChecklist.length} items. Collection status preserved.`);
     }
 
     // Try to get latest customer data for better information
@@ -842,210 +751,94 @@ const mobileAcceptOrder = async (req, res) => {
 // Mobile Toggle Product Collection
 const mobileToggleProduct = async (req, res) => {
   try {
-    const { orderId, productId, collected, notes } = req.body;
+    const { orderId } = req.params;
+    const { productId, collected } = req.body;
     const driverId = req.user.userId;
-
-    console.log("📱 Mobile toggle product:", {
-      orderId,
-      driverId,
-      productId,
-      collected,
-      notes,
-    });
-
-    // Validate required fields
-    if (!orderId) {
+    
+    console.log('🔄 Toggling product collection:', { orderId, productId, driverId });
+    
+    if (!productId) {
       return res.status(400).json({
         success: false,
-        message: "Order ID is required",
+        message: 'Product ID is required'
       });
     }
 
-    if (collected === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "Collection status is required",
-      });
-    }
-
-    // Find the order and verify driver assignment
-    const order = await Order.findOne({
-      _id: orderId,
-      "deliveryInfo.assignedDriver": driverId,
-    });
-
+    // Find the order and check if it exists
+    let order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found or not assigned to you",
+        message: 'Order not found'
       });
     }
 
-    // If productId is not provided, try to find it from the request context
-    let targetProductId = productId;
-    
-    if (!targetProductId) {
-      // Try to extract productId from different possible sources
-      if (req.body.product_id) {
-        targetProductId = req.body.product_id;
-        console.log(`🔍 Found productId from req.body.product_id: ${targetProductId}`);
-      } else if (req.body.productId) {
-        targetProductId = req.body.productId;
-        console.log(`🔍 Found productId from req.body.productId: ${targetProductId}`);
-      } else if (req.body.id) {
-        targetProductId = req.body.id;
-        console.log(`🔍 Found productId from req.body.id: ${targetProductId}`);
-      } else if (req.query.productId) {
-        targetProductId = req.query.productId;
-        console.log(`🔍 Found productId from req.query.productId: ${targetProductId}`);
-      } else if (req.query.product_id) {
-        targetProductId = req.query.product_id;
-        console.log(`🔍 Found productId from req.query.product_id: ${targetProductId}`);
-      } else if (req.query.id) {
-        targetProductId = req.query.id;
-        console.log(`🔍 Found productId from req.query.id: ${targetProductId}`);
-      } else if (req.params.productId) {
-        targetProductId = req.params.productId;
-        console.log(`🔍 Found productId from req.params.productId: ${targetProductId}`);
-      } else if (req.params.id) {
-        targetProductId = req.params.id;
-        console.log(`🔍 Found productId from req.params.id: ${targetProductId}`);
-      }
-    }
-
-    // If still no productId, try to find it from the order's cart or checklist
-    if (!targetProductId && order.cart && order.cart.length > 0) {
-      // Use the first cart item as fallback (this is a temporary fix)
-      targetProductId = order.cart[0]._id || order.cart[0].id;
-      console.log(`⚠️ No productId provided, using fallback from first cart item: ${targetProductId}`);
-    }
-
-    if (!targetProductId) {
-      console.error("❌ No productId found in request:", {
-        body: req.body,
-        query: req.query,
-        params: req.params,
-        headers: req.headers
+    // Check if the order is assigned to this driver
+    if (!order.deliveryInfo?.assignedDriver || 
+        order.deliveryInfo.assignedDriver.toString() !== driverId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please accept the order first before collecting products'
       });
-      
+    }
+
+    // Check if the order is in a valid state for product collection
+    if (!['Processing', 'Out for Delivery'].includes(order.status)) {
       return res.status(400).json({
         success: false,
-        message: "Product ID is required. Please provide productId, product_id, or id in the request.",
-        debug: {
-          receivedBody: req.body,
-          receivedQuery: req.query,
-          receivedParams: req.params,
-          orderCartLength: order.cart?.length || 0,
-          orderChecklistLength: order.deliveryInfo?.productChecklist?.length || 0,
-          suggestion: "The delivery app should send productId in the request body when toggling collection status"
-        }
+        message: 'Order must be in Processing or Out for Delivery status to collect products'
       });
-    }
-
-    // Ensure the order has a productChecklist
-    if (!order.deliveryInfo) {
-      order.deliveryInfo = {};
-    }
-
-    if (!order.deliveryInfo.productChecklist) {
-      order.deliveryInfo.productChecklist = [];
     }
 
     // Find the product in the checklist
-    let checklistItem = order.deliveryInfo.productChecklist.find(
-      (item) => 
-        item.productId === targetProductId || 
-        item.productId?.toString() === targetProductId?.toString() ||
-        item._id?.toString() === targetProductId?.toString()
+    const productIndex = order.deliveryInfo.productChecklist.findIndex(
+      item => item.productId.toString() === productId.toString()
     );
-
-    // If not found in checklist, create a new item
-    if (!checklistItem) {
-      // Try to find the product in the cart
-      const cartItem = order.cart.find(
-        (item) => 
-          item._id?.toString() === targetProductId?.toString() ||
-          item.id === targetProductId ||
-          item.productId === targetProductId
-      );
-
-      if (cartItem) {
-        checklistItem = {
-          productId: targetProductId,
-          title: [cartItem.title || 'Unknown Product', cartItem.title || 'Unknown Product'],
-          price: cartItem.price || 0,
-          originalPrice: cartItem.originalPrice || cartItem.price || 0,
-          image: cartItem.image,
-          unitName: cartItem.unitName || cartItem.unit || 'Unit',
-          packQty: cartItem.packQty || 1,
-          sku: cartItem.sku || '',
-          arabicTitle: cartItem.title || 'Unknown Product',
-          englishTitle: cartItem.title || 'Unknown Product',
-          collected: false,
-          collectedAt: null,
-          collectedBy: null,
-          notes: '',
-        };
-        order.deliveryInfo.productChecklist.push(checklistItem);
-        console.log(`✅ Created new checklist item for product: ${targetProductId}`);
-      } else {
-        return res.status(404).json({
-          success: false,
-          message: "Product not found in order",
-          debug: {
-            searchedProductId: targetProductId,
-            orderCartItems: order.cart?.map(item => ({
-              _id: item._id,
-              id: item.id,
-              productId: item.productId,
-              title: item.title
-            })) || []
-          }
-        });
-      }
-    }
-
-    // Update the collection status
-    checklistItem.collected = collected;
-    checklistItem.collectedAt = collected ? new Date() : null;
-    checklistItem.collectedBy = collected ? driverId : null;
     
-    if (notes !== undefined) {
-      checklistItem.notes = notes;
+    if (productIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found in checklist'
+      });
     }
-
-    // Update collection summary
-    const totalItems = order.deliveryInfo.productChecklist.length;
-    const collectedItems = order.deliveryInfo.productChecklist.filter(
-      (item) => item.collected
-    ).length;
-
-    order.deliveryInfo.allItemsCollected = collectedItems === totalItems;
-    order.deliveryInfo.lastUpdated = new Date();
-
-    // Save the order
+    
+    // Update the product collection status
+    order.deliveryInfo.productChecklist[productIndex].collected = collected;
+    order.deliveryInfo.productChecklist[productIndex].collectedAt = collected ? new Date() : null;
+    
+    // Check if all items are collected
+    const allCollected = order.deliveryInfo.productChecklist.every(item => item.collected);
+    order.deliveryInfo.allItemsCollected = allCollected;
+    
+    if (allCollected) {
+      order.deliveryInfo.collectionCompletedAt = new Date();
+    } else {
+      order.deliveryInfo.collectionCompletedAt = null;
+    }
+    
+    // Save the updated order
     await order.save();
-
-    console.log(`✅ Product ${targetProductId} collection status updated to: ${collected}`);
-
+    
     res.json({
       success: true,
-      message: `Product collection status updated successfully`,
+      message: `Product ${collected ? 'collected' : 'uncollected'} successfully`,
       data: {
-        productId: targetProductId,
+        productId,
         collected,
-        notes: checklistItem.notes,
-        totalItems,
-        collectedItems,
-        allItemsCollected: order.deliveryInfo.allItemsCollected,
-      },
+        collectedAt: order.deliveryInfo.productChecklist[productIndex].collectedAt,
+        allItemsCollected: allCollected,
+        collectedCount: order.deliveryInfo.productChecklist.filter(item => item.collected).length,
+        totalCount: order.deliveryInfo.productChecklist.length,
+        checklist: order.deliveryInfo.productChecklist
+      }
     });
+    
   } catch (error) {
-    console.error("❌ Error in mobileToggleProduct:", error);
+    console.error('❌ Mobile toggle product error:', error);
     res.status(500).json({
       success: false,
-      message: "Failed to update product collection status",
-      error: error.message,
+      message: 'Failed to toggle product collection',
+      error: error.message
     });
   }
 };
@@ -2415,25 +2208,24 @@ const regenerateIncompleteChecklist = async (order) => {
   }
 };
 
-// Mobile Save Product Checklist - Save entire checklist state
-const mobileSaveProductChecklist = async (req, res) => {
+// Bulk update product collection status for multiple products
+const mobileBulkUpdateProducts = async (req, res) => {
   try {
     const { orderId } = req.params;
     const driverId = req.user.userId;
-    const { checklist } = req.body;
+    const { products } = req.body;
     
-    console.log('📱 Mobile save product checklist:', { orderId, driverId, checklistLength: checklist?.length || 0 });
+    console.log('📱 Bulk updating products for order:', orderId, 'by driver:', driverId);
     
-    if (!checklist || !Array.isArray(checklist)) {
+    if (!products || !Array.isArray(products)) {
       return res.status(400).json({
         success: false,
-        message: "Checklist data is required and must be an array"
+        message: "Products array is required"
       });
     }
     
     // Find the order and verify driver assignment
     const order = await Order.findById(orderId);
-    
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -2449,54 +2241,63 @@ const mobileSaveProductChecklist = async (req, res) => {
       });
     }
     
-    // Update the product checklist with the new state
-    const updatedChecklist = order.deliveryInfo?.productChecklist?.map(existingItem => {
-      const newItem = checklist.find(c => c.productId === existingItem.productId);
-      if (newItem) {
-        return {
-          ...existingItem,
-          collected: newItem.collected,
-          collectedAt: newItem.collected ? new Date() : null,
-          collectedBy: newItem.collected ? driverId : null,
-          notes: newItem.notes || existingItem.notes || ''
-        };
+    // Update each product in the checklist
+    let updatedCount = 0;
+    const errors = [];
+    
+    for (const productUpdate of products) {
+      try {
+        const { productId, collected, collectedAt, notes } = productUpdate;
+        
+        // Find the product in the checklist
+        const productIndex = order.deliveryInfo.productChecklist.findIndex(
+          item => item.productId === productId
+        );
+        
+        if (productIndex !== -1) {
+          // Update the product
+          order.deliveryInfo.productChecklist[productIndex].collected = collected;
+          order.deliveryInfo.productChecklist[productIndex].collectedAt = collected ? (collectedAt || new Date()) : null;
+          order.deliveryInfo.productChecklist[productIndex].notes = notes || '';
+          order.deliveryInfo.productChecklist[productIndex].collectedBy = collected ? driverId : null;
+          
+          updatedCount++;
+          console.log(`✅ Updated product ${productId}: collected=${collected}`);
+        } else {
+          errors.push(`Product ${productId} not found in checklist`);
+        }
+      } catch (productError) {
+        console.error(`❌ Error updating product ${productUpdate.productId}:`, productError);
+        errors.push(`Failed to update product ${productUpdate.productId}`);
       }
-      return existingItem;
-    }) || [];
+    }
     
     // Check if all items are collected
-    const allItemsCollected = updatedChecklist.length > 0 && updatedChecklist.every(item => item.collected);
+    const allCollected = order.deliveryInfo.productChecklist.every(item => item.collected);
+    order.deliveryInfo.allItemsCollected = allCollected;
     
-    // Update the order
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        "deliveryInfo.productChecklist": updatedChecklist,
-        "deliveryInfo.allItemsCollected": allItemsCollected,
-        "deliveryInfo.lastUpdated": new Date()
-      },
-      { new: true }
-    );
+    // Save the updated order
+    await order.save();
     
-    console.log(`✅ Product checklist saved successfully. All items collected: ${allItemsCollected}`);
+    console.log(`✅ Bulk update completed: ${updatedCount} products updated, ${errors.length} errors`);
     
     res.json({
       success: true,
-      message: "Product checklist saved successfully",
+      message: `Successfully updated ${updatedCount} products`,
       data: {
-        orderId: updatedOrder._id,
-        allItemsCollected,
-        collectedCount: updatedChecklist.filter(item => item.collected).length,
-        totalCount: updatedChecklist.length,
-        checklist: updatedChecklist
+        updatedCount,
+        errorCount: errors.length,
+        errors: errors.length > 0 ? errors : undefined,
+        allItemsCollected: allCollected,
+        checklist: order.deliveryInfo.productChecklist
       }
     });
     
   } catch (error) {
-    console.error('❌ Mobile save product checklist error:', error);
+    console.error('❌ Bulk update products error:', error);
     res.status(500).json({
       success: false,
-      message: "Failed to save product checklist",
+      message: "Failed to update products",
       error: error.message
     });
   }
@@ -2521,5 +2322,5 @@ module.exports = {
   mobileAcceptOrder,
   debugOrderChecklist,
   forceRegenerateChecklist,
-  mobileSaveProductChecklist
+  mobileBulkUpdateProducts
 }; 

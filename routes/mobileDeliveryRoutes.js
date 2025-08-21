@@ -19,7 +19,7 @@ const {
   mobileAcceptOrder,
   debugOrderChecklist,
   forceRegenerateChecklist,
-  mobileSaveProductChecklist
+  mobileBulkUpdateProducts
 } = require('../controller/mobileDeliveryController');
 
 // Mobile authentication middleware
@@ -91,8 +91,8 @@ router.post('/orders/:orderId/accept', mobileAuth, mobileAcceptOrder);
 // Product collection
 router.post('/orders/:orderId/toggle-product', mobileAuth, mobileToggleProduct);
 
-// Save entire product checklist
-router.post('/orders/:orderId/save-checklist', mobileAuth, mobileSaveProductChecklist);
+// Bulk update product collection status
+router.post('/orders/:orderId/bulk-update-products', mobileAuth, mobileBulkUpdateProducts);
 
 // Order status updates
 router.post('/orders/:orderId/out-for-delivery', mobileAuth, mobileMarkOutForDelivery);
@@ -148,72 +148,7 @@ router.get('/debug/order/:orderId/checklist', mobileAuth, async (req, res) => {
         checklistCount: order.deliveryInfo?.productChecklist?.length || 0,
         cartItemsCount: order.cart?.length || 0,
         checklist: order.deliveryInfo?.productChecklist || [],
-        cartItems: order.cart || [],
-        // Add collection status information
-        collectionStatus: order.deliveryInfo?.productChecklist?.map(item => ({
-          productId: item.productId,
-          title: item.title,
-          collected: item.collected,
-          collectedAt: item.collectedAt,
-          collectedBy: item.collectedBy,
-          notes: item.notes
-        })) || []
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Debug endpoint error',
-      error: error.message
-    });
-  }
-});
-
-// Debug endpoint to check checklist preservation
-router.get('/debug/order/:orderId/checklist-preservation', mobileAuth, async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const driverId = req.user.userId;
-    
-    const Order = require('../models/Order');
-    const order = await Order.findOne({
-      _id: orderId,
-      'deliveryInfo.assignedDriver': driverId
-    });
-    
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found or not assigned to you'
-      });
-    }
-    
-    // Check if checklist has collection status preserved
-    const checklistWithStatus = order.deliveryInfo?.productChecklist || [];
-    const hasCollectionStatus = checklistWithStatus.some(item => 
-      item.hasOwnProperty('collected') || 
-      item.hasOwnProperty('collectedAt') || 
-      item.hasOwnProperty('collectedBy')
-    );
-    
-    res.json({
-      success: true,
-      data: {
-        orderId: order._id,
-        hasChecklist: !!order.deliveryInfo?.productChecklist,
-        checklistLength: checklistWithStatus.length,
-        hasCollectionStatus,
-        collectionStatusPreserved: hasCollectionStatus,
-        sampleItems: checklistWithStatus.slice(0, 3).map(item => ({
-          productId: item.productId,
-          title: item.title,
-          collected: item.collected,
-          collectedAt: item.collectedAt,
-          collectedBy: item.collectedBy,
-          hasTitle: !!item.title,
-          hasUnitName: !!item.unitName,
-          hasPrice: item.price !== undefined
-        }))
+        cartItems: order.cart || []
       }
     });
   } catch (error) {
@@ -230,35 +165,5 @@ router.get('/debug/order/:orderId/checklist', mobileAuth, debugOrderChecklist);
 
 // Force regenerate checklist (debug)
 router.post('/debug/order/:orderId/regenerate-checklist', mobileAuth, forceRegenerateChecklist);
-
-// Debug endpoint to check request data for toggle product
-router.post('/debug/toggle-product', mobileAuth, async (req, res) => {
-  try {
-    const driverId = req.user.userId;
-    
-    res.json({
-      success: true,
-      message: 'Debug endpoint for toggle product',
-      data: {
-        driverId,
-        requestBody: req.body,
-        requestQuery: req.query,
-        requestParams: req.params,
-        requestHeaders: {
-          'content-type': req.headers['content-type'],
-          'authorization': req.headers.authorization ? 'Present' : 'Missing',
-          'user-agent': req.headers['user-agent']
-        },
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Debug endpoint error',
-      error: error.message
-    });
-  }
-});
 
 module.exports = router; 
