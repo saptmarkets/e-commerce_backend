@@ -28,48 +28,77 @@ const ensureDeliveryInfoStructure = async (order) => {
     // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];
     
-    order.cart.forEach((cartItem, index) => {
+    for (let index = 0; index < order.cart.length; index++) {
+      const cartItem = order.cart[index];
+      
       // Enhanced product information extraction with proper dual-language support
       let productTitle = cartItem.title || 
                         cartItem.name || 
                         cartItem.productTitle || 
-                        cartItem.product?.title || 
-                        cartItem.product?.name || 
                         `Product ${index + 1}`;
       
-      // 🔴 CRITICAL FIX: Extract proper dual-language titles
+      // 🔴 CRITICAL FIX: Extract proper dual-language titles by fetching product data
       let arabicTitle = productTitle;
       let englishTitle = productTitle;
       
-      // Try to get dual-language titles from the cart item
-      if (cartItem.product && cartItem.product.title) {
-        if (typeof cartItem.product.title === 'object') {
-          // Product has dual-language titles
-          arabicTitle = cartItem.product.title.ar || productTitle;
-          englishTitle = cartItem.product.title.en || productTitle;
-          productTitle = [arabicTitle, englishTitle];
-          console.log(`✅ Found dual-language titles: Arabic="${arabicTitle}", English="${englishTitle}"`);
-        } else if (typeof cartItem.product.title === 'string') {
-          // Product has single language title
-          arabicTitle = cartItem.product.title;
-          englishTitle = cartItem.product.title;
-          productTitle = [arabicTitle, englishTitle];
-          console.log(`⚠️ Product has single language title: "${cartItem.product.title}"`);
+      // Try to fetch the actual product data to get dual-language titles
+      if (cartItem.productId) {
+        try {
+          const Product = require('../models/Product');
+          const product = await Product.findById(cartItem.productId);
+          
+          if (product && product.title) {
+            if (typeof product.title === 'object') {
+              // Product has dual-language titles
+              arabicTitle = product.title.ar || productTitle;
+              englishTitle = product.title.en || productTitle;
+              console.log(`✅ Found dual-language titles from Product model: Arabic="${arabicTitle}", English="${englishTitle}"`);
+            } else if (typeof product.title === 'string') {
+              // Product has single language title
+              arabicTitle = product.title;
+              englishTitle = product.title;
+              console.log(`⚠️ Product has single language title: "${product.title}"`);
+            }
+          }
+        } catch (productError) {
+          console.warn(`⚠️ Could not fetch Product data for ${cartItem.productId}:`, productError.message);
         }
-      } else if (cartItem.title && typeof cartItem.title === 'object') {
-        // Cart item itself has dual-language titles
-        arabicTitle = cartItem.title.ar || productTitle;
-        englishTitle = cartItem.title.en || productTitle;
-        productTitle = [arabicTitle, englishTitle];
-        console.log(`✅ Found dual-language titles in cart item: Arabic="${arabicTitle}", English="${englishTitle}"`);
-      } else {
-        // Fallback to single language
-        productTitle = [arabicTitle, englishTitle];
       }
+      
+      // If we still don't have dual-language titles, try to get them from ProductUnit
+      if (cartItem.selectedUnitId && (arabicTitle === englishTitle)) {
+        try {
+          const ProductUnit = require('../models/ProductUnit');
+          const productUnit = await ProductUnit.findById(cartItem.selectedUnitId)
+            .populate('product', 'title description images sku barcode');
+          
+          if (productUnit && productUnit.product && productUnit.product.title) {
+            if (typeof productUnit.product.title === 'object') {
+              arabicTitle = productUnit.product.title.ar || arabicTitle;
+              englishTitle = productUnit.product.title.en || englishTitle;
+              console.log(`✅ Found dual-language titles from ProductUnit: Arabic="${arabicTitle}", English="${englishTitle}"`);
+            }
+          }
+        } catch (unitError) {
+          console.warn(`⚠️ Could not fetch ProductUnit data:`, unitError.message);
+        }
+      }
+      
+      // Ensure we have both titles
+      if (arabicTitle === englishTitle) {
+        // If both are the same, use the cart title for both
+        arabicTitle = productTitle;
+        englishTitle = productTitle;
+      }
+      
+      // Convert to array format
+      productTitle = [arabicTitle, englishTitle];
                           
       console.log(`🔧 Initializing cart item ${index}:`, {
         id: cartItem.id,
         title: cartItem.title,
+        productId: cartItem.productId,
+        selectedUnitId: cartItem.selectedUnitId,
         isCombo: cartItem.isCombo,
         hasComboDetails: !!cartItem.comboDetails,
         extractedTitle: productTitle,
@@ -133,7 +162,7 @@ const ensureDeliveryInfoStructure = async (order) => {
         order.deliveryInfo.productChecklist.push(regularItem);
         console.log(`  ├─ Added regular product: ${englishTitle || arabicTitle} (Qty: ${regularItem.quantity})`);
       }
-    });
+    }
     updated = true;
   }
   
