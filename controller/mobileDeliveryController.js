@@ -22,121 +22,38 @@ const ensureDeliveryInfoStructure = async (order) => {
     updated = true;
   }
   
-  if (!order.deliveryInfo.productChecklist || 
-      !Array.isArray(order.deliveryInfo.productChecklist) ||
-      order.deliveryInfo.productChecklist.length === 0 ||
-      // 🔴 CRITICAL FIX: Force regeneration if existing checklist has incomplete data
-      order.deliveryInfo.productChecklist.some(item => 
-        !item.title || 
-        !item.unitName || 
-        item.price === undefined ||
-        (Array.isArray(item.title) && (item.title[0] === 'Unknown Product' || item.title[1] === 'Unknown Product'))
-      )) {
-    console.log('🔧 Initializing/regenerating product checklist for order:', order._id);
+  if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
+
     
-    // 🔴 DEBUG: Log cart data structure
-    console.log('🛒 Cart data analysis:', {
-      hasCart: !!order.cart,
-      cartLength: order.cart?.length || 0,
-      cartItems: order.cart?.map(item => ({
-        id: item.id,
-        productId: item.productId,
-        title: item.title,
-        selectedUnitId: item.selectedUnitId,
-        isCombo: item.isCombo
-      })) || []
-    });
-    
-    // Clear existing incomplete checklist
+    // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];
     
-    for (let index = 0; index < order.cart.length; index++) {
-      const cartItem = order.cart[index];
-      
-      // Enhanced product information extraction with proper dual-language support
-      let productTitle = cartItem.title || 
-                        cartItem.name || 
-                        cartItem.productTitle || 
-                        `Product ${index + 1}`;
-      
-      // 🔴 CRITICAL FIX: Extract proper dual-language titles by fetching product data
-      let arabicTitle = productTitle;
-      let englishTitle = productTitle;
-      
-      // Try to fetch the actual product data to get dual-language titles
-      if (cartItem.productId) {
-        try {
-          const Product = require('../models/Product');
-          const product = await Product.findById(cartItem.productId);
-          
-          if (product && product.title) {
-            if (typeof product.title === 'object') {
-              // Product has dual-language titles
-              arabicTitle = product.title.ar || productTitle;
-              englishTitle = product.title.en || productTitle;
-              console.log(`✅ Found dual-language titles from Product model: Arabic="${arabicTitle}", English="${englishTitle}"`);
-            } else if (typeof product.title === 'string') {
-              // Product has single language title
-              arabicTitle = product.title;
-              englishTitle = product.title;
-              console.log(`⚠️ Product has single language title: "${product.title}"`);
-            }
-          }
-        } catch (productError) {
-          console.warn(`⚠️ Could not fetch Product data for ${cartItem.productId}:`, productError.message);
-        }
-      }
-      
-      // If we still don't have dual-language titles, try to get them from ProductUnit
-      if (cartItem.selectedUnitId && (arabicTitle === englishTitle)) {
-        try {
-          const ProductUnit = require('../models/ProductUnit');
-          const productUnit = await ProductUnit.findById(cartItem.selectedUnitId)
-            .populate('product', 'title description images sku barcode');
-          
-          if (productUnit && productUnit.product && productUnit.product.title) {
-            if (typeof productUnit.product.title === 'object') {
-              arabicTitle = productUnit.product.title.ar || arabicTitle;
-              englishTitle = productUnit.product.title.en || englishTitle;
-              console.log(`✅ Found dual-language titles from ProductUnit: Arabic="${arabicTitle}", English="${englishTitle}"`);
-            }
-          }
-        } catch (unitError) {
-          console.warn(`⚠️ Could not fetch ProductUnit data:`, unitError.message);
-        }
-      }
-      
-      // Ensure we have both titles
-      if (arabicTitle === englishTitle) {
-        // If both are the same, use the cart title for both
-        arabicTitle = productTitle;
-        englishTitle = productTitle;
-      }
-      
-      // Convert to array format
-      productTitle = [arabicTitle, englishTitle];
+    order.cart.forEach((cartItem, index) => {
+      // Enhanced product information extraction
+      const productTitle = cartItem.title || 
+                          cartItem.name || 
+                          cartItem.productTitle || 
+                          cartItem.product?.title || 
+                          cartItem.product?.name || 
+                          `Product ${index + 1}`;
                           
       console.log(`🔧 Initializing cart item ${index}:`, {
         id: cartItem.id,
         title: cartItem.title,
-        productId: cartItem.productId,
-        selectedUnitId: cartItem.selectedUnitId,
         isCombo: cartItem.isCombo,
         hasComboDetails: !!cartItem.comboDetails,
-        extractedTitle: productTitle,
-        arabicTitle: arabicTitle,
-        englishTitle: englishTitle
+        extractedTitle: productTitle
       });
 
       // Check if this is a combo product
       if (cartItem.isCombo && cartItem.comboDetails && cartItem.comboDetails.productBreakdown) {
-        console.log(`🎁 Breaking down combo: ${englishTitle || arabicTitle}`);
+        console.log(`🎁 Breaking down combo: ${productTitle}`);
         
         // Add individual products from combo breakdown
         cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
           const comboItem = {
             productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-            title: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
+            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`], // 🔴 Ensure dual-language format
             quantity: comboProduct.quantity || 1,
             price: comboProduct.unitPrice || 0,
             originalPrice: comboProduct.unitPrice || 0,
@@ -149,22 +66,22 @@ const ensureDeliveryInfoStructure = async (order) => {
             sku: comboProduct.sku || '',
             // Add combo reference for tracking
             isFromCombo: true,
-            comboTitle: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
+            comboTitle: [productTitle, productTitle], // 🔴 Ensure dual-language format
             comboId: cartItem.id,
             // Ensure both language fields exist
-            arabicTitle: arabicTitle,
-            englishTitle: englishTitle
+            arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+            englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`
           };
           
           order.deliveryInfo.productChecklist.push(comboItem);
-          console.log(`  ├─ Added: ${englishTitle || arabicTitle} (Qty: ${comboItem.quantity})`);
+          console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
         });
         
       } else {
         // Regular product (not a combo)
         const regularItem = {
           productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
-          title: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
+          title: [productTitle, productTitle], // 🔴 Ensure dual-language format
           quantity: cartItem.quantity,
           price: cartItem.price,
           originalPrice: cartItem.originalPrice,
@@ -177,14 +94,14 @@ const ensureDeliveryInfoStructure = async (order) => {
           sku: cartItem.sku || '',
           isFromCombo: false,
           // Ensure both language fields exist
-          arabicTitle: arabicTitle,
-          englishTitle: englishTitle
+          arabicTitle: productTitle,
+          englishTitle: productTitle
         };
         
         order.deliveryInfo.productChecklist.push(regularItem);
-        console.log(`  ├─ Added regular product: ${englishTitle || arabicTitle} (Qty: ${regularItem.quantity})`);
+        console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
       }
-    }
+    });
     updated = true;
   }
   
@@ -476,16 +393,21 @@ const getMobileOrderDetails = async (req, res) => {
         Array.isArray(order.deliveryInfo.productChecklist) &&
         order.deliveryInfo.productChecklist.length > 0) {
       
-      // Check if existing checklist has valid product IDs (reverted to backup logic)
-      const hasValidProductIds = order.deliveryInfo.productChecklist.every(item => 
-        item.productId && item.productId !== null && item.productId !== ''
+      // Check if existing checklist has valid product information (not just basic fields)
+      const hasCompleteProductInfo = order.deliveryInfo.productChecklist.every(item => 
+        item.productId && 
+        item.productId !== null && 
+        item.productId !== '' &&
+        item.title && // 🔴 Check if title exists
+        item.unitName && // 🔴 Check if unitName exists
+        item.price !== undefined // 🔴 Check if price exists
       );
       
-      if (hasValidProductIds) {
-        console.log('✅ Using existing product checklist from database.');
+      if (hasCompleteProductInfo) {
+        console.log('✅ Using existing product checklist with complete product information.');
         productChecklist = order.deliveryInfo.productChecklist;
       } else {
-        console.log('🔧 Existing checklist has invalid product IDs, regenerating...');
+        console.log('🔧 Existing checklist is incomplete (missing title, unitName, price, etc.), regenerating while preserving collected states...');
         productChecklist = null; // Force regeneration
       }
     }
@@ -493,7 +415,7 @@ const getMobileOrderDetails = async (req, res) => {
     // Generate new checklist if needed
     if (!productChecklist) {
       console.log(
-        "🔄 No checklist found or checklist incomplete. Generating a new one from the order cart."
+        "�� No checklist found or checklist incomplete. Generating a new one from the order cart."
       );
       if (order.cart && order.cart.length > 0) {
         productChecklist = await regenerateIncompleteChecklist(order);
@@ -519,14 +441,6 @@ const getMobileOrderDetails = async (req, res) => {
         console.log("⚠️ No cart items found to generate checklist from.");
         productChecklist = [];
       }
-    } else {
-      // 🔴 CRITICAL FIX: If we have an existing checklist, ensure it's preserved
-      // This prevents the refresh issue where collected states were being lost
-      console.log('🔒 Preserving existing checklist with collected states. Checklist length:', productChecklist.length);
-      
-      // Log collected items for debugging
-      const collectedItems = productChecklist.filter(item => item.collected);
-      console.log(`📋 Found ${collectedItems.length} collected items out of ${productChecklist.length} total items`);
     }
 
     // Try to get latest customer data for better information
@@ -803,19 +717,6 @@ const mobileAcceptOrder = async (req, res) => {
     // Initialize product checklist if needed
     console.log('🔄 Ensuring delivery info structure...');
     await ensureDeliveryInfoStructure(order);
-    
-    // 🔴 DEBUG: Log what was generated
-    console.log('📋 Checklist generation result:', {
-      hasDeliveryInfo: !!order.deliveryInfo,
-      hasProductChecklist: !!order.deliveryInfo?.productChecklist,
-      checklistLength: order.deliveryInfo?.productChecklist?.length || 0,
-      checklistItems: order.deliveryInfo?.productChecklist?.map(item => ({
-        productId: item.productId,
-        title: item.title,
-        unitName: item.unitName,
-        price: item.price
-      })) || []
-    });
     
     console.log('🔄 Saving order...');
         await order.save();
@@ -1895,7 +1796,7 @@ const forceRegenerateChecklist = async (req, res) => {
                             item.productTitle || 
                             item.product?.title || 
                             item.product?.name || 
-                            `Product ${cartItem.id || 'Unknown'}`;
+                            `Product ${index + 1}`;
                             
         console.log(`🔍 Processing cart item ${index}:`, {
           id: item.id,
@@ -2162,6 +2063,25 @@ const regenerateIncompleteChecklist = async (order) => {
       return [];
     }
     
+    // Check if there's an existing checklist with collected states to preserve
+    const existingChecklist = order.deliveryInfo?.productChecklist || [];
+    const existingCollectedStates = {};
+    
+    // Build a map of existing collected states by productId
+    existingChecklist.forEach(item => {
+      if (item.productId && item.collected !== undefined) {
+        existingCollectedStates[item.productId] = {
+          collected: item.collected,
+          collectedAt: item.collectedAt,
+          collectedBy: item.collectedBy,
+          notes: item.notes
+        };
+        console.log(`📝 Found existing collected state for ${item.productId}: collected=${item.collected}`);
+      }
+    });
+    
+    console.log(`📊 Preserving ${Object.keys(existingCollectedStates).length} existing collected states`);
+    
     const newChecklist = [];
     
     for (const cartItem of order.cart) {
@@ -2172,7 +2092,7 @@ const regenerateIncompleteChecklist = async (order) => {
                             cartItem.productTitle || 
                             cartItem.product?.title || 
                             cartItem.product?.name || 
-                            `Product ${cartItem.id || 'Unknown'}`;
+                            `Product ${index + 1}`;
                         
         console.log(`🔧 Regenerating cart item:`, {
           id: cartItem.id,
@@ -2228,77 +2148,96 @@ const regenerateIncompleteChecklist = async (order) => {
           
           // Add individual products from combo breakdown
           cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
+            const productId = comboProduct.productId || `combo_${index}_${comboIndex}`;
+            const existingState = existingCollectedStates[productId];
+            
             const comboItem = {
-              productId: comboProduct.productId || `combo_${cartItem.id}_${comboIndex}`,
+              productId: productId,
               title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`],
               quantity: comboProduct.quantity || 1,
               price: comboProduct.unitPrice || 0,
               originalPrice: comboProduct.unitPrice || 0,
               image: comboProduct.image,
-              collected: false,
-              collectedAt: null,
-              notes: '',
+              // Preserve existing collected state if available
+              collected: existingState ? existingState.collected : false,
+              collectedAt: existingState ? existingState.collectedAt : null,
+              notes: existingState ? existingState.notes : '',
               unitName: comboProduct.unitName || 'Unit',
               packQty: 1,
               sku: comboProduct.sku || '',
               // Add combo reference for tracking
               isFromCombo: true,
-              comboTitle: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
+              comboTitle: [productTitle, productTitle],
               comboId: cartItem.id,
               // Ensure both language fields exist
               arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
-              englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`
+              englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+              // Preserve collection metadata
+              collectedBy: existingState ? existingState.collectedBy : null
             };
             
             newChecklist.push(comboItem);
-            console.log(`  ├─ Regenerated: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
+            console.log(`  ├─ Regenerated: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity}, Collected: ${comboItem.collected})`);
           });
           
         } else {
           // Regular product (not a combo)
+          const productId = cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`;
+          const existingState = existingCollectedStates[productId];
+          
           const regularItem = {
-            productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${cartItem.id || 'Unknown'}`,
+            productId: productId,
             title: [arabicTitle, englishTitle], // 🔴 Use the extracted dual-language titles
             quantity: cartItem.quantity,
             price: cartItem.price,
             originalPrice: cartItem.originalPrice,
             image: cartItem.image,
-            collected: false,
-            collectedAt: null,
-            notes: '',
+            // Preserve existing collected state if available
+            collected: existingState ? existingState.collected : false,
+            collectedAt: existingState ? existingState.collectedAt : null,
+            notes: existingState ? existingState.notes : '',
             unitName: cartItem.unitName || cartItem.unit || 'Unit',
             packQty: cartItem.packQty || 1,
             sku: cartItem.sku || '',
             isFromCombo: false,
             // Ensure both language fields exist
             arabicTitle: arabicTitle,
-            englishTitle: englishTitle
+            englishTitle: englishTitle,
+            // Preserve collection metadata
+            collectedBy: existingState ? existingState.collectedBy : null
           };
           
           newChecklist.push(regularItem);
-          console.log(`  ├─ Regenerated regular product: Arabic="${arabicTitle}", English="${englishTitle}" (Qty: ${regularItem.quantity})`);
+          console.log(`  ├─ Regenerated regular product: Arabic="${arabicTitle}", English="${englishTitle}" (Qty: ${regularItem.quantity}, Collected: ${regularItem.collected})`);
         }
       } catch (itemError) {
         console.error(`❌ Error processing cart item ${cartItem.id}:`, itemError);
         // Add basic item even if enhancement fails
+        const productId = cartItem.id || `product_${index}`;
+        const existingState = existingCollectedStates[productId];
+        
         newChecklist.push({
-          productId: cartItem.id,
+          productId: productId,
           title: [cartItem.title || 'Unknown Product', cartItem.title || 'Unknown Product'],
           quantity: cartItem.quantity || 1,
           price: cartItem.price || 0,
           image: cartItem.image,
-          collected: false,
-          notes: '',
+          // Preserve existing collected state if available
+          collected: existingState ? existingState.collected : false,
+          collectedAt: existingState ? existingState.collectedAt : null,
+          notes: existingState ? existingState.notes : '',
           unitName: cartItem.unitName || 'Unit',
           packQty: cartItem.packQty || 1,
           sku: cartItem.sku || '',
           arabicTitle: cartItem.title || 'Unknown Product',
-          englishTitle: cartItem.title || 'Unknown Product'
+          englishTitle: cartItem.title || 'Unknown Product',
+          // Preserve collection metadata
+          collectedBy: existingState ? existingState.collectedBy : null
         });
       }
     }
     
-    console.log(`✅ Regenerated ${newChecklist.length} checklist items with complete product information.`);
+    console.log(`✅ Regenerated ${newChecklist.length} checklist items with complete product information and preserved collected states.`);
     return newChecklist;
     
   } catch (error) {
@@ -2402,6 +2341,61 @@ const mobileBulkUpdateProducts = async (req, res) => {
   }
 };
 
+// Sync collected states from database for existing checklist
+const mobileSyncCollectedStates = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const driverId = req.user.userId;
+    
+    console.log('📱 Syncing collected states for order:', orderId, 'by driver:', driverId);
+    
+    // Find the order and verify driver assignment
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+    
+    // Check if driver is assigned to this order
+    if (order.deliveryInfo?.assignedDriver?.toString() !== driverId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not assigned to this order"
+      });
+    }
+    
+    // Get the current checklist with collected states
+    const checklist = order.deliveryInfo?.productChecklist || [];
+    
+    // Count collected items
+    const collectedCount = checklist.filter(item => item.collected).length;
+    const totalCount = checklist.length;
+    
+    console.log(`📊 Synced collected states: ${collectedCount}/${totalCount} items collected`);
+    
+    res.json({
+      success: true,
+      message: "Collected states synced successfully",
+      data: {
+        checklist: checklist,
+        collectedCount: collectedCount,
+        totalCount: totalCount,
+        allItemsCollected: collectedCount === totalCount && totalCount > 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Sync collected states error:', error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to sync collected states",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   mobileLogin,
   getMobileProfile,
@@ -2421,5 +2415,6 @@ module.exports = {
   mobileAcceptOrder,
   debugOrderChecklist,
   forceRegenerateChecklist,
-  mobileBulkUpdateProducts
+  mobileBulkUpdateProducts,
+  mobileSyncCollectedStates
 }; 

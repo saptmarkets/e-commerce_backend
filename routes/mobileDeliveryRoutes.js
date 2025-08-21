@@ -19,7 +19,8 @@ const {
   mobileAcceptOrder,
   debugOrderChecklist,
   forceRegenerateChecklist,
-  mobileBulkUpdateProducts
+  mobileBulkUpdateProducts,
+  mobileSyncCollectedStates
 } = require('../controller/mobileDeliveryController');
 
 // Mobile authentication middleware
@@ -93,6 +94,9 @@ router.post('/orders/:orderId/toggle-product', mobileAuth, mobileToggleProduct);
 
 // Bulk update product collection status
 router.post('/orders/:orderId/bulk-update-products', mobileAuth, mobileBulkUpdateProducts);
+
+// Sync collected states from database
+router.get('/orders/:orderId/sync-collected-states', mobileAuth, mobileSyncCollectedStates);
 
 // Order status updates
 router.post('/orders/:orderId/out-for-delivery', mobileAuth, mobileMarkOutForDelivery);
