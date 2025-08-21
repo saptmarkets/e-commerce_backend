@@ -231,4 +231,34 @@ router.get('/debug/order/:orderId/checklist', mobileAuth, debugOrderChecklist);
 // Force regenerate checklist (debug)
 router.post('/debug/order/:orderId/regenerate-checklist', mobileAuth, forceRegenerateChecklist);
 
+// Debug endpoint to check request data for toggle product
+router.post('/debug/toggle-product', mobileAuth, async (req, res) => {
+  try {
+    const driverId = req.user.userId;
+    
+    res.json({
+      success: true,
+      message: 'Debug endpoint for toggle product',
+      data: {
+        driverId,
+        requestBody: req.body,
+        requestQuery: req.query,
+        requestParams: req.params,
+        requestHeaders: {
+          'content-type': req.headers['content-type'],
+          'authorization': req.headers.authorization ? 'Present' : 'Missing',
+          'user-agent': req.headers['user-agent']
+        },
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Debug endpoint error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router; 

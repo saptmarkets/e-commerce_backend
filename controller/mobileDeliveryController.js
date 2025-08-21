@@ -810,93 +810,210 @@ const mobileAcceptOrder = async (req, res) => {
 // Mobile Toggle Product Collection
 const mobileToggleProduct = async (req, res) => {
   try {
-    const { orderId } = req.params;
+    const { orderId, productId, collected, notes } = req.body;
     const driverId = req.user.userId;
-    const { productId, collected, notes } = req.body;
-    
-    console.log('📱 Mobile toggle product:', { orderId, driverId, productId, collected, notes });
-    
-    if (!productId) {
+
+    console.log("📱 Mobile toggle product:", {
+      orderId,
+      driverId,
+      productId,
+      collected,
+      notes,
+    });
+
+    // Validate required fields
+    if (!orderId) {
       return res.status(400).json({
         success: false,
-        message: "Product ID is required"
+        message: "Order ID is required",
       });
     }
-    
+
+    if (collected === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Collection status is required",
+      });
+    }
+
     // Find the order and verify driver assignment
-    const order = await Order.findById(orderId);
-    
+    const order = await Order.findOne({
+      _id: orderId,
+      "deliveryInfo.assignedDriver": driverId,
+    });
+
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found"
+        message: "Order not found or not assigned to you",
       });
     }
+
+    // If productId is not provided, try to find it from the request context
+    let targetProductId = productId;
     
-    // Check if driver is assigned to this order
-    if (order.deliveryInfo?.assignedDriver?.toString() !== driverId) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not assigned to this order"
-      });
+    if (!targetProductId) {
+      // Try to extract productId from different possible sources
+      if (req.body.product_id) {
+        targetProductId = req.body.product_id;
+        console.log(`🔍 Found productId from req.body.product_id: ${targetProductId}`);
+      } else if (req.body.productId) {
+        targetProductId = req.body.productId;
+        console.log(`🔍 Found productId from req.body.productId: ${targetProductId}`);
+      } else if (req.body.id) {
+        targetProductId = req.body.id;
+        console.log(`🔍 Found productId from req.body.id: ${targetProductId}`);
+      } else if (req.query.productId) {
+        targetProductId = req.query.productId;
+        console.log(`🔍 Found productId from req.query.productId: ${targetProductId}`);
+      } else if (req.query.product_id) {
+        targetProductId = req.query.product_id;
+        console.log(`🔍 Found productId from req.query.product_id: ${targetProductId}`);
+      } else if (req.query.id) {
+        targetProductId = req.query.id;
+        console.log(`🔍 Found productId from req.query.id: ${targetProductId}`);
+      } else if (req.params.productId) {
+        targetProductId = req.params.productId;
+        console.log(`🔍 Found productId from req.params.productId: ${targetProductId}`);
+      } else if (req.params.id) {
+        targetProductId = req.params.id;
+        console.log(`🔍 Found productId from req.params.id: ${targetProductId}`);
+      }
     }
-    
-    // Find the product in the checklist
-    if (!order.deliveryInfo?.productChecklist) {
+
+    // If still no productId, try to find it from the order's cart or checklist
+    if (!targetProductId && order.cart && order.cart.length > 0) {
+      // Use the first cart item as fallback (this is a temporary fix)
+      targetProductId = order.cart[0]._id || order.cart[0].id;
+      console.log(`⚠️ No productId provided, using fallback from first cart item: ${targetProductId}`);
+    }
+
+    if (!targetProductId) {
+      console.error("❌ No productId found in request:", {
+        body: req.body,
+        query: req.query,
+        params: req.params,
+        headers: req.headers
+      });
+      
       return res.status(400).json({
         success: false,
-        message: "Product checklist not found for this order"
+        message: "Product ID is required. Please provide productId, product_id, or id in the request.",
+        debug: {
+          receivedBody: req.body,
+          receivedQuery: req.query,
+          receivedParams: req.params,
+          orderCartLength: order.cart?.length || 0,
+          orderChecklistLength: order.deliveryInfo?.productChecklist?.length || 0,
+          suggestion: "The delivery app should send productId in the request body when toggling collection status"
+        }
       });
     }
-    
-    const productIndex = order.deliveryInfo.productChecklist.findIndex(
-      item => item.productId === productId
+
+    // Ensure the order has a productChecklist
+    if (!order.deliveryInfo) {
+      order.deliveryInfo = {};
+    }
+
+    if (!order.deliveryInfo.productChecklist) {
+      order.deliveryInfo.productChecklist = [];
+    }
+
+    // Find the product in the checklist
+    let checklistItem = order.deliveryInfo.productChecklist.find(
+      (item) => 
+        item.productId === targetProductId || 
+        item.productId?.toString() === targetProductId?.toString() ||
+        item._id?.toString() === targetProductId?.toString()
     );
-    
-    if (productIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found in checklist"
-      });
+
+    // If not found in checklist, create a new item
+    if (!checklistItem) {
+      // Try to find the product in the cart
+      const cartItem = order.cart.find(
+        (item) => 
+          item._id?.toString() === targetProductId?.toString() ||
+          item.id === targetProductId ||
+          item.productId === targetProductId
+      );
+
+      if (cartItem) {
+        checklistItem = {
+          productId: targetProductId,
+          title: [cartItem.title || 'Unknown Product', cartItem.title || 'Unknown Product'],
+          price: cartItem.price || 0,
+          originalPrice: cartItem.originalPrice || cartItem.price || 0,
+          image: cartItem.image,
+          unitName: cartItem.unitName || cartItem.unit || 'Unit',
+          packQty: cartItem.packQty || 1,
+          sku: cartItem.sku || '',
+          arabicTitle: cartItem.title || 'Unknown Product',
+          englishTitle: cartItem.title || 'Unknown Product',
+          collected: false,
+          collectedAt: null,
+          collectedBy: null,
+          notes: '',
+        };
+        order.deliveryInfo.productChecklist.push(checklistItem);
+        console.log(`✅ Created new checklist item for product: ${targetProductId}`);
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found in order",
+          debug: {
+            searchedProductId: targetProductId,
+            orderCartItems: order.cart?.map(item => ({
+              _id: item._id,
+              id: item.id,
+              productId: item.productId,
+              title: item.title
+            })) || []
+          }
+        });
+      }
     }
+
+    // Update the collection status
+    checklistItem.collected = collected;
+    checklistItem.collectedAt = collected ? new Date() : null;
+    checklistItem.collectedBy = collected ? driverId : null;
     
-    // Update the product collection status
-    order.deliveryInfo.productChecklist[productIndex].collected = collected;
-    order.deliveryInfo.productChecklist[productIndex].collectedAt = collected ? new Date() : null;
-    order.deliveryInfo.productChecklist[productIndex].collectedBy = collected ? driverId : null;
-    order.deliveryInfo.productChecklist[productIndex].notes = notes || '';
-    
-    // Check if all items are collected
-    const allItemsCollected = order.deliveryInfo.productChecklist.every(item => item.collected);
-    order.deliveryInfo.allItemsCollected = allItemsCollected;
+    if (notes !== undefined) {
+      checklistItem.notes = notes;
+    }
+
+    // Update collection summary
+    const totalItems = order.deliveryInfo.productChecklist.length;
+    const collectedItems = order.deliveryInfo.productChecklist.filter(
+      (item) => item.collected
+    ).length;
+
+    order.deliveryInfo.allItemsCollected = collectedItems === totalItems;
     order.deliveryInfo.lastUpdated = new Date();
-    
-    // Save the updated order
+
+    // Save the order
     await order.save();
-    
-    console.log(`✅ Product ${collected ? 'collected' : 'uncollected'} successfully. All items collected: ${allItemsCollected}`);
-    
+
+    console.log(`✅ Product ${targetProductId} collection status updated to: ${collected}`);
+
     res.json({
       success: true,
-      message: `Product ${collected ? 'collected' : 'uncollected'} successfully`,
+      message: `Product collection status updated successfully`,
       data: {
-        orderId: order._id,
-        productId,
+        productId: targetProductId,
         collected,
-        notes: notes || '',
-        allItemsCollected,
-        collectedCount: order.deliveryInfo.productChecklist.filter(item => item.collected).length,
-        totalCount: order.deliveryInfo.productChecklist.length,
-        checklist: order.deliveryInfo.productChecklist
-      }
+        notes: checklistItem.notes,
+        totalItems,
+        collectedItems,
+        allItemsCollected: order.deliveryInfo.allItemsCollected,
+      },
     });
-    
   } catch (error) {
-    console.error('❌ Mobile toggle product error:', error);
+    console.error("❌ Error in mobileToggleProduct:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to toggle product collection",
-      error: error.message
+      message: "Failed to update product collection status",
+      error: error.message,
     });
   }
 };
