@@ -249,7 +249,12 @@ const getMobileOrders = async (req, res) => {
       if (order.deliveryInfo?.productChecklist && order.deliveryInfo.productChecklist.length > 0) {
         productChecklist = order.deliveryInfo.productChecklist;
       } else if (order.cart && order.cart.length > 0) {
-        productChecklist = order.cart.map((item, index) => {
+        // Generate checklist from cart data by fetching actual product details from database
+        productChecklist = [];
+        
+        for (let index = 0; index < order.cart.length; index++) {
+          const item = order.cart[index];
+          
           // Enhanced product information extraction
           const productTitle = item.title || 
                               item.name || 
@@ -267,15 +272,32 @@ const getMobileOrders = async (req, res) => {
             allKeys: Object.keys(item)
           });
 
+          // Try to fetch actual product details from database
+          let actualProduct = null;
+          const productId = item.id || item.productId;
+          
+          if (productId) {
+            try {
+              actualProduct = await Product.findById(productId);
+              console.log(`📦 Fetched product from DB:`, {
+                productId: productId,
+                found: !!actualProduct,
+                title: actualProduct?.title || 'Not found'
+              });
+            } catch (error) {
+              console.error(`❌ Error fetching product ${productId}:`, error.message);
+            }
+          }
+
           return {
-            productId: item.id || item._id?.toString() || `product_${index}`,
-            productTitle: productTitle, // Changed from 'title' to 'productTitle'
+            productId: productId || `product_${index}`,
+            productTitle: actualProduct?.title || productTitle, // Use database title if available
             quantity: item.quantity || 1,
             collected: false,
             collectedAt: null,
             notes: ""
           };
-        });
+        }
       }
       
       const assignedDriverInfo = order.deliveryInfo?.assignedDriver;
@@ -405,13 +427,14 @@ const getMobileOrderDetails = async (req, res) => {
       if (order.cart && order.cart.length > 0) {
         productChecklist = [];
         
-        order.cart.forEach((item, index) => {
+        // Process each cart item and fetch actual product details from database
+        for (let index = 0; index < order.cart.length; index++) {
+          const item = order.cart[index];
+          
           // Enhanced product information extraction with better fallbacks
           const productTitle = item.title || 
                               item.name || 
                               item.productTitle || 
-                              item.product?.title || 
-                              item.product?.name || 
                               `Product ${index + 1}`;
                               
           console.log(`🔍 Processing cart item ${index}:`, {
@@ -428,52 +451,68 @@ const getMobileOrderDetails = async (req, res) => {
             console.log(`🎁 Breaking down combo: ${productTitle}`);
             
             // Add individual products from combo breakdown
-            item.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
+            for (let comboIndex = 0; comboIndex < item.comboDetails.productBreakdown.length; comboIndex++) {
+              const comboProduct = item.comboDetails.productBreakdown[comboIndex];
+              
+              // Try to fetch actual product details from database
+              let actualProduct = null;
+              if (comboProduct.productId) {
+                try {
+                  actualProduct = await Product.findById(comboProduct.productId);
+                  console.log(`📦 Fetched combo product from DB:`, {
+                    productId: comboProduct.productId,
+                    found: !!actualProduct,
+                    title: actualProduct?.title || 'Not found'
+                  });
+                } catch (error) {
+                  console.error(`❌ Error fetching combo product ${comboProduct.productId}:`, error.message);
+                }
+              }
+              
               const comboItem = {
                 productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-                title: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+                productTitle: actualProduct?.title || comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
                 quantity: comboProduct.quantity || 1,
-                price: comboProduct.unitPrice || 0,
-                image: getImageUrl(comboProduct.image),
                 collected: false,
                 collectedAt: null,
-                notes: "",
-                unitName: comboProduct.unitName || "Unit",
-                originalPrice: comboProduct.unitPrice || 0,
-                sku: comboProduct.sku || "",
-                packQty: 1,
-                // Add combo reference for tracking
-                isFromCombo: true,
-                comboTitle: productTitle,
-                comboId: item.id
+                notes: ""
               };
               
               productChecklist.push(comboItem);
-              console.log(`  ├─ Added: ${comboItem.title} (Qty: ${comboItem.quantity})`);
-            });
+              console.log(`  ├─ Added: ${comboItem.productTitle} (Qty: ${comboItem.quantity})`);
+            }
             
           } else {
-            // Regular product (not a combo)
+            // Regular product (not a combo) - fetch actual product details from database
+            let actualProduct = null;
+            const productId = item.id || item.productId;
+            
+            if (productId) {
+              try {
+                actualProduct = await Product.findById(productId);
+                console.log(`📦 Fetched regular product from DB:`, {
+                  productId: productId,
+                  found: !!actualProduct,
+                  title: actualProduct?.title || 'Not found'
+                });
+              } catch (error) {
+                console.error(`❌ Error fetching product ${productId}:`, error.message);
+              }
+            }
+            
             const regularItem = {
-              productId: item.id || item._id?.toString() || `product_${index}`,
-              title: productTitle,
+              productId: productId || `product_${index}`,
+              productTitle: actualProduct?.title || productTitle, // Use database title if available
               quantity: item.quantity || 1,
-              price: item.price || 0,
-              image: getImageUrl(item.image),
               collected: false,
               collectedAt: null,
-              notes: "",
-              unitName: item.unit || item.unitName || "Unit",
-              originalPrice: item.originalPrice || item.price || 0,
-              sku: item.sku || "",
-              packQty: item.packQty || 1,
-              isFromCombo: false
+              notes: ""
             };
             
             productChecklist.push(regularItem);
-            console.log(`  ├─ Added regular product: ${regularItem.title} (Qty: ${regularItem.quantity})`);
+            console.log(`  ├─ Added regular product: ${regularItem.productTitle} (Qty: ${regularItem.quantity})`);
           }
-        });
+        }
 
         console.log(`✅ Generated ${productChecklist.length} new checklist items.`);
 
