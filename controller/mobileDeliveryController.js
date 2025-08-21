@@ -295,7 +295,18 @@ const getMobileOrders = async (req, res) => {
           productChecklist.push({
             productId: productId || `product_${index}`,
             productTitle: actualProduct?.title || productTitle, // Use database title if available
+            // Show both Arabic and English names if available
+            displayName: actualProduct?.title ? 
+              (actualProduct.title.ar && actualProduct.title.en ? 
+                `${actualProduct.title.ar} / ${actualProduct.title.en}` : 
+                actualProduct.title.ar || actualProduct.title.en || actualProduct.title) :
+              productTitle,
             quantity: item.quantity || 1,
+            // Include all product details
+            price: actualProduct?.price || item.price || 0,
+            image: actualProduct?.image || item.image || '',
+            unitName: actualProduct?.unitName || item.unitName || item.unit || 'Unit',
+            sku: actualProduct?.sku || item.sku || '',
             collected: false,
             collectedAt: null,
             notes: ""
@@ -406,16 +417,58 @@ const getMobileOrderDetails = async (req, res) => {
         Array.isArray(order.deliveryInfo.productChecklist) &&
         order.deliveryInfo.productChecklist.length > 0) {
       
-      // Use existing checklist from order creation
+      // Use existing checklist from order creation, but enhance with fresh database data
       console.log('✅ Using existing product checklist from order:', {
         checklistLength: order.deliveryInfo.productChecklist.length,
         sampleItem: order.deliveryInfo.productChecklist[0]
       });
       
-      productChecklist = order.deliveryInfo.productChecklist;
+      // Enhance existing checklist with fresh database data
+      productChecklist = [];
+      for (let i = 0; i < order.deliveryInfo.productChecklist.length; i++) {
+        const checklistItem = order.deliveryInfo.productChecklist[i];
+        
+        // Try to fetch fresh product details from database
+        let actualProduct = null;
+        if (checklistItem.productId && checklistItem.productId !== 'product_0' && !checklistItem.productId.startsWith('combo_')) {
+          try {
+            actualProduct = await Product.findById(checklistItem.productId);
+            console.log(`📦 Enhanced existing checklist item ${i}:`, {
+              productId: checklistItem.productId,
+              found: !!actualProduct,
+              title: actualProduct?.title || 'Not found'
+            });
+          } catch (error) {
+            console.error(`❌ Error fetching product ${checklistItem.productId}:`, error.message);
+          }
+        }
+        
+        // Create enhanced checklist item with both Arabic and English names
+        const enhancedItem = {
+          productId: checklistItem.productId,
+          productTitle: actualProduct?.title || checklistItem.productTitle || 'Unknown Product',
+          // Show both Arabic and English names if available
+          displayName: actualProduct?.title ? 
+            (actualProduct.title.ar && actualProduct.title.en ? 
+              `${actualProduct.title.ar} / ${actualProduct.title.en}` : 
+              actualProduct.title.ar || actualProduct.title.en || actualProduct.title) :
+            checklistItem.productTitle || 'Unknown Product',
+          quantity: checklistItem.quantity || 1,
+          // Include all product details
+          price: actualProduct?.price || 0,
+          image: actualProduct?.image || '',
+          unitName: actualProduct?.unitName || 'Unit',
+          sku: actualProduct?.sku || '',
+          collected: checklistItem.collected || false,
+          collectedAt: checklistItem.collectedAt || null,
+          notes: checklistItem.notes || ""
+        };
+        
+        productChecklist.push(enhancedItem);
+      }
       
     } else {
-      // Only regenerate if absolutely necessary
+      // Generate new checklist from cart data by fetching actual product details from database
       console.log('🔄 No existing checklist found. Cart data available:', {
         hasCart: !!order.cart,
         cartLength: order.cart?.length || 0,
@@ -475,14 +528,25 @@ const getMobileOrderDetails = async (req, res) => {
               const comboItem = {
                 productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
                 productTitle: actualProduct?.title || comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+                // Show both Arabic and English names if available
+                displayName: actualProduct?.title ? 
+                  (actualProduct.title.ar && actualProduct.title.en ? 
+                    `${actualProduct.title.ar} / ${actualProduct.title.en}` : 
+                    actualProduct.title.ar || actualProduct.title.en || actualProduct.title) :
+                  comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
                 quantity: comboProduct.quantity || 1,
+                // Include all product details
+                price: actualProduct?.price || comboProduct.unitPrice || 0,
+                image: actualProduct?.image || comboProduct.image || '',
+                unitName: actualProduct?.unitName || comboProduct.unitName || 'Unit',
+                sku: actualProduct?.sku || comboProduct.sku || '',
                 collected: false,
                 collectedAt: null,
                 notes: ""
               };
               
               productChecklist.push(comboItem);
-              console.log(`  ├─ Added: ${comboItem.productTitle} (Qty: ${comboItem.quantity})`);
+              console.log(`  ├─ Added: ${comboItem.displayName} (Qty: ${comboItem.quantity})`);
             }
             
           } else {
@@ -506,14 +570,25 @@ const getMobileOrderDetails = async (req, res) => {
             const regularItem = {
               productId: productId || `product_${index}`,
               productTitle: actualProduct?.title || productTitle, // Use database title if available
+              // Show both Arabic and English names if available
+              displayName: actualProduct?.title ? 
+                (actualProduct.title.ar && actualProduct.title.en ? 
+                  `${actualProduct.title.ar} / ${actualProduct.title.en}` : 
+                  actualProduct.title.ar || actualProduct.title.en || actualProduct.title) :
+                productTitle,
               quantity: item.quantity || 1,
+              // Include all product details
+              price: actualProduct?.price || item.price || 0,
+              image: actualProduct?.image || item.image || '',
+              unitName: actualProduct?.unitName || item.unitName || item.unit || 'Unit',
+              sku: actualProduct?.sku || item.sku || '',
               collected: false,
               collectedAt: null,
               notes: ""
             };
             
             productChecklist.push(regularItem);
-            console.log(`  ├─ Added regular product: ${regularItem.productTitle} (Qty: ${regularItem.quantity})`);
+            console.log(`  ├─ Added regular product: ${regularItem.displayName} (Qty: ${regularItem.quantity})`);
           }
         }
 
