@@ -23,37 +23,69 @@ const ensureDeliveryInfoStructure = async (order) => {
   }
   
   if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
-
+    console.log('🔧 Initializing product checklist for order:', order._id);
     
     // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];
     
     order.cart.forEach((cartItem, index) => {
-      // Enhanced product information extraction
-      const productTitle = cartItem.title || 
-                          cartItem.name || 
-                          cartItem.productTitle || 
-                          cartItem.product?.title || 
-                          cartItem.product?.name || 
-                          `Product ${index + 1}`;
+      // Enhanced product information extraction with proper dual-language support
+      let productTitle = cartItem.title || 
+                        cartItem.name || 
+                        cartItem.productTitle || 
+                        cartItem.product?.title || 
+                        cartItem.product?.name || 
+                        `Product ${index + 1}`;
+      
+      // 🔴 CRITICAL FIX: Extract proper dual-language titles
+      let arabicTitle = productTitle;
+      let englishTitle = productTitle;
+      
+      // Try to get dual-language titles from the cart item
+      if (cartItem.product && cartItem.product.title) {
+        if (typeof cartItem.product.title === 'object') {
+          // Product has dual-language titles
+          arabicTitle = cartItem.product.title.ar || productTitle;
+          englishTitle = cartItem.product.title.en || productTitle;
+          productTitle = [arabicTitle, englishTitle];
+          console.log(`✅ Found dual-language titles: Arabic="${arabicTitle}", English="${englishTitle}"`);
+        } else if (typeof cartItem.product.title === 'string') {
+          // Product has single language title
+          arabicTitle = cartItem.product.title;
+          englishTitle = cartItem.product.title;
+          productTitle = [arabicTitle, englishTitle];
+          console.log(`⚠️ Product has single language title: "${cartItem.product.title}"`);
+        }
+      } else if (cartItem.title && typeof cartItem.title === 'object') {
+        // Cart item itself has dual-language titles
+        arabicTitle = cartItem.title.ar || productTitle;
+        englishTitle = cartItem.title.en || productTitle;
+        productTitle = [arabicTitle, englishTitle];
+        console.log(`✅ Found dual-language titles in cart item: Arabic="${arabicTitle}", English="${englishTitle}"`);
+      } else {
+        // Fallback to single language
+        productTitle = [arabicTitle, englishTitle];
+      }
                           
       console.log(`🔧 Initializing cart item ${index}:`, {
         id: cartItem.id,
         title: cartItem.title,
         isCombo: cartItem.isCombo,
         hasComboDetails: !!cartItem.comboDetails,
-        extractedTitle: productTitle
+        extractedTitle: productTitle,
+        arabicTitle: arabicTitle,
+        englishTitle: englishTitle
       });
 
       // Check if this is a combo product
       if (cartItem.isCombo && cartItem.comboDetails && cartItem.comboDetails.productBreakdown) {
-        console.log(`🎁 Breaking down combo: ${productTitle}`);
+        console.log(`🎁 Breaking down combo: ${englishTitle || arabicTitle}`);
         
         // Add individual products from combo breakdown
         cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
           const comboItem = {
             productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`], // 🔴 Ensure dual-language format
+            title: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
             quantity: comboProduct.quantity || 1,
             price: comboProduct.unitPrice || 0,
             originalPrice: comboProduct.unitPrice || 0,
@@ -66,22 +98,22 @@ const ensureDeliveryInfoStructure = async (order) => {
             sku: comboProduct.sku || '',
             // Add combo reference for tracking
             isFromCombo: true,
-            comboTitle: [productTitle, productTitle], // 🔴 Ensure dual-language format
+            comboTitle: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
             comboId: cartItem.id,
             // Ensure both language fields exist
-            arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
-            englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`
+            arabicTitle: arabicTitle,
+            englishTitle: englishTitle
           };
           
           order.deliveryInfo.productChecklist.push(comboItem);
-          console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
+          console.log(`  ├─ Added: ${englishTitle || arabicTitle} (Qty: ${comboItem.quantity})`);
         });
         
       } else {
         // Regular product (not a combo)
         const regularItem = {
           productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
-          title: [productTitle, productTitle], // 🔴 Ensure dual-language format
+          title: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
           quantity: cartItem.quantity,
           price: cartItem.price,
           originalPrice: cartItem.originalPrice,
@@ -94,12 +126,12 @@ const ensureDeliveryInfoStructure = async (order) => {
           sku: cartItem.sku || '',
           isFromCombo: false,
           // Ensure both language fields exist
-          arabicTitle: productTitle,
-          englishTitle: productTitle
+          arabicTitle: arabicTitle,
+          englishTitle: englishTitle
         };
         
         order.deliveryInfo.productChecklist.push(regularItem);
-        console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
+        console.log(`  ├─ Added regular product: ${englishTitle || arabicTitle} (Qty: ${regularItem.quantity})`);
       }
     });
     updated = true;
@@ -1799,7 +1831,7 @@ const forceRegenerateChecklist = async (req, res) => {
                             item.productTitle || 
                             item.product?.title || 
                             item.product?.name || 
-                            `Product ${index + 1}`;
+                            `Product ${cartItem.id || 'Unknown'}`;
                             
         console.log(`🔍 Processing cart item ${index}:`, {
           id: item.id,
@@ -2076,7 +2108,7 @@ const regenerateIncompleteChecklist = async (order) => {
                             cartItem.productTitle || 
                             cartItem.product?.title || 
                             cartItem.product?.name || 
-                            `Product ${index + 1}`;
+                            `Product ${cartItem.id || 'Unknown'}`;
                         
         console.log(`🔧 Regenerating cart item:`, {
           id: cartItem.id,
@@ -2133,7 +2165,7 @@ const regenerateIncompleteChecklist = async (order) => {
           // Add individual products from combo breakdown
           cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
             const comboItem = {
-              productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
+              productId: comboProduct.productId || `combo_${cartItem.id}_${comboIndex}`,
               title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`],
               quantity: comboProduct.quantity || 1,
               price: comboProduct.unitPrice || 0,
@@ -2147,7 +2179,7 @@ const regenerateIncompleteChecklist = async (order) => {
               sku: comboProduct.sku || '',
               // Add combo reference for tracking
               isFromCombo: true,
-              comboTitle: [productTitle, productTitle],
+              comboTitle: [arabicTitle, englishTitle], // 🔴 Use extracted dual-language titles
               comboId: cartItem.id,
               // Ensure both language fields exist
               arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
@@ -2161,7 +2193,7 @@ const regenerateIncompleteChecklist = async (order) => {
         } else {
           // Regular product (not a combo)
           const regularItem = {
-            productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
+            productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${cartItem.id || 'Unknown'}`,
             title: [arabicTitle, englishTitle], // 🔴 Use the extracted dual-language titles
             quantity: cartItem.quantity,
             price: cartItem.price,
