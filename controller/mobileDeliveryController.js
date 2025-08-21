@@ -2065,80 +2065,139 @@ const regenerateIncompleteChecklist = async (order) => {
     
     const newChecklist = [];
     
-    order.cart.forEach((cartItem, index) => {
-      // Enhanced product information extraction
-      const productTitle = cartItem.title || 
-                          cartItem.name || 
-                          cartItem.productTitle || 
-                          cartItem.product?.title || 
-                          cartItem.product?.name || 
-                          `Product ${index + 1}`;
+    for (const cartItem of order.cart) {
+      try {
+        // Enhanced product information extraction
+        const productTitle = cartItem.title || 
+                            cartItem.name || 
+                            cartItem.productTitle || 
+                            cartItem.product?.title || 
+                            cartItem.product?.name || 
+                            `Product ${index + 1}`;
                         
-      console.log(`🔧 Regenerating cart item ${index}:`, {
-        id: cartItem.id,
-        title: cartItem.title,
-        isCombo: cartItem.isCombo,
-        hasComboDetails: !!cartItem.comboDetails,
-        extractedTitle: productTitle
-      });
+        console.log(`🔧 Regenerating cart item:`, {
+          id: cartItem.id,
+          title: cartItem.title,
+          isCombo: cartItem.isCombo,
+          hasComboDetails: !!cartItem.comboDetails,
+          extractedTitle: productTitle
+        });
 
-      // Check if this is a combo product
-      if (cartItem.isCombo && cartItem.comboDetails && cartItem.comboDetails.productBreakdown) {
-        console.log(`🎁 Breaking down combo: ${productTitle}`);
+        // Try to get complete product data including Arabic titles
+        let arabicTitle = productTitle;
+        let englishTitle = productTitle;
         
-        // Add individual products from combo breakdown
-        cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
-          const comboItem = {
-            productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`],
-            quantity: comboProduct.quantity || 1,
-            price: comboProduct.unitPrice || 0,
-            originalPrice: comboProduct.unitPrice || 0,
-            image: comboProduct.image,
+        if (cartItem.selectedUnitId) {
+          try {
+            const ProductUnit = require('../models/ProductUnit');
+            const productUnit = await ProductUnit.findById(cartItem.selectedUnitId)
+              .populate('product', 'title description images sku barcode');
+            
+            if (productUnit && productUnit.product && productUnit.product.title) {
+              if (typeof productUnit.product.title === 'object') {
+                arabicTitle = productUnit.product.title.ar || productTitle;
+                englishTitle = productUnit.product.title.en || productTitle;
+                console.log(`✅ Found dual-language titles from ProductUnit: Arabic="${arabicTitle}", English="${englishTitle}"`);
+              }
+            }
+          } catch (unitError) {
+            console.warn(`⚠️ Could not fetch ProductUnit data:`, unitError.message);
+          }
+        }
+        
+        // Fallback: try to fetch product data directly
+        if (arabicTitle === englishTitle && cartItem.productId) {
+          try {
+            const Product = require('../models/Product');
+            const product = await Product.findById(cartItem.productId);
+            
+            if (product && product.title) {
+              if (typeof product.title === 'object') {
+                arabicTitle = product.title.ar || productTitle;
+                englishTitle = product.title.en || productTitle;
+                console.log(`✅ Found dual-language titles from Product: Arabic="${arabicTitle}", English="${englishTitle}"`);
+              }
+            }
+          } catch (productError) {
+            console.warn(`⚠️ Could not fetch Product data:`, productError.message);
+          }
+        }
+
+        // Check if this is a combo product
+        if (cartItem.isCombo && cartItem.comboDetails && cartItem.comboDetails.productBreakdown) {
+          console.log(`🎁 Breaking down combo: ${productTitle}`);
+          
+          // Add individual products from combo breakdown
+          cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
+            const comboItem = {
+              productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
+              title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`],
+              quantity: comboProduct.quantity || 1,
+              price: comboProduct.unitPrice || 0,
+              originalPrice: comboProduct.unitPrice || 0,
+              image: comboProduct.image,
+              collected: false,
+              collectedAt: null,
+              notes: '',
+              unitName: comboProduct.unitName || 'Unit',
+              packQty: 1,
+              sku: comboProduct.sku || '',
+              // Add combo reference for tracking
+              isFromCombo: true,
+              comboTitle: [productTitle, productTitle],
+              comboId: cartItem.id,
+              // Ensure both language fields exist
+              arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+              englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`
+            };
+            
+            newChecklist.push(comboItem);
+            console.log(`  ├─ Regenerated: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
+          });
+          
+        } else {
+          // Regular product (not a combo)
+          const regularItem = {
+            productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
+            title: [arabicTitle, englishTitle], // 🔴 Use the extracted dual-language titles
+            quantity: cartItem.quantity,
+            price: cartItem.price,
+            originalPrice: cartItem.originalPrice,
+            image: cartItem.image,
             collected: false,
             collectedAt: null,
             notes: '',
-            unitName: comboProduct.unitName || 'Unit',
-            packQty: 1,
-            sku: comboProduct.sku || '',
-            // Add combo reference for tracking
-            isFromCombo: true,
-            comboTitle: [productTitle, productTitle],
-            comboId: cartItem.id,
+            unitName: cartItem.unitName || cartItem.unit || 'Unit',
+            packQty: cartItem.packQty || 1,
+            sku: cartItem.sku || '',
+            isFromCombo: false,
             // Ensure both language fields exist
-            arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
-            englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`
+            arabicTitle: arabicTitle,
+            englishTitle: englishTitle
           };
           
-          newChecklist.push(comboItem);
-          console.log(`  ├─ Regenerated: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
-        });
-        
-      } else {
-        // Regular product (not a combo)
-        const regularItem = {
-          productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
-          title: [productTitle, productTitle],
-          quantity: cartItem.quantity,
-          price: cartItem.price,
-          originalPrice: cartItem.originalPrice,
+          newChecklist.push(regularItem);
+          console.log(`  ├─ Regenerated regular product: Arabic="${arabicTitle}", English="${englishTitle}" (Qty: ${regularItem.quantity})`);
+        }
+      } catch (itemError) {
+        console.error(`❌ Error processing cart item ${cartItem.id}:`, itemError);
+        // Add basic item even if enhancement fails
+        newChecklist.push({
+          productId: cartItem.id,
+          title: [cartItem.title || 'Unknown Product', cartItem.title || 'Unknown Product'],
+          quantity: cartItem.quantity || 1,
+          price: cartItem.price || 0,
           image: cartItem.image,
           collected: false,
-          collectedAt: null,
           notes: '',
-          unitName: cartItem.unitName || cartItem.unit || 'Unit',
+          unitName: cartItem.unitName || 'Unit',
           packQty: cartItem.packQty || 1,
           sku: cartItem.sku || '',
-          isFromCombo: false,
-          // Ensure both language fields exist
-          arabicTitle: productTitle,
-          englishTitle: productTitle
-        };
-        
-        newChecklist.push(regularItem);
-        console.log(`  ├─ Regenerated regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
+          arabicTitle: cartItem.title || 'Unknown Product',
+          englishTitle: cartItem.title || 'Unknown Product'
+        });
       }
-    });
+    }
     
     console.log(`✅ Regenerated ${newChecklist.length} checklist items with complete product information.`);
     return newChecklist;
