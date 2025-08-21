@@ -22,10 +22,32 @@ const ensureDeliveryInfoStructure = async (order) => {
     updated = true;
   }
   
-  if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
-    console.log('🔧 Initializing product checklist for order:', order._id);
+  if (!order.deliveryInfo.productChecklist || 
+      !Array.isArray(order.deliveryInfo.productChecklist) ||
+      order.deliveryInfo.productChecklist.length === 0 ||
+      // 🔴 CRITICAL FIX: Force regeneration if existing checklist has incomplete data
+      order.deliveryInfo.productChecklist.some(item => 
+        !item.title || 
+        !item.unitName || 
+        item.price === undefined ||
+        (Array.isArray(item.title) && (item.title[0] === 'Unknown Product' || item.title[1] === 'Unknown Product'))
+      )) {
+    console.log('🔧 Initializing/regenerating product checklist for order:', order._id);
     
-    // Create productChecklist from order cart items - use consistent ID extraction
+    // 🔴 DEBUG: Log cart data structure
+    console.log('🛒 Cart data analysis:', {
+      hasCart: !!order.cart,
+      cartLength: order.cart?.length || 0,
+      cartItems: order.cart?.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        title: item.title,
+        selectedUnitId: item.selectedUnitId,
+        isCombo: item.isCombo
+      })) || []
+    });
+    
+    // Clear existing incomplete checklist
     order.deliveryInfo.productChecklist = [];
     
     for (let index = 0; index < order.cart.length; index++) {
@@ -781,6 +803,19 @@ const mobileAcceptOrder = async (req, res) => {
     // Initialize product checklist if needed
     console.log('🔄 Ensuring delivery info structure...');
     await ensureDeliveryInfoStructure(order);
+    
+    // 🔴 DEBUG: Log what was generated
+    console.log('📋 Checklist generation result:', {
+      hasDeliveryInfo: !!order.deliveryInfo,
+      hasProductChecklist: !!order.deliveryInfo?.productChecklist,
+      checklistLength: order.deliveryInfo?.productChecklist?.length || 0,
+      checklistItems: order.deliveryInfo?.productChecklist?.map(item => ({
+        productId: item.productId,
+        title: item.title,
+        unitName: item.unitName,
+        price: item.price
+      })) || []
+    });
     
     console.log('🔄 Saving order...');
         await order.save();
