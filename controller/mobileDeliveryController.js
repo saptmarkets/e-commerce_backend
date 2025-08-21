@@ -752,81 +752,80 @@ const mobileAcceptOrder = async (req, res) => {
 const mobileToggleProduct = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { productId, collected } = req.body;
     const driverId = req.user.userId;
+    const { productId, collected, notes } = req.body;
     
-    console.log('🔄 Toggling product collection:', { orderId, productId, driverId });
+    console.log('📱 Mobile toggle product:', { orderId, driverId, productId, collected, notes });
     
     if (!productId) {
       return res.status(400).json({
         success: false,
-        message: 'Product ID is required'
+        message: "Product ID is required"
       });
     }
-
-    // Find the order and check if it exists
-    let order = await Order.findById(orderId);
+    
+    // Find the order and verify driver assignment
+    const order = await Order.findById(orderId);
+    
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found'
+        message: "Order not found"
       });
     }
-
-    // Check if the order is assigned to this driver
-    if (!order.deliveryInfo?.assignedDriver || 
-        order.deliveryInfo.assignedDriver.toString() !== driverId) {
+    
+    // Check if driver is assigned to this order
+    if (order.deliveryInfo?.assignedDriver?.toString() !== driverId) {
       return res.status(403).json({
         success: false,
-        message: 'Please accept the order first before collecting products'
+        message: "You are not assigned to this order"
       });
     }
-
-    // Check if the order is in a valid state for product collection
-    if (!['Processing', 'Out for Delivery'].includes(order.status)) {
+    
+    // Find the product in the checklist
+    if (!order.deliveryInfo?.productChecklist) {
       return res.status(400).json({
         success: false,
-        message: 'Order must be in Processing or Out for Delivery status to collect products'
+        message: "Product checklist not found for this order"
       });
     }
-
-    // Find the product in the checklist
+    
     const productIndex = order.deliveryInfo.productChecklist.findIndex(
-      item => item.productId.toString() === productId.toString()
+      item => item.productId === productId
     );
     
     if (productIndex === -1) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found in checklist'
+        message: "Product not found in checklist"
       });
     }
     
     // Update the product collection status
     order.deliveryInfo.productChecklist[productIndex].collected = collected;
     order.deliveryInfo.productChecklist[productIndex].collectedAt = collected ? new Date() : null;
+    order.deliveryInfo.productChecklist[productIndex].collectedBy = collected ? driverId : null;
+    order.deliveryInfo.productChecklist[productIndex].notes = notes || '';
     
     // Check if all items are collected
-    const allCollected = order.deliveryInfo.productChecklist.every(item => item.collected);
-    order.deliveryInfo.allItemsCollected = allCollected;
-    
-    if (allCollected) {
-      order.deliveryInfo.collectionCompletedAt = new Date();
-    } else {
-      order.deliveryInfo.collectionCompletedAt = null;
-    }
+    const allItemsCollected = order.deliveryInfo.productChecklist.every(item => item.collected);
+    order.deliveryInfo.allItemsCollected = allItemsCollected;
+    order.deliveryInfo.lastUpdated = new Date();
     
     // Save the updated order
     await order.save();
+    
+    console.log(`✅ Product ${collected ? 'collected' : 'uncollected'} successfully. All items collected: ${allItemsCollected}`);
     
     res.json({
       success: true,
       message: `Product ${collected ? 'collected' : 'uncollected'} successfully`,
       data: {
+        orderId: order._id,
         productId,
         collected,
-        collectedAt: order.deliveryInfo.productChecklist[productIndex].collectedAt,
-        allItemsCollected: allCollected,
+        notes: notes || '',
+        allItemsCollected,
         collectedCount: order.deliveryInfo.productChecklist.filter(item => item.collected).length,
         totalCount: order.deliveryInfo.productChecklist.length,
         checklist: order.deliveryInfo.productChecklist
@@ -837,7 +836,7 @@ const mobileToggleProduct = async (req, res) => {
     console.error('❌ Mobile toggle product error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to toggle product collection',
+      message: "Failed to toggle product collection",
       error: error.message
     });
   }
@@ -2208,6 +2207,93 @@ const regenerateIncompleteChecklist = async (order) => {
   }
 };
 
+// Mobile Save Product Checklist - Save entire checklist state
+const mobileSaveProductChecklist = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const driverId = req.user.userId;
+    const { checklist } = req.body;
+    
+    console.log('📱 Mobile save product checklist:', { orderId, driverId, checklistLength: checklist?.length || 0 });
+    
+    if (!checklist || !Array.isArray(checklist)) {
+      return res.status(400).json({
+        success: false,
+        message: "Checklist data is required and must be an array"
+      });
+    }
+    
+    // Find the order and verify driver assignment
+    const order = await Order.findById(orderId);
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+    
+    // Check if driver is assigned to this order
+    if (order.deliveryInfo?.assignedDriver?.toString() !== driverId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not assigned to this order"
+      });
+    }
+    
+    // Update the product checklist with the new state
+    const updatedChecklist = order.deliveryInfo?.productChecklist?.map(existingItem => {
+      const newItem = checklist.find(c => c.productId === existingItem.productId);
+      if (newItem) {
+        return {
+          ...existingItem,
+          collected: newItem.collected,
+          collectedAt: newItem.collected ? new Date() : null,
+          collectedBy: newItem.collected ? driverId : null,
+          notes: newItem.notes || existingItem.notes || ''
+        };
+      }
+      return existingItem;
+    }) || [];
+    
+    // Check if all items are collected
+    const allItemsCollected = updatedChecklist.length > 0 && updatedChecklist.every(item => item.collected);
+    
+    // Update the order
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        "deliveryInfo.productChecklist": updatedChecklist,
+        "deliveryInfo.allItemsCollected": allItemsCollected,
+        "deliveryInfo.lastUpdated": new Date()
+      },
+      { new: true }
+    );
+    
+    console.log(`✅ Product checklist saved successfully. All items collected: ${allItemsCollected}`);
+    
+    res.json({
+      success: true,
+      message: "Product checklist saved successfully",
+      data: {
+        orderId: updatedOrder._id,
+        allItemsCollected,
+        collectedCount: updatedChecklist.filter(item => item.collected).length,
+        totalCount: updatedChecklist.length,
+        checklist: updatedChecklist
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Mobile save product checklist error:', error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to save product checklist",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   mobileLogin,
   getMobileProfile,
@@ -2226,5 +2312,6 @@ module.exports = {
   mobileBreakOut,
   mobileAcceptOrder,
   debugOrderChecklist,
-  forceRegenerateChecklist
+  forceRegenerateChecklist,
+  mobileSaveProductChecklist
 }; 

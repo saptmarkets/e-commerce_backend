@@ -18,7 +18,8 @@ const {
   mobileBreakOut,
   mobileAcceptOrder,
   debugOrderChecklist,
-  forceRegenerateChecklist
+  forceRegenerateChecklist,
+  mobileSaveProductChecklist
 } = require('../controller/mobileDeliveryController');
 
 // Mobile authentication middleware
@@ -89,6 +90,9 @@ router.post('/orders/:orderId/accept', mobileAuth, mobileAcceptOrder);
 
 // Product collection
 router.post('/orders/:orderId/toggle-product', mobileAuth, mobileToggleProduct);
+
+// Save entire product checklist
+router.post('/orders/:orderId/save-checklist', mobileAuth, mobileSaveProductChecklist);
 
 // Order status updates
 router.post('/orders/:orderId/out-for-delivery', mobileAuth, mobileMarkOutForDelivery);
