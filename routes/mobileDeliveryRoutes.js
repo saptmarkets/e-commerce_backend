@@ -148,7 +148,72 @@ router.get('/debug/order/:orderId/checklist', mobileAuth, async (req, res) => {
         checklistCount: order.deliveryInfo?.productChecklist?.length || 0,
         cartItemsCount: order.cart?.length || 0,
         checklist: order.deliveryInfo?.productChecklist || [],
-        cartItems: order.cart || []
+        cartItems: order.cart || [],
+        // Add collection status information
+        collectionStatus: order.deliveryInfo?.productChecklist?.map(item => ({
+          productId: item.productId,
+          title: item.title,
+          collected: item.collected,
+          collectedAt: item.collectedAt,
+          collectedBy: item.collectedBy,
+          notes: item.notes
+        })) || []
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Debug endpoint error',
+      error: error.message
+    });
+  }
+});
+
+// Debug endpoint to check checklist preservation
+router.get('/debug/order/:orderId/checklist-preservation', mobileAuth, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const driverId = req.user.userId;
+    
+    const Order = require('../models/Order');
+    const order = await Order.findOne({
+      _id: orderId,
+      'deliveryInfo.assignedDriver': driverId
+    });
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found or not assigned to you'
+      });
+    }
+    
+    // Check if checklist has collection status preserved
+    const checklistWithStatus = order.deliveryInfo?.productChecklist || [];
+    const hasCollectionStatus = checklistWithStatus.some(item => 
+      item.hasOwnProperty('collected') || 
+      item.hasOwnProperty('collectedAt') || 
+      item.hasOwnProperty('collectedBy')
+    );
+    
+    res.json({
+      success: true,
+      data: {
+        orderId: order._id,
+        hasChecklist: !!order.deliveryInfo?.productChecklist,
+        checklistLength: checklistWithStatus.length,
+        hasCollectionStatus,
+        collectionStatusPreserved: hasCollectionStatus,
+        sampleItems: checklistWithStatus.slice(0, 3).map(item => ({
+          productId: item.productId,
+          title: item.title,
+          collected: item.collected,
+          collectedAt: item.collectedAt,
+          collectedBy: item.collectedBy,
+          hasTitle: !!item.title,
+          hasUnitName: !!item.unitName,
+          hasPrice: item.price !== undefined
+        }))
       }
     });
   } catch (error) {

@@ -407,15 +407,72 @@ const getMobileOrderDetails = async (req, res) => {
         console.log('✅ Using existing product checklist with complete product information.');
         productChecklist = order.deliveryInfo.productChecklist;
       } else {
-        console.log('🔧 Existing checklist is incomplete (missing title, unitName, price, etc.), regenerating...');
-        productChecklist = null; // Force regeneration
+        console.log('🔧 Existing checklist is incomplete (missing title, unitName, price, etc.), enhancing with product data...');
+        
+        // Instead of regenerating completely, enhance the existing checklist with product data
+        // This preserves the collection status and other saved information
+        const enhancedChecklist = [];
+        
+        for (const existingItem of order.deliveryInfo.productChecklist) {
+          try {
+            // Find the corresponding cart item to get product details
+            const cartItem = order.cart.find(cart => 
+              cart.id === existingItem.productId || 
+              cart.productId === existingItem.productId ||
+              cart._id?.toString() === existingItem.productId
+            );
+            
+            if (cartItem) {
+              // Enhance the existing item with product data while preserving collection status
+              const enhancedItem = {
+                ...existingItem, // 🔴 Preserve all existing data (collected, collectedAt, notes, etc.)
+                title: [cartItem.title || 'Unknown Product', cartItem.title || 'Unknown Product'], // Add dual-language title
+                price: cartItem.price || 0,
+                originalPrice: cartItem.originalPrice || cartItem.price || 0,
+                image: cartItem.image,
+                unitName: cartItem.unitName || cartItem.unit || 'Unit',
+                packQty: cartItem.packQty || 1,
+                sku: cartItem.sku || '',
+                arabicTitle: cartItem.title || 'Unknown Product',
+                englishTitle: cartItem.title || 'Unknown Product'
+              };
+              
+              enhancedChecklist.push(enhancedItem);
+              console.log(`  ├─ Enhanced item: ${enhancedItem.title[1]} (Collected: ${enhancedItem.collected})`);
+            } else {
+              // If cart item not found, keep the existing item as is
+              enhancedChecklist.push(existingItem);
+              console.log(`  ├─ Kept existing item: ${existingItem.productId} (Collected: ${existingItem.collected})`);
+            }
+          } catch (itemError) {
+            console.error(`❌ Error enhancing item ${existingItem.productId}:`, itemError);
+            // Keep the existing item even if enhancement fails
+            enhancedChecklist.push(existingItem);
+          }
+        }
+        
+        productChecklist = enhancedChecklist;
+        
+        // Save the enhanced checklist back to the order
+        try {
+          await Order.findByIdAndUpdate(
+            orderId,
+            {
+              "deliveryInfo.productChecklist": enhancedChecklist,
+            },
+            { new: true }
+          );
+          console.log("💾 Saved enhanced checklist to the database.");
+        } catch (updateError) {
+          console.error("⚠️ Failed to save enhanced checklist:", updateError.message);
+        }
       }
     }
     
     // Generate new checklist if needed
-    if (!productChecklist) {
+    if (!productChecklist || productChecklist.length === 0) {
       console.log(
-        "�� No checklist found or checklist incomplete. Generating a new one from the order cart."
+        "🔄 No checklist found or checklist is completely empty. Generating a new one from the order cart."
       );
       if (order.cart && order.cart.length > 0) {
         productChecklist = await regenerateIncompleteChecklist(order);
@@ -441,6 +498,8 @@ const getMobileOrderDetails = async (req, res) => {
         console.log("⚠️ No cart items found to generate checklist from.");
         productChecklist = [];
       }
+    } else {
+      console.log(`✅ Using existing checklist with ${productChecklist.length} items. Collection status preserved.`);
     }
 
     // Try to get latest customer data for better information
