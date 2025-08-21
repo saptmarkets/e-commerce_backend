@@ -200,7 +200,7 @@ const updateStoreCustomizationSetting = async (req, res) => {
     }, {});
 
     console.log("🔍 updateStoreCustomizationSetting - Update fields:", JSON.stringify(updateFields, null, 2));
-
+    
     // Update the online store setting document
     const storeCustomizationSetting = await Setting.findOneAndUpdate(
       { name: "storeCustomizationSetting" },

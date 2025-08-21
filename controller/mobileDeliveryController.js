@@ -387,30 +387,32 @@ const getMobileOrderDetails = async (req, res) => {
         Array.isArray(order.deliveryInfo.productChecklist) &&
         order.deliveryInfo.productChecklist.length > 0) {
       
-      // Check if existing checklist has valid product IDs
-      const hasValidProductIds = order.deliveryInfo.productChecklist.every(item => 
-        item.productId && item.productId !== null && item.productId !== ''
-      );
+      // Use existing checklist from order creation
+      console.log('✅ Using existing product checklist from order:', {
+        checklistLength: order.deliveryInfo.productChecklist.length,
+        sampleItem: order.deliveryInfo.productChecklist[0]
+      });
       
-      if (hasValidProductIds) {
-        console.log('✅ Using existing product checklist from database.');
-        productChecklist = order.deliveryInfo.productChecklist;
-      } else {
-        console.log('🔧 Existing checklist has invalid product IDs, regenerating...');
-        productChecklist = null; // Force regeneration
-      }
-    }
-    
-    // Generate new checklist if needed
-    if (!productChecklist) {
-      console.log(
-        "🔄 No checklist found. Generating a new one from the order cart."
-      );
+      productChecklist = order.deliveryInfo.productChecklist;
+      
+    } else {
+      // Only regenerate if absolutely necessary
+      console.log('🔄 No existing checklist found. Cart data available:', {
+        hasCart: !!order.cart,
+        cartLength: order.cart?.length || 0,
+        cartSample: order.cart?.[0] ? {
+          keys: Object.keys(order.cart[0]),
+          title: order.cart[0].title,
+          name: order.cart[0].name,
+          productTitle: order.cart[0].productTitle
+        } : 'No cart data'
+      });
+      
       if (order.cart && order.cart.length > 0) {
         productChecklist = [];
         
         order.cart.forEach((item, index) => {
-          // Enhanced product information extraction
+          // Enhanced product information extraction with better fallbacks
           const productTitle = item.title || 
                               item.name || 
                               item.productTitle || 
@@ -421,9 +423,10 @@ const getMobileOrderDetails = async (req, res) => {
           console.log(`🔍 Processing cart item ${index}:`, {
             id: item.id,
             title: item.title,
-            isCombo: item.isCombo,
-            hasComboDetails: !!item.comboDetails,
-            extractedTitle: productTitle
+            name: item.name,
+            productTitle: item.productTitle,
+            extractedTitle: productTitle,
+            allKeys: Object.keys(item)
           });
 
           // Check if this is a combo product
@@ -438,8 +441,8 @@ const getMobileOrderDetails = async (req, res) => {
                 quantity: comboProduct.quantity || 1,
                 price: comboProduct.unitPrice || 0,
                 image: getImageUrl(comboProduct.image),
-                  collected: false,
-                  collectedAt: null,
+                collected: false,
+                collectedAt: null,
                 notes: "",
                 unitName: comboProduct.unitName || "Unit",
                 originalPrice: comboProduct.unitPrice || 0,
@@ -480,7 +483,7 @@ const getMobileOrderDetails = async (req, res) => {
 
         console.log(`✅ Generated ${productChecklist.length} new checklist items.`);
 
-        // IMPORTANT: Save the newly generated checklist back to the order
+        // Save the newly generated checklist back to the order
         try {
           await Order.findByIdAndUpdate(
             orderId,

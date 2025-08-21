@@ -128,7 +128,38 @@ const addOrder = async (req, res) => {
       }
     });
     
+    // Debug: Log the order structure before saving
+    console.log('💾 Saving order with structure:', {
+      invoice: newOrder.invoice,
+      cartLength: newOrder.cart?.length,
+      productChecklistLength: newOrder.deliveryInfo?.productChecklist?.length,
+      sampleCartItem: newOrder.cart?.[0] ? {
+        keys: Object.keys(newOrder.cart[0]),
+        title: newOrder.cart[0].title,
+        name: newOrder.cart[0].name,
+        productTitle: newOrder.cart[0].productTitle
+      } : 'No cart data',
+      sampleChecklistItem: newOrder.deliveryInfo?.productChecklist?.[0] ? {
+        keys: Object.keys(newOrder.deliveryInfo.productChecklist[0]),
+        title: newOrder.deliveryInfo.productChecklist[0].title,
+        productId: newOrder.deliveryInfo.productChecklist[0].productId
+      } : 'No checklist data'
+    });
+    
     const order = await newOrder.save();
+    
+    // Debug: Log the saved order structure
+    console.log('✅ Order saved successfully. Final structure:', {
+      orderId: order._id,
+      invoice: order.invoice,
+      cartLength: order.cart?.length,
+      productChecklistLength: order.deliveryInfo?.productChecklist?.length,
+      sampleChecklistItem: order.deliveryInfo?.productChecklist?.[0] ? {
+        title: order.deliveryInfo.productChecklist[0].title,
+        productId: order.deliveryInfo.productChecklist[0].productId,
+        price: order.deliveryInfo.productChecklist[0].price
+      } : 'No checklist data'
+    });
     
     console.log(`⏳ Order ${order.invoice} created with status 'Received'. It is now available for drivers to accept.`);
     
