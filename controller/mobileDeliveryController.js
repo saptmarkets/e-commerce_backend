@@ -426,6 +426,26 @@ const getMobileOrderDetails = async (req, res) => {
             extractedTitle: productTitle
           });
 
+          // Helper function to ensure title is in array format [arabicTitle, englishTitle]
+          const ensureDualLanguageTitle = (title, fallbackTitle = 'Unknown Product') => {
+            if (Array.isArray(title)) {
+              // If already an array, ensure it has 2 elements
+              if (title.length === 0) {
+                return [fallbackTitle, fallbackTitle];
+              } else if (title.length === 1) {
+                return [title[0], title[0]];
+              } else {
+                return [title[0] || fallbackTitle, title[1] || fallbackTitle];
+              }
+            } else if (typeof title === 'string') {
+              // If string, duplicate it for both languages
+              return [title, title];
+            } else {
+              // Fallback
+              return [fallbackTitle, fallbackTitle];
+            }
+          };
+
           // Check if this is a combo product
           if (item.isCombo && item.comboDetails && item.comboDetails.productBreakdown) {
             console.log(`🎁 Breaking down combo: ${productTitle}`);
@@ -434,7 +454,7 @@ const getMobileOrderDetails = async (req, res) => {
             item.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
               const comboItem = {
                 productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-                title: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+                title: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`),
                 quantity: comboProduct.quantity || 1,
                 price: comboProduct.unitPrice || 0,
                 image: getImageUrl(comboProduct.image),
@@ -447,19 +467,22 @@ const getMobileOrderDetails = async (req, res) => {
                 packQty: 1,
                 // Add combo reference for tracking
                 isFromCombo: true,
-                comboTitle: productTitle,
-                comboId: item.id
+                comboTitle: ensureDualLanguageTitle(productTitle),
+                comboId: item.id,
+                // Ensure both language fields exist
+                arabicTitle: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`)[0],
+                englishTitle: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`)[1]
               };
               
               productChecklist.push(comboItem);
-              console.log(`  ├─ Added: ${comboItem.title} (Qty: ${comboItem.quantity})`);
+              console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
             });
             
           } else {
             // Regular product (not a combo)
             const regularItem = {
               productId: item.id || item._id?.toString() || `product_${index}`,
-              title: productTitle,
+              title: ensureDualLanguageTitle(productTitle),
               quantity: item.quantity || 1,
               price: item.price || 0,
               image: getImageUrl(item.image),
@@ -470,11 +493,14 @@ const getMobileOrderDetails = async (req, res) => {
               originalPrice: item.originalPrice || item.price || 0,
               sku: item.sku || "",
               packQty: item.packQty || 1,
-              isFromCombo: false
+              isFromCombo: false,
+              // Ensure both language fields exist
+              arabicTitle: ensureDualLanguageTitle(productTitle)[0],
+              englishTitle: ensureDualLanguageTitle(productTitle)[1]
             };
             
             productChecklist.push(regularItem);
-            console.log(`  ├─ Added regular product: ${regularItem.title} (Qty: ${regularItem.quantity})`);
+            console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
           }
         });
 
@@ -1866,6 +1892,26 @@ const forceRegenerateChecklist = async (req, res) => {
           extractedTitle: productTitle
         });
 
+        // Helper function to ensure title is in array format [arabicTitle, englishTitle]
+        const ensureDualLanguageTitle = (title, fallbackTitle = 'Unknown Product') => {
+          if (Array.isArray(title)) {
+            // If already an array, ensure it has 2 elements
+            if (title.length === 0) {
+              return [fallbackTitle, fallbackTitle];
+            } else if (title.length === 1) {
+              return [title[0], title[0]];
+            } else {
+              return [title[0] || fallbackTitle, title[1] || fallbackTitle];
+            }
+          } else if (typeof title === 'string') {
+            // If string, duplicate it for both languages
+            return [title, title];
+          } else {
+            // Fallback
+            return [fallbackTitle, fallbackTitle];
+          }
+        };
+
         // Check if this is a combo product
         if (item.isCombo && item.comboDetails && item.comboDetails.productBreakdown) {
           console.log(`🎁 Breaking down combo: ${productTitle}`);
@@ -1874,7 +1920,7 @@ const forceRegenerateChecklist = async (req, res) => {
           item.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
             const comboItem = {
               productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-              title: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+              title: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`),
               quantity: comboProduct.quantity || 1,
               price: comboProduct.unitPrice || 0,
               image: getImageUrl(comboProduct.image),
@@ -1887,19 +1933,22 @@ const forceRegenerateChecklist = async (req, res) => {
               packQty: 1,
               // Add combo reference for tracking
               isFromCombo: true,
-              comboTitle: productTitle,
-              comboId: item.id
+              comboTitle: ensureDualLanguageTitle(productTitle),
+              comboId: item.id,
+              // Ensure both language fields exist
+              arabicTitle: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`)[0],
+              englishTitle: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`)[1]
             };
             
             productChecklist.push(comboItem);
-            console.log(`  ├─ Added: ${comboItem.title} (Qty: ${comboItem.quantity})`);
+            console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
           });
           
         } else {
           // Regular product (not a combo)
           const regularItem = {
             productId: item.id || item._id?.toString() || `product_${index}`,
-            title: productTitle,
+            title: ensureDualLanguageTitle(productTitle),
             quantity: item.quantity || 1,
             price: item.price || 0,
             image: getImageUrl(item.image),
@@ -1910,11 +1959,14 @@ const forceRegenerateChecklist = async (req, res) => {
             originalPrice: item.originalPrice || item.price || 0,
             sku: item.sku || "",
             packQty: item.packQty || 1,
-            isFromCombo: false
+            isFromCombo: false,
+            // Ensure both language fields exist
+            arabicTitle: ensureDualLanguageTitle(productTitle)[0],
+            englishTitle: ensureDualLanguageTitle(productTitle)[1]
           };
           
           productChecklist.push(regularItem);
-          console.log(`  ├─ Added regular product: ${regularItem.title} (Qty: ${regularItem.quantity})`);
+          console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
         }
       });
       
