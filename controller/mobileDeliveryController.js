@@ -243,7 +243,10 @@ const getMobileOrders = async (req, res) => {
     console.log(`📦 Found ${orders.length} active orders`);
     
     // Format orders for mobile app
-    const mobileOrders = orders.map(order => {
+    const mobileOrders = [];
+    
+    for (let i = 0; i < orders.length; i++) {
+      const order = orders[i];
       let productChecklist = [];
       
       if (order.deliveryInfo?.productChecklist && order.deliveryInfo.productChecklist.length > 0) {
@@ -289,14 +292,14 @@ const getMobileOrders = async (req, res) => {
             }
           }
 
-          return {
+          productChecklist.push({
             productId: productId || `product_${index}`,
             productTitle: actualProduct?.title || productTitle, // Use database title if available
             quantity: item.quantity || 1,
             collected: false,
             collectedAt: null,
             notes: ""
-          };
+          });
         }
       }
       
@@ -313,7 +316,7 @@ const getMobileOrders = async (req, res) => {
         }
       }
       
-      return {
+      mobileOrders.push({
         _id: order._id,
         orderNumber: order.invoice,
         status: order.status,
@@ -336,8 +339,8 @@ const getMobileOrders = async (req, res) => {
           assignedDriverId: assignedDriverInfo ? assignedDriverInfo._id : null,
           assignedDriverName: assignedDriverName
         }
-      };
-    });
+      });
+    }
     
     console.log('📱 Sample order customer data:', mobileOrders.length > 0 ? {
       'order_id': mobileOrders[0]._id,
