@@ -16,14 +16,6 @@ const REVERT_TO_CHECKOUT_ENABLED = (process.env.REVERT_TO_CHECKOUT_ENABLED ?? 't
 
 const addOrder = async (req, res) => {
   try {
-    console.log('📦 Order creation request received:', {
-      hasUser: !!req.user,
-      userId: req.user?._id,
-      paymentMethod: req.body.paymentMethod,
-      cartLength: req.body.cart?.length,
-      hasUserInfo: !!req.body.user_info
-    });
-
     // Check payment method
     if (req.body.paymentMethod !== 'COD') {
       return res.status(400).send({
@@ -59,14 +51,6 @@ const addOrder = async (req, res) => {
       return res.status(400).send({ message: "Cart is required and cannot be empty" });
     }
     
-    if (!req.body.user_info || !req.body.user_info.name || !req.body.user_info.contact || !req.body.user_info.address) {
-      return res.status(400).send({ message: "User info (name, contact, address) is required" });
-    }
-    
-    if (!req.body.subTotal || !req.body.total) {
-      return res.status(400).send({ message: "Subtotal and total are required" });
-    }
-    
     // Fix cart image fields before processing
     if (req.body.cart && Array.isArray(req.body.cart)) {
       req.body.cart = req.body.cart.map(item => {
@@ -80,25 +64,14 @@ const addOrder = async (req, res) => {
       });
     }
 
+    // Detailed logging for incoming user_info
+    console.log('Received req.body.user_info:', req.body.user_info);
+    console.log('Received req.body.user_info.contact:', req.body.user_info?.contact);
+    console.log('Received req.body.contact (top-level):', req.body.contact);
+
     // Generate verification code and product checklist
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Generate simple product checklist from cart items
-    const productChecklist = req.body.cart.map((item, index) => {
-      const productTitle = item.title || 
-                          item.name || 
-                          item.productTitle || 
-                          `Product ${index + 1}`;
-                          
-      return {
-        productId: item.id || item.productId || `product_${index}`,
-        productTitle: productTitle, // Changed from 'title' to 'productTitle' to match schema
-        quantity: item.quantity || 1,
-        collected: false,
-        collectedAt: null,
-        notes: ''
-      };
-    });
+    const productChecklist = VerificationCodeGenerator.generateProductChecklist(req.body.cart);
 
     // Create and save order
     const newOrder = new Order({
@@ -116,6 +89,8 @@ const addOrder = async (req, res) => {
     });
     
     const order = await newOrder.save();
+    
+    console.log(`⏳ Order ${order.invoice} created with status 'Received'. It is now available for drivers to accept.`);
     
     // Update product sales for popular products calculation
     try {
