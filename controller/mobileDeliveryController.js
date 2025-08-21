@@ -23,7 +23,7 @@ const ensureDeliveryInfoStructure = async (order) => {
   }
   
   if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
-    console.log('🔧 Initializing product checklist for order:', order._id);
+
     
     // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];
@@ -53,7 +53,7 @@ const ensureDeliveryInfoStructure = async (order) => {
         cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
           const comboItem = {
             productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`],
+            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`], // 🔴 Ensure dual-language format
             quantity: comboProduct.quantity || 1,
             price: comboProduct.unitPrice || 0,
             originalPrice: comboProduct.unitPrice || 0,
@@ -66,7 +66,7 @@ const ensureDeliveryInfoStructure = async (order) => {
             sku: comboProduct.sku || '',
             // Add combo reference for tracking
             isFromCombo: true,
-            comboTitle: [productTitle, productTitle],
+            comboTitle: [productTitle, productTitle], // 🔴 Ensure dual-language format
             comboId: cartItem.id,
             // Ensure both language fields exist
             arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
@@ -81,7 +81,7 @@ const ensureDeliveryInfoStructure = async (order) => {
         // Regular product (not a combo)
         const regularItem = {
           productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
-          title: [productTitle, productTitle],
+          title: [productTitle, productTitle], // 🔴 Ensure dual-language format
           quantity: cartItem.quantity,
           price: cartItem.price,
           originalPrice: cartItem.originalPrice,
@@ -393,13 +393,13 @@ const getMobileOrderDetails = async (req, res) => {
         Array.isArray(order.deliveryInfo.productChecklist) &&
         order.deliveryInfo.productChecklist.length > 0) {
       
-      // Check if existing checklist has valid product IDs (like backup version)
+      // Check if existing checklist has valid product IDs (reverted to backup logic)
       const hasValidProductIds = order.deliveryInfo.productChecklist.every(item => 
         item.productId && item.productId !== null && item.productId !== ''
       );
       
       if (hasValidProductIds) {
-        console.log('✅ Using existing product checklist from database (preserving collected states).');
+        console.log('✅ Using existing product checklist from database.');
         productChecklist = order.deliveryInfo.productChecklist;
       } else {
         console.log('🔧 Existing checklist has invalid product IDs, regenerating...');
@@ -407,10 +407,10 @@ const getMobileOrderDetails = async (req, res) => {
       }
     }
     
-    // Generate new checklist if needed (only if none exists)
-    if (!productChecklist || productChecklist.length === 0) {
+    // Generate new checklist if needed
+    if (!productChecklist) {
       console.log(
-        "🔄 No checklist found. Generating a new one from the order cart."
+        "🔄 No checklist found or checklist incomplete. Generating a new one from the order cart."
       );
       if (order.cart && order.cart.length > 0) {
         productChecklist = await regenerateIncompleteChecklist(order);
@@ -436,6 +436,14 @@ const getMobileOrderDetails = async (req, res) => {
         console.log("⚠️ No cart items found to generate checklist from.");
         productChecklist = [];
       }
+    } else {
+      // 🔴 CRITICAL FIX: If we have an existing checklist, ensure it's preserved
+      // This prevents the refresh issue where collected states were being lost
+      console.log('🔒 Preserving existing checklist with collected states. Checklist length:', productChecklist.length);
+      
+      // Log collected items for debugging
+      const collectedItems = productChecklist.filter(item => item.collected);
+      console.log(`📋 Found ${collectedItems.length} collected items out of ${productChecklist.length} total items`);
     }
 
     // Try to get latest customer data for better information
