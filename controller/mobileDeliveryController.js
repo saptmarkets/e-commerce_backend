@@ -268,18 +268,12 @@ const getMobileOrders = async (req, res) => {
           });
 
           return {
-          productId: item.id || item._id?.toString() || `product_${index}`,
-            title: productTitle,
-          quantity: item.quantity || 1,
-            price: item.price || 0,
-          image: getImageUrl(item.image),
-          collected: false,
-          collectedAt: null,
-            notes: "",
-            unitName: item.unit || item.unitName || "Unit",
-            originalPrice: item.originalPrice || item.price || 0,
-            sku: item.sku || "",
-            packQty: item.packQty || 1
+            productId: item.id || item._id?.toString() || `product_${index}`,
+            productTitle: productTitle, // Changed from 'title' to 'productTitle'
+            quantity: item.quantity || 1,
+            collected: false,
+            collectedAt: null,
+            notes: ""
           };
         });
       }
@@ -1877,47 +1871,30 @@ const forceRegenerateChecklist = async (req, res) => {
           item.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
             const comboItem = {
               productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-              title: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+              productTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, // Changed from 'title' to 'productTitle'
               quantity: comboProduct.quantity || 1,
-              price: comboProduct.unitPrice || 0,
-              image: getImageUrl(comboProduct.image),
               collected: false,
               collectedAt: null,
-              notes: "",
-              unitName: comboProduct.unitName || "Unit",
-              originalPrice: comboProduct.unitPrice || 0,
-              sku: comboProduct.sku || "",
-              packQty: 1,
-              // Add combo reference for tracking
-              isFromCombo: true,
-              comboTitle: productTitle,
-              comboId: item.id
+              notes: ""
             };
             
             productChecklist.push(comboItem);
-            console.log(`  ├─ Added: ${comboItem.title} (Qty: ${comboItem.quantity})`);
+            console.log(`  ├─ Added: ${comboItem.productTitle} (Qty: ${comboItem.quantity})`);
           });
           
         } else {
           // Regular product (not a combo)
           const regularItem = {
             productId: item.id || item._id?.toString() || `product_${index}`,
-            title: productTitle,
+            productTitle: productTitle, // Changed from 'title' to 'productTitle'
             quantity: item.quantity || 1,
-            price: item.price || 0,
-            image: getImageUrl(item.image),
             collected: false,
             collectedAt: null,
-            notes: "",
-            unitName: item.unit || item.unitName || "Unit",
-            originalPrice: item.originalPrice || item.price || 0,
-            sku: item.sku || "",
-            packQty: item.packQty || 1,
-            isFromCombo: false
+            notes: ""
           };
           
           productChecklist.push(regularItem);
-          console.log(`  ├─ Added regular product: ${regularItem.title} (Qty: ${regularItem.quantity})`);
+          console.log(`  ├─ Added regular product: ${regularItem.productTitle} (Qty: ${regularItem.quantity})`);
         }
       });
       
