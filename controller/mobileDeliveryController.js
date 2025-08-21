@@ -23,7 +23,7 @@ const ensureDeliveryInfoStructure = async (order) => {
   }
   
   if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
-
+    console.log('🔧 Initializing product checklist for order:', order._id);
     
     // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];
@@ -53,7 +53,7 @@ const ensureDeliveryInfoStructure = async (order) => {
         cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
           const comboItem = {
             productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`], // 🔴 Ensure dual-language format
+            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`],
             quantity: comboProduct.quantity || 1,
             price: comboProduct.unitPrice || 0,
             originalPrice: comboProduct.unitPrice || 0,
@@ -66,7 +66,7 @@ const ensureDeliveryInfoStructure = async (order) => {
             sku: comboProduct.sku || '',
             // Add combo reference for tracking
             isFromCombo: true,
-            comboTitle: [productTitle, productTitle], // 🔴 Ensure dual-language format
+            comboTitle: [productTitle, productTitle],
             comboId: cartItem.id,
             // Ensure both language fields exist
             arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
@@ -81,7 +81,7 @@ const ensureDeliveryInfoStructure = async (order) => {
         // Regular product (not a combo)
         const regularItem = {
           productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
-          title: [productTitle, productTitle], // 🔴 Ensure dual-language format
+          title: [productTitle, productTitle],
           quantity: cartItem.quantity,
           price: cartItem.price,
           originalPrice: cartItem.originalPrice,
@@ -393,29 +393,24 @@ const getMobileOrderDetails = async (req, res) => {
         Array.isArray(order.deliveryInfo.productChecklist) &&
         order.deliveryInfo.productChecklist.length > 0) {
       
-      // Check if existing checklist has valid product information (not just basic fields)
-      const hasCompleteProductInfo = order.deliveryInfo.productChecklist.every(item => 
-        item.productId && 
-        item.productId !== null && 
-        item.productId !== '' &&
-        item.title && // 🔴 Check if title exists
-        item.unitName && // 🔴 Check if unitName exists
-        item.price !== undefined // 🔴 Check if price exists
+      // Check if existing checklist has valid product IDs (like backup version)
+      const hasValidProductIds = order.deliveryInfo.productChecklist.every(item => 
+        item.productId && item.productId !== null && item.productId !== ''
       );
       
-      if (hasCompleteProductInfo) {
-        console.log('✅ Using existing product checklist with complete product information.');
+      if (hasValidProductIds) {
+        console.log('✅ Using existing product checklist from database (preserving collected states).');
         productChecklist = order.deliveryInfo.productChecklist;
       } else {
-        console.log('🔧 Existing checklist is incomplete (missing title, unitName, price, etc.), regenerating...');
+        console.log('🔧 Existing checklist has invalid product IDs, regenerating...');
         productChecklist = null; // Force regeneration
       }
     }
     
-    // Generate new checklist if needed
-    if (!productChecklist) {
+    // Generate new checklist if needed (only if none exists)
+    if (!productChecklist || productChecklist.length === 0) {
       console.log(
-        "�� No checklist found or checklist incomplete. Generating a new one from the order cart."
+        "🔄 No checklist found. Generating a new one from the order cart."
       );
       if (order.cart && order.cart.length > 0) {
         productChecklist = await regenerateIncompleteChecklist(order);
