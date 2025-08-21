@@ -17,13 +17,22 @@ const { createOrderNotification } = require("./notificationController");
 const ensureDeliveryInfoStructure = async (order) => {
   let updated = false;
   
+  console.log('🔧 ensureDeliveryInfoStructure called for order:', {
+    orderId: order._id,
+    hasDeliveryInfo: !!order.deliveryInfo,
+    hasProductChecklist: !!(order.deliveryInfo?.productChecklist),
+    cartLength: order.cart?.length || 0,
+    existingChecklistLength: order.deliveryInfo?.productChecklist?.length || 0
+  });
+  
   if (!order.deliveryInfo) {
     order.deliveryInfo = {};
     updated = true;
+    console.log('✅ Created new deliveryInfo object');
   }
   
   if (!order.deliveryInfo.productChecklist || !Array.isArray(order.deliveryInfo.productChecklist)) {
-
+    console.log('🔄 Creating new productChecklist from cart items...');
     
     // Create productChecklist from order cart items - use consistent ID extraction
     order.deliveryInfo.productChecklist = [];
@@ -37,12 +46,17 @@ const ensureDeliveryInfoStructure = async (order) => {
                           cartItem.product?.name || 
                           `Product ${index + 1}`;
                           
-      console.log(`🔧 Initializing cart item ${index}:`, {
+      console.log(`🔧 Processing cart item ${index}:`, {
         id: cartItem.id,
+        _id: cartItem._id,
         title: cartItem.title,
+        name: cartItem.name,
+        productTitle: cartItem.productTitle,
         isCombo: cartItem.isCombo,
         hasComboDetails: !!cartItem.comboDetails,
-        extractedTitle: productTitle
+        extractedTitle: productTitle,
+        quantity: cartItem.quantity,
+        price: cartItem.price
       });
 
       // Check if this is a combo product
@@ -74,7 +88,7 @@ const ensureDeliveryInfoStructure = async (order) => {
           };
           
           order.deliveryInfo.productChecklist.push(comboItem);
-          console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
+          console.log(`  ├─ Added combo item: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
         });
         
       } else {
@@ -102,12 +116,17 @@ const ensureDeliveryInfoStructure = async (order) => {
         console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
       }
     });
+    
+    console.log(`✅ Created checklist with ${order.deliveryInfo.productChecklist.length} items`);
     updated = true;
+  } else {
+    console.log('✅ Product checklist already exists, no need to create');
   }
   
   if (updated) {
+    console.log('💾 Saving order with updated delivery info structure...');
     await order.save();
-    console.log('✅ Order delivery info structure initialized');
+    console.log('✅ Order delivery info structure initialized and saved');
   }
   
   return order;
@@ -475,24 +494,37 @@ const getMobileOrderDetails = async (req, res) => {
         "🔄 No checklist found or checklist is completely empty. Generating a new one from the order cart."
       );
       if (order.cart && order.cart.length > 0) {
-        productChecklist = await regenerateIncompleteChecklist(order);
+        // 🔴 CRITICAL FIX: Call ensureDeliveryInfoStructure for new orders
+        console.log('🔄 Calling ensureDeliveryInfoStructure to generate proper checklist...');
+        await ensureDeliveryInfoStructure(order);
         
-        // IMPORTANT: Save the newly generated checklist back to the order
-        try {
-          await Order.findByIdAndUpdate(
-            orderId,
-            {
-              "deliveryInfo.productChecklist": productChecklist,
-              "deliveryInfo.allItemsCollected": false,
-            },
-            { new: true }
-          );
-          console.log("💾 Saved newly generated checklist to the database.");
-        } catch (updateError) {
-          console.error(
-            "⚠️ Failed to save newly generated checklist to order:",
-            updateError.message
-          );
+        // Refresh the order to get the newly generated checklist
+        const refreshedOrder = await Order.findById(orderId);
+        if (refreshedOrder && refreshedOrder.deliveryInfo && refreshedOrder.deliveryInfo.productChecklist) {
+          productChecklist = refreshedOrder.deliveryInfo.productChecklist;
+          console.log(`✅ Generated new checklist with ${productChecklist.length} items using ensureDeliveryInfoStructure`);
+        } else {
+          // Fallback to regenerateIncompleteChecklist if ensureDeliveryInfoStructure didn't work
+          console.log('⚠️ ensureDeliveryInfoStructure didn\'t generate checklist, falling back to regenerateIncompleteChecklist...');
+          productChecklist = await regenerateIncompleteChecklist(order);
+          
+          // Save the newly generated checklist back to the order
+          try {
+            await Order.findByIdAndUpdate(
+              orderId,
+              {
+                "deliveryInfo.productChecklist": productChecklist,
+                "deliveryInfo.allItemsCollected": false,
+              },
+              { new: true }
+            );
+            console.log("💾 Saved newly generated checklist to the database.");
+          } catch (updateError) {
+            console.error(
+              "⚠️ Failed to save newly generated checklist to order:",
+              updateError.message
+            );
+          }
         }
       } else {
         console.log("⚠️ No cart items found to generate checklist from.");
