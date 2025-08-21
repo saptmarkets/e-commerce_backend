@@ -53,7 +53,7 @@ const ensureDeliveryInfoStructure = async (order) => {
         cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
           const comboItem = {
             productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-            title: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`], // 🔴 Ensure dual-language format
             quantity: comboProduct.quantity || 1,
             price: comboProduct.unitPrice || 0,
             originalPrice: comboProduct.unitPrice || 0,
@@ -66,19 +66,22 @@ const ensureDeliveryInfoStructure = async (order) => {
             sku: comboProduct.sku || '',
             // Add combo reference for tracking
             isFromCombo: true,
-            comboTitle: productTitle,
-            comboId: cartItem.id
+            comboTitle: [productTitle, productTitle], // 🔴 Ensure dual-language format
+            comboId: cartItem.id,
+            // Ensure both language fields exist
+            arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+            englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`
           };
           
           order.deliveryInfo.productChecklist.push(comboItem);
-          console.log(`  ├─ Added: ${comboItem.title} (Qty: ${comboItem.quantity})`);
+          console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
         });
         
       } else {
         // Regular product (not a combo)
         const regularItem = {
           productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
-          title: productTitle,
+          title: [productTitle, productTitle], // 🔴 Ensure dual-language format
           quantity: cartItem.quantity,
           price: cartItem.price,
           originalPrice: cartItem.originalPrice,
@@ -89,11 +92,14 @@ const ensureDeliveryInfoStructure = async (order) => {
           unitName: cartItem.unitName || cartItem.unit || 'Unit',
           packQty: cartItem.packQty || 1,
           sku: cartItem.sku || '',
-          isFromCombo: false
+          isFromCombo: false,
+          // Ensure both language fields exist
+          arabicTitle: productTitle,
+          englishTitle: productTitle
         };
         
         order.deliveryInfo.productChecklist.push(regularItem);
-        console.log(`  ├─ Added regular product: ${regularItem.title} (Qty: ${regularItem.quantity})`);
+        console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
       }
     });
     updated = true;
@@ -387,16 +393,21 @@ const getMobileOrderDetails = async (req, res) => {
         Array.isArray(order.deliveryInfo.productChecklist) &&
         order.deliveryInfo.productChecklist.length > 0) {
       
-      // Check if existing checklist has valid product IDs
-      const hasValidProductIds = order.deliveryInfo.productChecklist.every(item => 
-        item.productId && item.productId !== null && item.productId !== ''
+      // Check if existing checklist has valid product information (not just basic fields)
+      const hasCompleteProductInfo = order.deliveryInfo.productChecklist.every(item => 
+        item.productId && 
+        item.productId !== null && 
+        item.productId !== '' &&
+        item.title && // 🔴 Check if title exists
+        item.unitName && // 🔴 Check if unitName exists
+        item.price !== undefined // 🔴 Check if price exists
       );
       
-      if (hasValidProductIds) {
-        console.log('✅ Using existing product checklist from database.');
+      if (hasCompleteProductInfo) {
+        console.log('✅ Using existing product checklist with complete product information.');
         productChecklist = order.deliveryInfo.productChecklist;
       } else {
-        console.log('🔧 Existing checklist has invalid product IDs, regenerating...');
+        console.log('🔧 Existing checklist is incomplete (missing title, unitName, price, etc.), regenerating...');
         productChecklist = null; // Force regeneration
       }
     }
@@ -404,108 +415,11 @@ const getMobileOrderDetails = async (req, res) => {
     // Generate new checklist if needed
     if (!productChecklist) {
       console.log(
-        "🔄 No checklist found. Generating a new one from the order cart."
+        "�� No checklist found or checklist incomplete. Generating a new one from the order cart."
       );
       if (order.cart && order.cart.length > 0) {
-        productChecklist = [];
+        productChecklist = await regenerateIncompleteChecklist(order);
         
-        order.cart.forEach((item, index) => {
-          // Enhanced product information extraction
-          const productTitle = item.title || 
-                              item.name || 
-                              item.productTitle || 
-                              item.product?.title || 
-                              item.product?.name || 
-                              `Product ${index + 1}`;
-                              
-          console.log(`🔍 Processing cart item ${index}:`, {
-            id: item.id,
-            title: item.title,
-            isCombo: item.isCombo,
-            hasComboDetails: !!item.comboDetails,
-            extractedTitle: productTitle
-          });
-
-          // Helper function to ensure title is in array format [arabicTitle, englishTitle]
-          const ensureDualLanguageTitle = (title, fallbackTitle = 'Unknown Product') => {
-            if (Array.isArray(title)) {
-              // If already an array, ensure it has 2 elements
-              if (title.length === 0) {
-                return [fallbackTitle, fallbackTitle];
-              } else if (title.length === 1) {
-                return [title[0], title[0]];
-              } else {
-                return [title[0] || fallbackTitle, title[1] || fallbackTitle];
-              }
-            } else if (typeof title === 'string') {
-              // If string, duplicate it for both languages
-              return [title, title];
-            } else {
-              // Fallback
-              return [fallbackTitle, fallbackTitle];
-            }
-          };
-
-          // Check if this is a combo product
-          if (item.isCombo && item.comboDetails && item.comboDetails.productBreakdown) {
-            console.log(`🎁 Breaking down combo: ${productTitle}`);
-            
-            // Add individual products from combo breakdown
-            item.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
-              const comboItem = {
-                productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
-                title: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`),
-                quantity: comboProduct.quantity || 1,
-                price: comboProduct.unitPrice || 0,
-                image: getImageUrl(comboProduct.image),
-                  collected: false,
-                  collectedAt: null,
-                notes: "",
-                unitName: comboProduct.unitName || "Unit",
-                originalPrice: comboProduct.unitPrice || 0,
-                sku: comboProduct.sku || "",
-                packQty: 1,
-                // Add combo reference for tracking
-                isFromCombo: true,
-                comboTitle: ensureDualLanguageTitle(productTitle),
-                comboId: item.id,
-                // Ensure both language fields exist
-                arabicTitle: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`)[0],
-                englishTitle: ensureDualLanguageTitle(comboProduct.productTitle, `Combo Item ${comboIndex + 1}`)[1]
-              };
-              
-              productChecklist.push(comboItem);
-              console.log(`  ├─ Added: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
-            });
-            
-          } else {
-            // Regular product (not a combo)
-            const regularItem = {
-              productId: item.id || item._id?.toString() || `product_${index}`,
-              title: ensureDualLanguageTitle(productTitle),
-              quantity: item.quantity || 1,
-              price: item.price || 0,
-              image: getImageUrl(item.image),
-              collected: false,
-              collectedAt: null,
-              notes: "",
-              unitName: item.unit || item.unitName || "Unit",
-              originalPrice: item.originalPrice || item.price || 0,
-              sku: item.sku || "",
-              packQty: item.packQty || 1,
-              isFromCombo: false,
-              // Ensure both language fields exist
-              arabicTitle: ensureDualLanguageTitle(productTitle)[0],
-              englishTitle: ensureDualLanguageTitle(productTitle)[1]
-            };
-            
-            productChecklist.push(regularItem);
-            console.log(`  ├─ Added regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
-          }
-        });
-
-        console.log(`✅ Generated ${productChecklist.length} new checklist items.`);
-
         // IMPORTANT: Save the newly generated checklist back to the order
         try {
           await Order.findByIdAndUpdate(
@@ -2136,6 +2050,102 @@ const mobileBreakOut = async (req, res) => {
       message: "Failed to end break",
       error: error.message
     });
+  }
+};
+
+// Helper function to regenerate incomplete product checklists
+const regenerateIncompleteChecklist = async (order) => {
+  try {
+    console.log('🔄 Regenerating incomplete product checklist for order:', order.invoice);
+    
+    if (!order.cart || order.cart.length === 0) {
+      console.log('⚠️ No cart items found to regenerate checklist from.');
+      return [];
+    }
+    
+    const newChecklist = [];
+    
+    order.cart.forEach((cartItem, index) => {
+      // Enhanced product information extraction
+      const productTitle = cartItem.title || 
+                          cartItem.name || 
+                          cartItem.productTitle || 
+                          cartItem.product?.title || 
+                          cartItem.product?.name || 
+                          `Product ${index + 1}`;
+                        
+      console.log(`🔧 Regenerating cart item ${index}:`, {
+        id: cartItem.id,
+        title: cartItem.title,
+        isCombo: cartItem.isCombo,
+        hasComboDetails: !!cartItem.comboDetails,
+        extractedTitle: productTitle
+      });
+
+      // Check if this is a combo product
+      if (cartItem.isCombo && cartItem.comboDetails && cartItem.comboDetails.productBreakdown) {
+        console.log(`🎁 Breaking down combo: ${productTitle}`);
+        
+        // Add individual products from combo breakdown
+        cartItem.comboDetails.productBreakdown.forEach((comboProduct, comboIndex) => {
+          const comboItem = {
+            productId: comboProduct.productId || `combo_${index}_${comboIndex}`,
+            title: [comboProduct.productTitle || `Combo Item ${comboIndex + 1}`, comboProduct.productTitle || `Combo Item ${comboIndex + 1}`],
+            quantity: comboProduct.quantity || 1,
+            price: comboProduct.unitPrice || 0,
+            originalPrice: comboProduct.unitPrice || 0,
+            image: comboProduct.image,
+            collected: false,
+            collectedAt: null,
+            notes: '',
+            unitName: comboProduct.unitName || 'Unit',
+            packQty: 1,
+            sku: comboProduct.sku || '',
+            // Add combo reference for tracking
+            isFromCombo: true,
+            comboTitle: [productTitle, productTitle],
+            comboId: cartItem.id,
+            // Ensure both language fields exist
+            arabicTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`,
+            englishTitle: comboProduct.productTitle || `Combo Item ${comboIndex + 1}`
+          };
+          
+          newChecklist.push(comboItem);
+          console.log(`  ├─ Regenerated: ${comboItem.title[1] || comboItem.title[0]} (Qty: ${comboItem.quantity})`);
+        });
+        
+      } else {
+        // Regular product (not a combo)
+        const regularItem = {
+          productId: cartItem.id || cartItem._id?.toString() || cartItem.productId || `product_${index}`,
+          title: [productTitle, productTitle],
+          quantity: cartItem.quantity,
+          price: cartItem.price,
+          originalPrice: cartItem.originalPrice,
+          image: cartItem.image,
+          collected: false,
+          collectedAt: null,
+          notes: '',
+          unitName: cartItem.unitName || cartItem.unit || 'Unit',
+          packQty: cartItem.packQty || 1,
+          sku: cartItem.sku || '',
+          isFromCombo: false,
+          // Ensure both language fields exist
+          arabicTitle: productTitle,
+          englishTitle: productTitle
+        };
+        
+        newChecklist.push(regularItem);
+        console.log(`  ├─ Regenerated regular product: ${regularItem.title[1] || regularItem.title[0]} (Qty: ${regularItem.quantity})`);
+      }
+    });
+    
+    console.log(`✅ Regenerated ${newChecklist.length} checklist items with complete product information.`);
+    return newChecklist;
+    
+  } catch (error) {
+    console.error('❌ Error regenerating incomplete checklist:', error);
+    return [];
   }
 };
 
