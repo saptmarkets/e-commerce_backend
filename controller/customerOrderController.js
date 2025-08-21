@@ -16,6 +16,14 @@ const REVERT_TO_CHECKOUT_ENABLED = (process.env.REVERT_TO_CHECKOUT_ENABLED ?? 't
 
 const addOrder = async (req, res) => {
   try {
+    console.log('📦 Order creation request received:', {
+      hasUser: !!req.user,
+      userId: req.user?._id,
+      paymentMethod: req.body.paymentMethod,
+      cartLength: req.body.cart?.length,
+      hasUserInfo: !!req.body.user_info
+    });
+
     // Check payment method
     if (req.body.paymentMethod !== 'COD') {
       return res.status(400).send({
@@ -51,6 +59,14 @@ const addOrder = async (req, res) => {
       return res.status(400).send({ message: "Cart is required and cannot be empty" });
     }
     
+    if (!req.body.user_info || !req.body.user_info.name || !req.body.user_info.contact || !req.body.user_info.address) {
+      return res.status(400).send({ message: "User info (name, contact, address) is required" });
+    }
+    
+    if (!req.body.subTotal || !req.body.total) {
+      return res.status(400).send({ message: "Subtotal and total are required" });
+    }
+    
     // Fix cart image fields before processing
     if (req.body.cart && Array.isArray(req.body.cart)) {
       req.body.cart = req.body.cart.map(item => {
@@ -64,54 +80,25 @@ const addOrder = async (req, res) => {
       });
     }
 
-    // Detailed logging for incoming user_info
-    console.log('Received req.body.user_info:', req.body.user_info);
-    console.log('Received req.body.user_info.contact:', req.body.user_info?.contact);
-    console.log('Received req.body.contact (top-level):', req.body.contact);
-
     // Generate verification code and product checklist
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Debug: Log cart data structure
-    console.log('🔍 Cart data received:', {
-      cartLength: req.body.cart?.length,
-      sampleItem: req.body.cart?.[0],
-      cartKeys: req.body.cart?.[0] ? Object.keys(req.body.cart[0]) : []
-    });
-    
-    // Generate simple product checklist from cart items (more reliable than complex generator)
+    // Generate simple product checklist from cart items
     const productChecklist = req.body.cart.map((item, index) => {
       const productTitle = item.title || 
                           item.name || 
                           item.productTitle || 
                           `Product ${index + 1}`;
                           
-      const checklistItem = {
+      return {
         productId: item.id || item.productId || `product_${index}`,
-        title: productTitle,
+        productTitle: productTitle, // Changed from 'title' to 'productTitle' to match schema
         quantity: item.quantity || 1,
-        price: item.price || 0,
-        originalPrice: item.originalPrice || item.price || 0,
-        image: item.image,
         collected: false,
         collectedAt: null,
-        notes: '',
-        unitName: item.unitName || item.unit || 'Unit',
-        packQty: item.packQty || 1,
-        sku: item.sku || '',
-        isFromCombo: false
+        notes: ''
       };
-      
-      console.log(`📦 Generated checklist item ${index}:`, {
-        title: checklistItem.title,
-        quantity: checklistItem.quantity,
-        unitName: checklistItem.unitName
-      });
-      
-      return checklistItem;
     });
-    
-    console.log(`✅ Generated ${productChecklist.length} checklist items`);
 
     // Create and save order
     const newOrder = new Order({
@@ -128,40 +115,7 @@ const addOrder = async (req, res) => {
       }
     });
     
-    // Debug: Log the order structure before saving
-    console.log('💾 Saving order with structure:', {
-      invoice: newOrder.invoice,
-      cartLength: newOrder.cart?.length,
-      productChecklistLength: newOrder.deliveryInfo?.productChecklist?.length,
-      sampleCartItem: newOrder.cart?.[0] ? {
-        keys: Object.keys(newOrder.cart[0]),
-        title: newOrder.cart[0].title,
-        name: newOrder.cart[0].name,
-        productTitle: newOrder.cart[0].productTitle
-      } : 'No cart data',
-      sampleChecklistItem: newOrder.deliveryInfo?.productChecklist?.[0] ? {
-        keys: Object.keys(newOrder.deliveryInfo.productChecklist[0]),
-        title: newOrder.deliveryInfo.productChecklist[0].title,
-        productId: newOrder.deliveryInfo.productChecklist[0].productId
-      } : 'No checklist data'
-    });
-    
     const order = await newOrder.save();
-    
-    // Debug: Log the saved order structure
-    console.log('✅ Order saved successfully. Final structure:', {
-      orderId: order._id,
-      invoice: order.invoice,
-      cartLength: order.cart?.length,
-      productChecklistLength: order.deliveryInfo?.productChecklist?.length,
-      sampleChecklistItem: order.deliveryInfo?.productChecklist?.[0] ? {
-        title: order.deliveryInfo.productChecklist[0].title,
-        productId: order.deliveryInfo.productChecklist[0].productId,
-        price: order.deliveryInfo.productChecklist[0].price
-      } : 'No checklist data'
-    });
-    
-    console.log(`⏳ Order ${order.invoice} created with status 'Received'. It is now available for drivers to accept.`);
     
     // Update product sales for popular products calculation
     try {
