@@ -299,69 +299,65 @@ const getActivePromotions = async (req, res) => {
     const currentDate = new Date();
     console.log('Fetching active promotions at:', currentDate);
     
-    // First get all promotions to debug
-    const allPromotions = await Promotion.find({}).populate({
-      path: 'productUnit',
-      populate: [
-        {
-          path: 'product',
-          select: 'title slug sku image prices stock'
-        },
-        {
-          path: 'unit',
-          select: 'name shortName'
-        }
-      ]
-    }).populate({
-      path: 'productUnits',
-      populate: [
-        {
-          path: 'product',
-          select: 'title slug sku image prices stock'
-        },
-        {
-          path: 'unit',
-          select: 'name shortName'
-        }
-      ]
-    }).populate('promotionList', 'name description type priority defaultValue');
-    
-    console.log(`Total promotions in database: ${allPromotions.length}`);
-    allPromotions.forEach(promo => {
-      console.log(`Promotion ${promo._id}: isActive=${promo.isActive}, type=${promo.type}, startDate=${promo.startDate}, endDate=${promo.endDate}`);
-    });
-    
-    // Get active promotions with more flexible date handling
+    // Get active promotions with enhanced population
     const promotionsQuery = {
       isActive: true,
     };
     
-    // Only add date filters if the dates are valid
-    const promotionsWithDates = await Promotion.find(promotionsQuery).populate({
-      path: 'productUnit',
-      populate: [
-        {
-          path: 'product',
-          select: 'title slug sku image prices stock'
-        },
-        {
-          path: 'unit',
-          select: 'name shortName nameAr'
-        }
-      ]
-    }).populate({
-      path: 'productUnits',
-      populate: [
-        {
-          path: 'product',
-          select: 'title slug sku image prices stock'
-        },
-        {
-          path: 'unit',
-          select: 'name shortName nameAr'
-        }
-      ]
-    }).populate('promotionList', 'name description type priority defaultValue');
+    const promotionsWithDates = await Promotion.find(promotionsQuery)
+      .populate({
+        path: 'productUnit',
+        populate: [
+          {
+            path: 'product',
+            select: 'title slug sku image prices stock'
+          },
+          {
+            path: 'unit',
+            select: 'name shortName nameAr'
+          }
+        ]
+      })
+      .populate({
+        path: 'productUnits',
+        populate: [
+          {
+            path: 'product',
+            select: 'title slug sku image prices stock'
+          },
+          {
+            path: 'unit',
+            select: 'name shortName nameAr'
+          }
+        ]
+      })
+      .populate('promotionList', 'name description type priority defaultValue');
+
+    console.log(`Found ${promotionsWithDates.length} promotions with isActive=true`);
+
+    // Enhanced debugging for productUnit population
+    promotionsWithDates.forEach((promo, index) => {
+      console.log(`Promotion ${index + 1} (${promo._id}):`, {
+        type: promo.type,
+        isActive: promo.isActive,
+        hasProductUnit: !!promo.productUnit,
+        productUnitId: promo.productUnit?._id,
+        hasProduct: !!promo.productUnit?.product,
+        productId: promo.productUnit?.product?._id,
+        productTitle: promo.productUnit?.product?.title,
+        startDate: promo.startDate,
+        endDate: promo.endDate
+      });
+      
+      // Check for broken productUnit references
+      if (promo.type === 'fixed_price' && !promo.productUnit) {
+        console.warn(`⚠️ Fixed price promotion ${promo._id} has no productUnit!`);
+      }
+      
+      if (promo.productUnit && !promo.productUnit.product) {
+        console.warn(`⚠️ Promotion ${promo._id} has productUnit ${promo.productUnit._id} but no product!`);
+      }
+    });
 
     // Filter promotions with valid dates client-side for better control
     const validPromotions = promotionsWithDates.filter(promo => {
@@ -377,7 +373,20 @@ const getActivePromotions = async (req, res) => {
       return start <= currentDate && end >= currentDate;
     });
 
-    console.log(`Found ${validPromotions.length} active promotions after filtering`);
+    console.log(`Found ${validPromotions.length} active promotions after date filtering`);
+    
+    // Count promotions by type for debugging
+    const promotionCounts = validPromotions.reduce((acc, promo) => {
+      acc[promo.type] = (acc[promo.type] || 0) + 1;
+      return acc;
+    }, {});
+    console.log('Promotion counts by type:', promotionCounts);
+    
+    // Count promotions with valid product data
+    const fixedPriceWithProducts = validPromotions.filter(promo => 
+      promo.type === 'fixed_price' && promo.productUnit && promo.productUnit.product
+    ).length;
+    console.log(`Fixed price promotions with valid product data: ${fixedPriceWithProducts}`);
     
     // Ensure we always return an array, even if empty
     res.status(200).json(validPromotions);
