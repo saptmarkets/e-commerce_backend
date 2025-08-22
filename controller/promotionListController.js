@@ -31,7 +31,7 @@ const addPromotionList = async (req, res) => {
 
 // Get all promotion lists with pagination
 const getAllPromotionLists = async (req, res) => {
-  const { page = 1, limit = 10, type, isActive } = req.query;
+  const { page = 1, limit = 100, type, isActive } = req.query;
   
   try {
     const queryObject = {};
