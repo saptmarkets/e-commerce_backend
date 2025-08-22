@@ -657,40 +657,49 @@ class OdooService {
       await OdooProduct.insertMany(odooOperations.map(op => op.insertOne.document));
       console.log(`✅ Successfully stored ${allProducts.length} products in odoo_products collection`);
 
-      // 🔥 STEP 4: Sync to store database
-      console.log(`🔄 Syncing ${allProducts.length} products to store database...`);
+      // 🔥 STEP 4: COMPLETELY REPLACE products in store database for this category
+      console.log(`🔄 Completely replacing products in store database for category ${category.complete_name}...`);
+      
+      // First, remove all existing products in this category from store database
+      console.log(`🗑️ Removing existing products from store database for category ${category.complete_name}...`);
+      
+      // Import ProductUnit model for cleanup
+      const ProductUnit = require('../models/ProductUnit');
+      
+      const existingStoreProducts = await Product.find({ category: storeCategory._id });
+      if (existingStoreProducts.length > 0) {
+        console.log(`🗑️ Removing ${existingStoreProducts.length} existing products from store database...`);
+        
+        // Get product IDs to clean up related ProductUnit records
+        const productIds = existingStoreProducts.map(p => p._id);
+        
+        // Remove ProductUnit records for these products
+        if (productIds.length > 0) {
+          const deletedUnits = await ProductUnit.deleteMany({ product: { $in: productIds } });
+          console.log(`🗑️ Removed ${deletedUnits.deletedCount} related ProductUnit records`);
+        }
+        
+        // Remove the products
+        await Product.deleteMany({ category: storeCategory._id });
+        console.log(`✅ Cleared existing products from store database for category ${category.complete_name}`);
+      }
+
+      // Now create fresh products from Odoo data
+      console.log(`🆕 Creating fresh products in store database from Odoo data...`);
       
       let syncedCount = 0;
       const errors = [];
 
       for (const product of allProducts) {
         try {
-          // Check if product already exists in store
-          let storeProduct = await Product.findOne({ odoo_id: product.id });
-          
-          if (storeProduct) {
-            // Update existing product
-            const updateData = {
-              title: { en: product.name, ar: product.name },
-              price: product.list_price || product.lst_price || product.price || 0,
-              originalPrice: product.standard_price || product.cost || product.list_price || 0,
-              category: storeCategory._id,
-              categories: [storeCategory._id],
-              odoo_id: product.id,
-              write_date: product.write_date
-            };
-
-            await Product.findByIdAndUpdate(storeProduct._id, updateData);
+          // Always create new product (since we cleared all existing ones)
+          const newProduct = await odooImportService.importProduct(product, storeCategory);
+          if (newProduct) {
             syncedCount++;
-            
-          } else {
-            // Create new product
-            const newProduct = await odooImportService.importProduct(product, storeCategory);
-            if (newProduct) syncedCount++;
+            console.log(`✅ Created product: ${product.name} (ID: ${product.id})`);
           }
-
         } catch (productError) {
-          console.error(`❌ Error syncing product ${product.id}:`, productError.message);
+          console.error(`❌ Error creating product ${product.id}:`, productError.message);
           errors.push({
             product_id: product.id,
             error: productError.message
