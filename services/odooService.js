@@ -498,8 +498,10 @@ class OdooService {
   }
 
   /**
-   * Sync products by category with progress tracking - SIMPLIFIED VERSION
-   * Uses the same method as fetch products but filtered by category
+   * Sync products by category with progress tracking - ODOO TABLES ONLY
+   * Completely replaces products in odoo_* tables for the selected category
+   * Does NOT touch store database (preserves custom changes like images)
+   * Use 'Sync to Store' function separately when ready to update store
    */
   async syncProductsByCategory(categoryId, progressCallback = null) {
     try {
@@ -657,65 +659,23 @@ class OdooService {
       await OdooProduct.insertMany(odooOperations.map(op => op.insertOne.document));
       console.log(`✅ Successfully stored ${allProducts.length} products in odoo_products collection`);
 
-      // 🔥 STEP 4: COMPLETELY REPLACE products in store database for this category
-      console.log(`🔄 Completely replacing products in store database for category ${category.complete_name}...`);
+      // 🔥 STEP 4: Only sync to store database if explicitly requested (preserve custom changes)
+      console.log(`📋 Odoo data updated in odoo_* tables for category ${category.complete_name}`);
+      console.log(`💡 To sync to store database, use the 'Sync to Store' function separately`);
+      console.log(`🛡️ Store database preserved - your custom changes (images, etc.) are safe`);
       
-      // First, remove all existing products in this category from store database
-      console.log(`🗑️ Removing existing products from store database for category ${category.complete_name}...`);
-      
-      // Import ProductUnit model for cleanup
-      const ProductUnit = require('../models/ProductUnit');
-      
-      const existingStoreProducts = await Product.find({ category: storeCategory._id });
-      if (existingStoreProducts.length > 0) {
-        console.log(`🗑️ Removing ${existingStoreProducts.length} existing products from store database...`);
-        
-        // Get product IDs to clean up related ProductUnit records
-        const productIds = existingStoreProducts.map(p => p._id);
-        
-        // Remove ProductUnit records for these products
-        if (productIds.length > 0) {
-          const deletedUnits = await ProductUnit.deleteMany({ product: { $in: productIds } });
-          console.log(`🗑️ Removed ${deletedUnits.deletedCount} related ProductUnit records`);
-        }
-        
-        // Remove the products
-        await Product.deleteMany({ category: storeCategory._id });
-        console.log(`✅ Cleared existing products from store database for category ${category.complete_name}`);
-      }
-
-      // Now create fresh products from Odoo data
-      console.log(`🆕 Creating fresh products in store database from Odoo data...`);
-      
-      let syncedCount = 0;
+      // Return success without touching store database
+      const syncedCount = allProducts.length;
       const errors = [];
-
-      for (const product of allProducts) {
-        try {
-          // Always create new product (since we cleared all existing ones)
-          const newProduct = await odooImportService.importProduct(product, storeCategory);
-          if (newProduct) {
-            syncedCount++;
-            console.log(`✅ Created product: ${product.name} (ID: ${product.id})`);
-          }
-        } catch (productError) {
-          console.error(`❌ Error creating product ${product.id}:`, productError.message);
-          errors.push({
-            product_id: product.id,
-            error: productError.message
-          });
-        }
-
-        // Update progress
-        if (progressCallback && syncedCount % 10 === 0) {
-          progressCallback({
-            category: category,
-            total: allProducts.length,
-            current: syncedCount,
-            synced: syncedCount,
-            status: 'syncing'
-          });
-        }
+      
+      if (progressCallback) {
+        progressCallback({
+          category: category,
+          total: allProducts.length,
+          current: allProducts.length,
+          synced: syncedCount,
+          status: 'completed'
+        });
       }
 
       if (progressCallback) {
