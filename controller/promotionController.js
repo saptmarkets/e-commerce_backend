@@ -349,7 +349,9 @@ const getActivePromotions = async (req, res) => {
             path: 'unit',
             select: 'name shortName nameAr'
           }
-        ]
+        ],
+        // Include stock and price fields from ProductUnit itself
+        select: 'stock price product unit'
       })
       .populate('promotionList', 'name description type priority defaultValue');
 
@@ -368,6 +370,17 @@ const getActivePromotions = async (req, res) => {
         startDate: promo.startDate,
         endDate: promo.endDate
       });
+      
+      // Debug assorted items promotions specifically
+      if (promo.type === 'assorted_items' && promo.productUnits) {
+        console.log(`🔍 Assorted promotion ${promo._id} productUnits:`, promo.productUnits.map(pu => ({
+          id: pu._id,
+          stock: pu.stock,
+          price: pu.price,
+          hasProduct: !!pu.product,
+          productId: pu.product?._id
+        })));
+      }
       
       // Check for broken productUnit references
       if (promo.type === 'fixed_price' && !promo.productUnit) {
