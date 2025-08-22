@@ -498,7 +498,8 @@ class OdooService {
   }
 
   /**
-   * Sync products by category with progress tracking
+   * Sync products by category with progress tracking - SIMPLIFIED VERSION
+   * Uses the same method as fetch products but filtered by category
    */
   async syncProductsByCategory(categoryId, progressCallback = null) {
     try {
@@ -520,7 +521,7 @@ class OdooService {
       const category = categoryInfo[0];
       console.log(`📂 Syncing category: ${category.complete_name}`);
 
-      // 🚀 USE SAME METHOD AS FETCH DATA - but filtered by category
+      // Use same domain as fetch products but filtered by category
       const domain = [
         ['categ_id', '=', categoryId],
         ['active', '=', true]
@@ -529,6 +530,24 @@ class OdooService {
       // Get total count first
       const totalCount = await this.searchCount('product.product', domain);
       console.log(`📊 Total products in category: ${totalCount}`);
+
+      if (totalCount === 0) {
+        console.log(`⚠️ No products found in category ${category.complete_name}`);
+        if (progressCallback) {
+          progressCallback({
+            category: category,
+            total: 0,
+            current: 0,
+            synced: 0,
+            status: 'completed'
+          });
+        }
+        return {
+          category: category,
+          total: 0,
+          synced: 0
+        };
+      }
 
       if (progressCallback) {
         progressCallback({
@@ -539,11 +558,10 @@ class OdooService {
         });
       }
 
-      // Import required models for store sync
+      // Import required models
       const Product = require('../models/Product');
       const Category = require('../models/Category');
       const OdooProduct = require('../models/OdooProduct');
-      const OdooPricelistItem = require('../models/OdooPricelistItem');
       const odooImportService = require('./odooImportService');
 
       // Ensure category exists in store
@@ -558,240 +576,161 @@ class OdooService {
         });
       }
 
-      // 🔥 FIRST: Fetch products in batches using same comprehensive approach as fetchFromOdoo
-      const batchSize = 100;
-      let offset = 0;
+      // 🔥 STEP 1: COMPLETELY REPLACE products in odoo_products collection for this category
+      console.log(`🗑️ Clearing existing odoo_products for category ${category.complete_name}...`);
+      
+      // First, get all existing products in this category from odoo_products
+      const existingOdooProducts = await OdooProduct.find({ categ_id: category.id });
+      if (existingOdooProducts.length > 0) {
+        console.log(`🗑️ Removing ${existingOdooProducts.length} existing products from odoo_products collection...`);
+        await OdooProduct.deleteMany({ categ_id: category.id });
+        console.log(`✅ Cleared existing odoo_products for category ${category.complete_name}`);
+      }
+
+      // 🔥 STEP 2: Fetch ALL products from Odoo for this category in one go
+      console.log(`📥 Fetching all ${totalCount} products from Odoo for category ${category.complete_name}...`);
+      
+      const allProducts = await this.searchRead(
+        'product.product',
+        domain,
+        [
+          'id', 'name', 'default_code', 'barcode', 
+          'list_price', 'standard_price', 'lst_price', 'cost',
+          'price', 'pricelist_price', 'pricelist_ids',
+          'categ_id', 'description', 'description_sale', 'image_1920',
+          'product_template_attribute_value_ids', 'attribute_line_ids',
+          'uom_id', 'uom_po_id', 'product_tmpl_id',
+          'qty_available', 'virtual_available', 'barcode_unit_ids',
+          'write_date', 'create_date', 'write_uid', 'create_uid'
+        ],
+        0,
+        totalCount, // Get all products at once
+        'write_date desc'
+      );
+
+      if (!allProducts || allProducts.length === 0) {
+        console.log(`⚠️ No products returned from Odoo for category ${category.complete_name}`);
+        throw new Error(`No products returned from Odoo for category ${category.complete_name}`);
+      }
+
+      console.log(`📦 Successfully fetched ${allProducts.length} products from Odoo`);
+
+      // 🔥 STEP 3: Store ALL products in odoo_products collection
+      console.log(`💾 Storing ${allProducts.length} products in odoo_products collection...`);
+      
+      const odooOperations = allProducts.map(product => {
+        // Extract IDs properly
+        const categ_id = Array.isArray(product.categ_id) ? product.categ_id[0] : product.categ_id;
+        const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
+        const product_tmpl_id = Array.isArray(product.product_tmpl_id) ? product.product_tmpl_id[0] : product.product_tmpl_id;
+
+        const processedProduct = {
+          id: product.id,
+          name: product.name,
+          default_code: product.default_code,
+          barcode: product.barcode,
+          list_price: product.list_price,
+          standard_price: product.standard_price,
+          lst_price: product.lst_price,
+          cost: product.cost,
+          price: product.price,
+          categ_id: categ_id,
+          uom_id: uom_id,
+          product_tmpl_id: product_tmpl_id,
+          qty_available: product.qty_available,
+          virtual_available: product.virtual_available,
+          barcode_unit_ids: product.barcode_unit_ids || [],
+          write_date: product.write_date ? new Date(product.write_date) : new Date(),
+          create_date: product.create_date ? new Date(product.create_date) : new Date(),
+          _sync_status: 'pending',
+          is_active: true,
+        };
+
+        return {
+          insertOne: {
+            document: processedProduct
+          }
+        };
+      });
+
+      // Use insertMany instead of bulkWrite for better performance
+      await OdooProduct.insertMany(odooOperations.map(op => op.insertOne.document));
+      console.log(`✅ Successfully stored ${allProducts.length} products in odoo_products collection`);
+
+      // 🔥 STEP 4: Sync to store database
+      console.log(`🔄 Syncing ${allProducts.length} products to store database...`);
+      
       let syncedCount = 0;
-      let hasMore = true;
+      const errors = [];
 
-      while (hasMore) {
+      for (const product of allProducts) {
         try {
-          console.log(`\n🔄 Fetching batch for category ${categoryId} (offset: ${offset})`);
+          // Check if product already exists in store
+          let storeProduct = await Product.findOne({ odoo_id: product.id });
           
-          // Use same comprehensive field list as fetchFromOdoo
-          const products = await this.searchRead(
-            'product.product',
-            domain,
-            [
-              'id', 'name', 'default_code', 'barcode', 
-              'list_price', 'standard_price', 'lst_price', 'cost',
-              'price', 'pricelist_price', 'pricelist_ids',
-              'categ_id', 'description', 'description_sale', 'image_1920',
-              'product_template_attribute_value_ids', 'attribute_line_ids',
-              'uom_id', 'uom_po_id', 'product_tmpl_id',
-              'qty_available', 'virtual_available', 'barcode_unit_ids',
-              'write_date', 'create_date', 'write_uid', 'create_uid'
-            ],
-            offset,
-            batchSize,
-            'write_date desc'  // Get most recently updated first
-          );
-
-          if (!products || products.length === 0) {
-            console.log('✅ No more products to fetch');
-            hasMore = false;
-            break;
-          }
-
-          console.log(`📦 Processing ${products.length} products from Odoo...`);
-
-          // 🔥 STEP 1: Store products in odoo_products collection (like fetch data does)
-          const odooOperations = products.map(product => {
-            // Extract IDs properly
-            const categ_id = Array.isArray(product.categ_id) ? product.categ_id[0] : product.categ_id;
-            const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
-            const product_tmpl_id = Array.isArray(product.product_tmpl_id) ? product.product_tmpl_id[0] : product.product_tmpl_id;
-
-            const processedProduct = {
-              id: product.id,
-              name: product.name,
-              default_code: product.default_code,
-              barcode: product.barcode,
-              list_price: product.list_price,
-              standard_price: product.standard_price,
-              lst_price: product.lst_price,
-              cost: product.cost,
-              price: product.price,
-              categ_id: categ_id,
-              uom_id: uom_id,
-              product_tmpl_id: product_tmpl_id,
-              qty_available: product.qty_available,
-              virtual_available: product.virtual_available,
-              barcode_unit_ids: product.barcode_unit_ids || [],
-              write_date: product.write_date ? new Date(product.write_date) : new Date(),
-              create_date: product.create_date ? new Date(product.create_date) : new Date(),
-              _sync_status: 'pending',
-              is_active: true,
+          if (storeProduct) {
+            // Update existing product
+            const updateData = {
+              title: { en: product.name, ar: product.name },
+              price: product.list_price || product.lst_price || product.price || 0,
+              originalPrice: product.standard_price || product.cost || product.list_price || 0,
+              category: storeCategory._id,
+              categories: [storeCategory._id],
+              odoo_id: product.id,
+              write_date: product.write_date
             };
 
-            return {
-              updateOne: {
-                filter: { id: product.id },
-                update: { $set: processedProduct },
-                upsert: true
-              }
-            };
-          });
-
-          // Write to odoo_products collection
-          console.log('💾 Writing batch to odoo_products collection...');
-          await OdooProduct.bulkWrite(odooOperations, { ordered: false });
-
-          // 🔥 STEP 2: Fetch pricelist items for these specific products (like fetch data does)
-          const productIds = products.map(p => p.id);
-          console.log(`💰 Fetching pricelist items for ${productIds.length} products...`);
-          
-          // Fetch pricelist items for current products
-          const pricelistItems = await this.fetchPricelistItems([
-            ['product_id', 'in', productIds]
-          ], 1000, 0);
-
-          if (pricelistItems && pricelistItems.length > 0) {
-            console.log(`📋 Found ${pricelistItems.length} pricelist items for current batch`);
+            await Product.findByIdAndUpdate(storeProduct._id, updateData);
+            syncedCount++;
             
-            // Store pricelist items in database
-            const pricelistOperations = pricelistItems.map(item => ({
-              updateOne: {
-                filter: { id: item.id },
-                update: {
-                  $set: {
-                    id: item.id,
-                    pricelist_id: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[0] : item.pricelist_id) : null,
-                    pricelist_name: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[1] : null) : null,
-                    product_tmpl_id: item.product_tmpl_id ? (Array.isArray(item.product_tmpl_id) ? item.product_tmpl_id[0] : item.product_tmpl_id) : null,
-                    product_id: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null,
-                    product_name: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[1] : null) : null,
-                    applied_on: item.applied_on || '1_product',
-                    compute_price: item.compute_price || 'fixed',
-                    fixed_price: item.fixed_price,
-                    price_discount: item.price_discount || 0,
-                    min_quantity: item.min_quantity || 0,
-                    date_start: item.date_start ? new Date(item.date_start) : null,
-                    date_end: item.date_end ? new Date(item.date_end) : null,
-                    create_date: item.create_date ? new Date(item.create_date) : new Date(),
-                    write_date: item.write_date ? new Date(item.write_date) : new Date(),
-                    _sync_status: 'pending',
-                    is_active: true,
-                  }
-                },
-                upsert: true
-              }
-            }));
-
-            await OdooPricelistItem.bulkWrite(pricelistOperations, { ordered: false });
-            console.log(`💾 Stored ${pricelistItems.length} pricelist items`);
+          } else {
+            // Create new product
+            const newProduct = await odooImportService.importProduct(product, storeCategory);
+            if (newProduct) syncedCount++;
           }
 
-          // 🔥 STEP 3: Now sync to store database with proper price application
-          console.log('🔄 Syncing batch to store database with pricelist pricing...');
-          for (const product of products) {
-            try {
-              // Check if product already exists in store
-              let storeProduct = await Product.findOne({ odoo_id: product.id });
-              
-              // 🔥 APPLY PRICELIST PRICING (like full fetch does)
-              let finalPrice = product.list_price || product.lst_price || product.price || 0;
-              let originalPrice = product.standard_price || product.cost || product.list_price || 0;
+        } catch (productError) {
+          console.error(`❌ Error syncing product ${product.id}:`, productError.message);
+          errors.push({
+            product_id: product.id,
+            error: productError.message
+          });
+        }
 
-              // Check for active pricelist items for this product
-              const activeItems = await OdooPricelistItem.find({
-                product_id: product.id,
-                compute_price: 'fixed',
-                $and: [
-                  {
-                    $or: [
-                      { date_end: null },
-                      { date_end: { $gte: new Date() } }
-                    ]
-                  },
-                  {
-                    $or: [
-                      { date_start: null },
-                      { date_start: { $lte: new Date() } }
-                    ]
-                  }
-                ]
-              }).sort({ write_date: -1 });
-
-              if (activeItems.length > 0) {
-                const bestPriceItem = activeItems[0];
-                if (bestPriceItem.fixed_price !== null && bestPriceItem.fixed_price !== undefined) {
-                  finalPrice = bestPriceItem.fixed_price;
-                  console.log(`💰 Applied pricelist price for ${product.name}: ${finalPrice} (was: ${product.list_price})`);
-                }
-              }
-
-              if (storeProduct) {
-                // Update existing product with latest price data including pricelist pricing
-                const updateData = {
-                  title: { en: product.name, ar: product.name },
-                  price: finalPrice,
-                  originalPrice: originalPrice,
-                  category: storeCategory._id,
-                  categories: [storeCategory._id],
-                  odoo_id: product.id,
-                  write_date: product.write_date
-                };
-
-                await Product.findByIdAndUpdate(storeProduct._id, updateData);
-                syncedCount++;
-                
-              } else {
-                // Create new product with proper pricing
-                const newProduct = await odooImportService.importProduct(product, storeCategory);
-                if (newProduct) {
-                  // Update with pricelist pricing if available
-                  if (finalPrice !== (product.list_price || product.lst_price || product.price || 0)) {
-                    await Product.findByIdAndUpdate(newProduct._id, { 
-                      price: finalPrice,
-                      originalPrice: originalPrice 
-                    });
-                  }
-                  syncedCount++;
-                }
-              }
-
-            } catch (productError) {
-              console.error(`❌ Error syncing product ${product.id}:`, productError.message);
-            }
-          }
-
-          offset += batchSize;
-
-          if (progressCallback) {
-            progressCallback({
-              category: category,
-              total: totalCount,
-              current: offset,
-              synced: syncedCount,
-              status: 'syncing'
-            });
-          }
-
-          console.log(`📦 Processed ${offset}/${totalCount} products, synced ${syncedCount} to store`);
-
-        } catch (error) {
-          console.error(`❌ Error processing batch:`, error.message);
-          throw error;
+        // Update progress
+        if (progressCallback && syncedCount % 10 === 0) {
+          progressCallback({
+            category: category,
+            total: allProducts.length,
+            current: syncedCount,
+            synced: syncedCount,
+            status: 'syncing'
+          });
         }
       }
 
       if (progressCallback) {
         progressCallback({
           category: category,
-          total: totalCount,
-          current: offset,
+          total: allProducts.length,
+          current: allProducts.length,
           synced: syncedCount,
           status: 'completed'
         });
       }
 
       console.log(`✅ Successfully synced ${syncedCount} products for category: ${category.complete_name}`);
+      if (errors.length > 0) {
+        console.log(`⚠️ ${errors.length} products had errors during sync`);
+      }
+      
       return {
         category: category,
-        total: totalCount,
-        synced: syncedCount
+        total: allProducts.length,
+        synced: syncedCount,
+        errors: errors
       };
+      
     } catch (error) {
       console.error(`❌ Error syncing category ${categoryId}:`, error.message);
       
