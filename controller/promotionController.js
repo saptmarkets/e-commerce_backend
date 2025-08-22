@@ -238,7 +238,7 @@ const addPromotion = async (req, res) => {
 
 // Get all promotions with pagination
 const getAllPromotions = async (req, res) => {
-  const { page = 1, limit = 10, status, promotionList } = req.query;
+  const { page = 1, limit = 100, status, promotionList } = req.query;
   
   console.log('🔍 getAllPromotions called with params:', req.query);
   console.log('📊 Extracted params:', { page, limit, status, promotionList });
