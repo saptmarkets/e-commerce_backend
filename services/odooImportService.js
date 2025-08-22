@@ -1091,13 +1091,32 @@ class OdooImportService {
               const defaultPU = await ProductUnit.findOne({ product: opById.store_product_id, isDefault: true });
               if (defaultPU) {
                 storeProductUnitId = defaultPU._id;
-                console.log(`Resolved basic unit ID: ${storeProductUnitId} for product ${opById.id}`);
+                console.log(`✅ Resolved basic unit ID: ${storeProductUnitId} for product ${opById.id}`);
               } else {
                 // If no default unit exists, try to find any unit for this product
                 const anyPU = await ProductUnit.findOne({ product: opById.store_product_id });
                 if (anyPU) {
                   storeProductUnitId = anyPU._id;
-                  console.log(`Resolved any unit ID: ${storeProductUnitId} for product ${opById.id} (no default unit found)`);
+                  console.log(`✅ Resolved any unit ID: ${storeProductUnitId} for product ${opById.id} (no default unit found)`);
+                } else {
+                  // If still no unit found, create a basic unit for this product
+                  console.log(`⚠️ No units found for product ${opById.id}, creating basic unit...`);
+                  try {
+                    const basicUnit = await ProductUnit.create({
+                      product: opById.store_product_id,
+                      unit: await this.getOrCreateBasicUnit(),
+                      unitValue: 1,
+                      packQty: 1,
+                      isDefault: true,
+                      price: opById.list_price || 0,
+                      stock: 0
+                    });
+                    storeProductUnitId = basicUnit._id;
+                    console.log(`✅ Created basic unit ID: ${storeProductUnitId} for product ${opById.id}`);
+                  } catch (unitErr) {
+                    console.error(`Failed to create basic unit for product ${opById.id}:`, unitErr.message);
+                    throw new Error(`Failed to create basic unit: ${unitErr.message}`);
+                  }
                 }
               }
             }
@@ -1398,6 +1417,42 @@ class OdooImportService {
     } catch (err) {
       console.warn('⚠️ Full reconciliation failed:', err.message);
       return { updated: 0, error: err.message };
+    }
+  }
+
+  /**
+   * Get or create a basic unit for products without units
+   */
+  async getOrCreateBasicUnit() {
+    try {
+      // Try to find existing basic unit
+      let basicUnit = await require('../models/Unit').findOne({
+        $or: [
+          { name: { en: 'Unit' } },
+          { name: { en: 'Piece' } },
+          { name: { en: 'Item' } },
+          { shortName: 'unit' },
+          { shortName: 'pc' },
+          { shortName: 'item' }
+        ]
+      });
+
+      if (basicUnit) {
+        return basicUnit._id;
+      }
+
+      // Create a basic unit if none exists
+      basicUnit = await require('../models/Unit').create({
+        name: { en: 'Unit', ar: 'وحدة' },
+        shortName: 'unit',
+        isActive: true
+      });
+
+      console.log(`✅ Created basic unit: ${basicUnit._id}`);
+      return basicUnit._id;
+    } catch (error) {
+      console.error('❌ Error creating basic unit:', error.message);
+      throw new Error(`Failed to create basic unit: ${error.message}`);
     }
   }
 }
