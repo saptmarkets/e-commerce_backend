@@ -238,15 +238,30 @@ const addPromotion = async (req, res) => {
 
 // Get all promotions with pagination
 const getAllPromotions = async (req, res) => {
-  const { page = 1, limit = 10, status } = req.query;
+  const { page = 1, limit = 10, status, promotionList } = req.query;
+  
+  console.log('🔍 getAllPromotions called with params:', req.query);
+  console.log('📊 Extracted params:', { page, limit, status, promotionList });
   
   try {
     const queryObject = {};
+    
+    // Add status filter if provided
     if (status) {
       queryObject.status = status;
     }
-
+    
+    // Add promotionList filter if provided
+    if (promotionList) {
+      queryObject.promotionList = promotionList;
+      console.log('✅ Added promotionList filter:', promotionList);
+    }
+    
+    console.log('🔍 Final query object:', queryObject);
+    
     const count = await Promotion.countDocuments(queryObject);
+    console.log('📊 Total promotions found in DB:', count);
+    
     const promotions = await Promotion.find(queryObject)
       .populate({
         path: 'productUnit',
@@ -280,6 +295,10 @@ const getAllPromotions = async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
+    console.log('📊 Promotions returned after limit/skip:', promotions.length);
+    console.log('📊 Limit applied:', parseInt(limit));
+    console.log('📊 Skip applied:', (parseInt(page) - 1) * parseInt(limit));
+
     res.send({
       promotions,
       totalPages: Math.ceil(count / parseInt(limit)),
@@ -287,6 +306,7 @@ const getAllPromotions = async (req, res) => {
       totalPromotions: count,
     });
   } catch (err) {
+    console.error('❌ Error in getAllPromotions:', err);
     res.status(500).send({
       message: err.message,
     });
