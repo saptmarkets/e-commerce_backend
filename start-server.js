@@ -87,12 +87,32 @@ const envOrigins = (process.env.CORS_ORIGINS || "").split(",").filter(Boolean).m
 const allowedOrigins = [...defaultAllowed, ...envOrigins];
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('🔓 CORS: No origin (server-to-server request), allowing');
+      return callback(null, true);
+    }
+    
+    console.log(`🔍 CORS: Checking origin: ${origin}`);
+    
     const ok = allowedOrigins.some((o) => {
-      if (o instanceof RegExp) return o.test(origin);
-      return o === origin;
+      if (o instanceof RegExp) {
+        const matches = o.test(origin);
+        console.log(`  📋 Regex pattern ${o}: ${matches ? '✅ MATCH' : '❌ NO MATCH'}`);
+        return matches;
+      }
+      const matches = o === origin;
+      console.log(`  📋 Exact match ${o}: ${matches ? '✅ MATCH' : '❌ NO MATCH'}`);
+      return matches;
     });
-    callback(ok ? null : new Error("Not allowed by CORS"), ok);
+    
+    if (ok) {
+      console.log(`✅ CORS: Origin ${origin} is ALLOWED`);
+      callback(null, true);
+    } else {
+      console.log(`❌ CORS: Origin ${origin} is BLOCKED`);
+      console.log(`📋 Allowed origins:`, allowedOrigins);
+      callback(new Error("Not allowed by CORS"), false);
+    }
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -115,7 +135,12 @@ app.options("*", cors(corsOptions));
 // Additional headers for robust preflight handling
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const method = req.method;
+  
+  console.log(`🌐 CORS Middleware: ${method} request from origin: ${origin}`);
+  
   if (origin && allowedOrigins.some((o) => (o instanceof RegExp ? o.test(origin) : o === origin))) {
+    console.log(`✅ Setting CORS headers for allowed origin: ${origin}`);
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
@@ -123,10 +148,15 @@ app.use((req, res, next) => {
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept, Authorization, company, If-Match, Idempotency-Key"
     );
+  } else if (origin) {
+    console.log(`❌ Origin ${origin} not in allowed list, skipping CORS headers`);
   }
+  
   if (req.method === "OPTIONS") {
+    console.log(`🔄 Handling OPTIONS preflight request for origin: ${origin}`);
     return res.sendStatus(200);
   }
+  
   next();
 });
 
