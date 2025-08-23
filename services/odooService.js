@@ -710,19 +710,31 @@ class OdooService {
                 filter: { id: product.id },
                 update: {
                   $set: {
-                    ...product,
+                    // Explicitly set each field to ensure stock data is preserved
+                    id: product.id,
                     product_tmpl_id,
                     uom_id,
                     uom_po_id,
                     categ_id,
                     default_code,
-                    // Use only fields that exist in batch fetch
-                    list_price: Number(product.list_price || 0),
-                    standard_price: Number(product.standard_price || 0),
+                    name: product.name,
+                    barcode: product.barcode,
+                    type: product.type,
+                    sale_ok: product.sale_ok,
+                    purchase_ok: product.purchase_ok,
+                    active: product.active,
+                    description_sale: product.description_sale,
+                    weight: product.weight,
+                    volume: product.volume,
+                    // Stock fields - explicitly ensure they are set
                     qty_available: Number(product.qty_available || 0),
                     virtual_available: Number(product.virtual_available || 0),
                     barcode_unit_ids: Array.isArray(product.barcode_unit_ids) ? product.barcode_unit_ids : [],
                     barcode_unit_count: Number(product.barcode_unit_count || 0),
+                    // Price fields
+                    list_price: Number(product.list_price || 0),
+                    standard_price: Number(product.standard_price || 0),
+                    // Timestamps
                     create_date: product.create_date ? new Date(product.create_date) : new Date(),
                     write_date: product.write_date ? new Date(product.write_date) : new Date(),
                     last_stock_update: new Date(), // Track when stock was last updated
