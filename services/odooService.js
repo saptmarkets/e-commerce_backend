@@ -606,28 +606,52 @@ class OdooService {
       let failedAttempts = 0;
       const maxRetries = 3;
       
+      console.log(`🔄 Starting batch processing loop...`);
+      console.log(`   - Total products to process: ${effectiveMaxLimit}`);
+      console.log(`   - Batch size: ${batchSize}`);
+      console.log(`   - Start offset: ${effectiveStartOffset}`);
+      console.log(`   - End offset: ${effectiveEndOffset}`);
+      
       while (batchOffset < effectiveEndOffset && processedCount < effectiveMaxLimit) {
         try {
           const remainingInBatch = Math.min(batchSize, effectiveEndOffset - batchOffset, effectiveMaxLimit - processedCount);
           
           console.log(`\n🔄 Fetching batch: offset ${batchOffset}, limit ${remainingInBatch}`);
           
-          const products = await this.searchRead(
-            'product.product',
-            domain,
-            [
-              // Use EXACTLY the same fields as the working batch fetch function
-              'id', 'product_tmpl_id', 'name', 'default_code', 'barcode',
-              'list_price', 'standard_price', 'qty_available', 'virtual_available',
-              'categ_id', 'uom_id', 'uom_po_id', 'type', 'sale_ok', 'purchase_ok',
-              'active', 'description_sale', 'weight', 'volume',
-              'barcode_unit_ids', 'barcode_unit_count',
-              'create_date', 'write_date'
-            ],
-            batchOffset,
-            remainingInBatch,
-            'id'  // Use same sorting as batch fetch
-          );
+          console.log(`🔍 Calling searchRead with domain:`, JSON.stringify(domain));
+          console.log(`🔍 Fields to fetch:`, [
+            'id', 'product_tmpl_id', 'name', 'default_code', 'barcode',
+            'list_price', 'standard_price', 'qty_available', 'virtual_available',
+            'categ_id', 'uom_id', 'uom_po_id', 'type', 'sale_ok', 'purchase_ok',
+            'active', 'description_sale', 'weight', 'volume',
+            'barcode_unit_ids', 'barcode_unit_count',
+            'create_date', 'write_date'
+          ]);
+          
+          let products;
+          try {
+            products = await this.searchRead(
+              'product.product',
+              domain,
+              [
+                // Use EXACTLY the same fields as the working batch fetch function
+                'id', 'product_tmpl_id', 'name', 'default_code', 'barcode',
+                'list_price', 'standard_price', 'qty_available', 'virtual_available',
+                'categ_id', 'uom_id', 'uom_po_id', 'type', 'sale_ok', 'purchase_ok',
+                'active', 'description_sale', 'weight', 'volume',
+                'barcode_unit_ids', 'barcode_unit_count',
+                'create_date', 'write_date'
+              ],
+              batchOffset,
+              remainingInBatch,
+              'id'  // Use same sorting as batch fetch
+            );
+            console.log(`✅ searchRead successful, returned ${products ? products.length : 0} products`);
+          } catch (searchError) {
+            console.error(`❌ searchRead failed:`, searchError.message);
+            console.error(`❌ searchRead error details:`, searchError);
+            throw searchError;
+          }
 
           if (!products || products.length === 0) {
             console.log('✅ No more products to fetch');
