@@ -532,9 +532,22 @@ class OdooService {
         ['active', '=', true]
       ];
 
+      console.log(`🔍 Domain filter:`, JSON.stringify(domain, null, 2));
+      console.log(`🔍 Category ID type:`, typeof categoryId, categoryId);
+
       // Get total count first
       const totalCount = await this.searchCount('product.product', domain);
       console.log(`📊 Total products in category: ${totalCount}`);
+
+      // Test domain without active filter
+      const domainWithoutActive = [['categ_id', '=', categoryId]];
+      const totalCountWithoutActive = await this.searchCount('product.product', domainWithoutActive);
+      console.log(`🔍 Total products without active filter: ${totalCountWithoutActive}`);
+
+      // Test with just category ID
+      const domainJustCategory = [['categ_id', '=', parseInt(categoryId)]];
+      const totalCountJustCategory = await this.searchCount('product.product', domainJustCategory);
+      console.log(`🔍 Total products with parsed category ID: ${totalCountJustCategory}`);
 
       if (totalCount === 0) {
         console.log(`⚠️ No products found in category ${category.complete_name}`);
