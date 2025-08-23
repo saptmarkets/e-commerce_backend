@@ -614,6 +614,7 @@ class OdooService {
           
           console.log(`\n🔄 Fetching batch: offset ${batchOffset}, limit ${remainingInBatch}`);
           
+          // First, try to get products with basic info
           const products = await this.searchRead(
             'product.product',
             domain,
@@ -624,7 +625,6 @@ class OdooService {
               'categ_id', 'description', 'description_sale', 'image_1920',
               'product_template_attribute_value_ids', 'attribute_line_ids',
               'uom_id', 'uom_po_id', 'product_tmpl_id',
-              'qty_available', 'virtual_available', 'barcode_unit_ids',
               'write_date', 'create_date', 'write_uid', 'create_uid'
             ],
             batchOffset,
@@ -638,9 +638,76 @@ class OdooService {
           }
 
           console.log(`📦 Processing ${products.length} products...`);
+          
+          // Now fetch stock data separately for each product (Odoo computed fields)
+          console.log(`📊 Fetching stock data for ${products.length} products...`);
+          const productsWithStock = [];
+          
+          for (const product of products) {
+            try {
+              // Fetch stock data specifically for this product
+              const stockData = await this.searchRead(
+                'product.product',
+                [['id', '=', product.id]],
+                ['qty_available', 'virtual_available', 'barcode_unit_ids'],
+                0,
+                1
+              );
+              
+              if (stockData && stockData.length > 0) {
+                const stock = stockData[0];
+                productsWithStock.push({
+                  ...product,
+                  qty_available: Number(stock.qty_available || 0),
+                  virtual_available: Number(stock.virtual_available || 0),
+                  barcode_unit_ids: Array.isArray(stock.barcode_unit_ids) ? stock.barcode_unit_ids : []
+                });
+                console.log(`📊 Product ${product.id} stock: qty=${stock.qty_available}, virtual=${stock.virtual_available}, barcodes=${stock.barcode_unit_ids?.length || 0}`);
+              } else {
+                productsWithStock.push({
+                  ...product,
+                  qty_available: 0,
+                  virtual_available: 0,
+                  barcode_unit_ids: []
+                });
+                console.log(`⚠️ No stock data for product ${product.id}`);
+              }
+            } catch (stockError) {
+              console.error(`❌ Error fetching stock for product ${product.id}:`, stockError.message);
+              productsWithStock.push({
+                ...product,
+                qty_available: 0,
+                virtual_available: 0,
+                barcode_unit_ids: []
+              });
+            }
+          }
+
+          if (!products || products.length === 0) {
+            console.log('✅ No more products to fetch');
+            break;
+          }
+
+          console.log(`📦 Processing ${products.length} products...`);
+          
+          // Debug: Log first product to see what fields are returned
+          if (productsWithStock.length > 0) {
+            console.log(`🔍 Sample product data with stock from Odoo:`, {
+              id: productsWithStock[0].id,
+              name: productsWithStock[0].name,
+              qty_available: productsWithStock[0].qty_available,
+              virtual_available: productsWithStock[0].virtual_available,
+              barcode_unit_ids: productsWithStock[0].barcode_unit_ids,
+              hasStockFields: {
+                qty_available: typeof productsWithStock[0].qty_available !== 'undefined',
+                virtual_available: typeof productsWithStock[0].virtual_available !== 'undefined',
+                barcode_unit_ids: typeof productsWithStock[0].barcode_unit_ids !== 'undefined'
+              }
+            });
+          }
 
           // Process products into odoo_products collection
-          const operations = products.map(product => {
+          const operations = productsWithStock.map(product => {
             // Extract IDs properly
             const categ_id = Array.isArray(product.categ_id) ? product.categ_id[0] : product.categ_id;
             const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
@@ -682,20 +749,41 @@ class OdooService {
           });
 
           if (operations.length > 0) {
-            await OdooProduct.bulkWrite(operations, { ordered: false });
+            const result = await OdooProduct.bulkWrite(operations, { ordered: false });
+            console.log(`💾 Database update result:`, {
+              matchedCount: result.matchedCount,
+              modifiedCount: result.modifiedCount,
+              upsertedCount: result.upsertedCount,
+              insertedIds: Object.keys(result.insertedIds || {}).length
+            });
+            
+            // Verify one product was saved correctly
+            if (productsWithStock.length > 0) {
+              const savedProduct = await OdooProduct.findOne({ id: productsWithStock[0].id });
+              if (savedProduct) {
+                console.log(`✅ Verified saved product stock data:`, {
+                  id: savedProduct.id,
+                  name: savedProduct.name,
+                  qty_available: savedProduct.qty_available,
+                  virtual_available: savedProduct.virtual_available,
+                  barcode_unit_ids: savedProduct.barcode_unit_ids,
+                  last_stock_update: savedProduct.last_stock_update
+                });
+              }
+            }
           }
 
           // 🔥 STEP 3: Sync barcode units for products that have them
           console.log(`📊 Syncing barcode units for products with barcode_unit_ids...`);
           
-          for (const product of products) {
+          for (const product of productsWithStock) {
             try {
               // Use stock data already fetched in the product data
               if (product.barcode_unit_ids && product.barcode_unit_ids.length > 0) {
                 await this.syncBarcodeUnitsForProduct(product.id, product.barcode_unit_ids);
               }
             } catch (unitError) {
-              console.error(`⚠️ Error syncing barcode units for product ${product.id}:`, unitError.message);
+              console.error(`❌ Error syncing barcode units for product ${product.id}:`, unitError.message);
             }
           }
 
