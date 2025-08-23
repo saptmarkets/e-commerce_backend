@@ -787,40 +787,62 @@ class OdooService {
             }
           }
 
-          // 🔥 STEP 3: Sync barcode units for products that have them
-          console.log(`📊 Syncing barcode units for products with barcode_unit_ids...`);
-          
-          // Test: Try to fetch stock data separately for the first product to see if it's a computed field issue
-          if (products.length > 0) {
-            try {
-              console.log(`🧪 Testing separate stock data fetch for product ${products[0].id}...`);
-              const stockTest = await this.searchRead(
-                'product.product',
-                [['id', '=', products[0].id]],
-                ['id', 'qty_available', 'virtual_available', 'barcode_unit_ids'],
-                0, 1
-              );
-              if (stockTest && stockTest.length > 0) {
-                console.log(`🧪 Separate stock fetch result:`, {
-                  id: stockTest[0].id,
-                  qty_available: stockTest[0].qty_available,
-                  virtual_available: stockTest[0].virtual_available,
-                  barcode_unit_ids: stockTest[0].barcode_unit_ids
-                });
-              }
-            } catch (stockTestError) {
-              console.log(`🧪 Separate stock fetch test failed:`, stockTestError.message);
-            }
-          }
+          // 🔥 STEP 3: Fetch location-specific stock data from stock.quant (like batch fetch does)
+          console.log(`📊 Fetching location-specific stock data for ${products.length} products...`);
           
           for (const product of products) {
             try {
-              // Use stock data already fetched in the product data
+              // Fetch stock data from stock.quant for this product (location-specific)
+              const stockQuants = await this.searchRead(
+                'stock.quant',
+                [
+                  ['product_id', '=', product.id],
+                  ['location_id.usage', 'in', ['internal', 'transit']]
+                ],
+                ['id', 'location_id', 'quantity', 'reserved_quantity', 'available_quantity'],
+                0, 100
+              );
+              
+              if (stockQuants && stockQuants.length > 0) {
+                console.log(`📦 Product ${product.id} has stock in ${stockQuants.length} locations`);
+                
+                // Update the product with location-specific stock data
+                const locationStocks = stockQuants.map(quant => ({
+                  locationId: Array.isArray(quant.location_id) ? quant.location_id[0] : quant.location_id,
+                  locationName: Array.isArray(quant.location_id) ? quant.location_id[1] : 'Unknown',
+                  quantity: quant.quantity || 0,
+                  reservedQuantity: quant.reserved_quantity || 0,
+                  availableQuantity: quant.available_quantity || 0
+                }));
+                
+                // Calculate total stock across all locations
+                const totalStock = locationStocks.reduce((sum, loc) => sum + loc.quantity, 0);
+                const totalAvailable = locationStocks.reduce((sum, loc) => sum + loc.availableQuantity, 0);
+                
+                console.log(`📊 Product ${product.id} stock summary: Total=${totalStock}, Available=${totalAvailable}, Locations=${locationStocks.length}`);
+                
+                // Update the product in the database with location-specific stock data
+                await OdooProduct.updateOne(
+                  { id: product.id },
+                  { 
+                    $set: {
+                      locationStocks: locationStocks,
+                      totalStock: totalStock,
+                      totalAvailable: totalAvailable,
+                      last_stock_update: new Date()
+                    }
+                  }
+                );
+              } else {
+                console.log(`⚠️ Product ${product.id} has no stock data in internal/transit locations`);
+              }
+              
+              // Sync barcode units if available
               if (product.barcode_unit_ids && product.barcode_unit_ids.length > 0) {
                 await this.syncBarcodeUnitsForProduct(product.id, product.barcode_unit_ids);
               }
-            } catch (unitError) {
-              console.error(`❌ Error syncing barcode units for product ${product.id}:`, unitError.message);
+            } catch (error) {
+              console.error(`❌ Error processing stock for product ${product.id}:`, error.message);
             }
           }
 
