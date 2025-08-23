@@ -856,15 +856,22 @@ const syncToStore = async (req, res) => {
             const totalStock = stockRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
             const totalAvailable = stockRecords.reduce((sum, record) => sum + (record.available_quantity || 0), 0);
             
+            // Prepare update data for ProductUnits
+            const unitUpdateData = { 
+              stock: totalStock,
+              availableStock: totalAvailable
+            };
+            
+            // Also update prices if price sync is enabled
+            if (allowed.price && op.list_price) {
+              unitUpdateData.price = op.list_price;
+              console.log(`💰 Updating ProductUnit price for product ${op.id}: ${op.list_price}`);
+            }
+            
             // Update all ProductUnits for this product
             const updateResult = await ProductUnit.updateMany(
               { product: op.store_product_id },
-              { 
-                $set: { 
-                  stock: totalStock,
-                  availableStock: totalAvailable
-                }
-              }
+              { $set: unitUpdateData }
             );
             
             if (updateResult.modifiedCount > 0) {
@@ -877,6 +884,33 @@ const syncToStore = async (req, res) => {
         }
       }
       console.log(`✅ ProductUnit stock update completed: ${unitsUpdated} units updated`);
+    }
+
+    // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit prices separately (even if stock not selected)
+    if (allowed.price) {
+      console.log(`💰 Updating ProductUnit prices for ${odooProducts.length} products...`);
+      const ProductUnit = require('../models/ProductUnit');
+      
+      let priceUnitsUpdated = 0;
+      for (const op of odooProducts) {
+        try {
+          if (!op.store_product_id || !op.list_price) continue;
+          
+          // Update all ProductUnits for this product with new price
+          const updateResult = await ProductUnit.updateMany(
+            { product: op.store_product_id },
+            { $set: { price: op.list_price } }
+          );
+          
+          if (updateResult.modifiedCount > 0) {
+            priceUnitsUpdated += updateResult.modifiedCount;
+            console.log(`💰 Updated ${updateResult.modifiedCount} ProductUnits for product ${op.id} with price: ${op.list_price}`);
+          }
+        } catch (priceErr) {
+          console.warn('⚠️ ProductUnit price update error for product', op.id, priceErr.message);
+        }
+      }
+      console.log(`✅ ProductUnit price update completed: ${priceUnitsUpdated} units updated`);
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Batch process units
@@ -953,8 +987,9 @@ const syncToStore = async (req, res) => {
       }
     }
 
-    console.log(`✅ Sync completed: ${updated} products updated, ${unitsUpdated || 0} units updated, ${promosUpdated} promotions updated, ${errors.length} errors`);
-    res.json({ success: true, updated, unitsUpdated: unitsUpdated || 0, promosUpdated, errors });
+    const totalUnitsUpdated = (unitsUpdated || 0) + (priceUnitsUpdated || 0);
+    console.log(`✅ Sync completed: ${updated} products updated, ${totalUnitsUpdated} units updated (${unitsUpdated || 0} stock, ${priceUnitsUpdated || 0} price), ${promosUpdated} promotions updated, ${errors.length} errors`);
+    res.json({ success: true, updated, unitsUpdated: totalUnitsUpdated, priceUnitsUpdated: priceUnitsUpdated || 0, promosUpdated, errors });
   } catch (error) {
     console.error('SyncToStore error:', error);
     res.status(500).json({ success: false, message: error.message });
