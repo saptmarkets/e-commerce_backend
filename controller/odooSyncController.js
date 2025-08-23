@@ -1096,8 +1096,9 @@ const pushBackStock = async (req, res) => {
         }
 
         // If not found through stock movement, try OdooBarcodeUnit
+        let bu = null; // Declare bu in wider scope
         if (!productIdForStock) {
-          const bu = await OdooBarcodeUnit.findOne({ store_product_unit_id: unit._id });
+          bu = await OdooBarcodeUnit.findOne({ store_product_unit_id: unit._id });
           if (bu && bu.product_id) {
             productIdForStock = bu.product_id;
             odooProductName = bu.product_name || 'Unknown Product';
@@ -1127,6 +1128,7 @@ const pushBackStock = async (req, res) => {
           }
         }
 
+        // Check if we have barcode unit info for UOM
         if (bu && bu.unit) {
           const unitValue = parseInt(bu.unit);
           if (!isNaN(unitValue) && unitValue > 0) {
