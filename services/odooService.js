@@ -533,10 +533,14 @@ class OdooService {
         throw new Error(`Invalid category ID: ${categoryId} - must be a number`);
       }
       
+      // For main categories, include all subcategories using 'child_of' operator
+      // This ensures we sync ALL products under the main category hierarchy
       const domain = [
-        ['categ_id', '=', numericCategoryId],
+        ['categ_id', 'child_of', numericCategoryId], // Include main category + all subcategories
         ['active', '=', true]
       ];
+      
+      console.log(`🔍 Main category sync: Using 'child_of' operator to include all subcategories under category ${numericCategoryId}`);
 
       // Get total count first
       const totalCount = await this.searchCount('product.product', domain);
@@ -999,43 +1003,62 @@ class OdooService {
    */
   async getCategoriesForSync() {
     try {
-      console.log(`\n📂 Fetching categories for sync selection...`);
+      console.log(`\n📂 Fetching main categories for sync selection from Odoo...`);
 
-      const categories = await this.searchRead(
+      // Get only top-level categories from Odoo (categories with no parent)
+      const mainCategories = await this.searchRead(
         'product.category',
-        [], // No domain - get all categories
+        [['parent_id', '=', false]], // Only top-level categories
         ['id', 'name', 'complete_name', 'parent_id'],
         0,
-        1000,
+        100, // Limit to 100 main categories
         'name asc'
       );
 
-      // Add product count for each category
+      console.log(`✅ Found ${mainCategories.length} main categories from Odoo`);
+
+      // Add product count for each main category (including all subcategories)
       const categoriesWithCount = await Promise.all(
-        categories.map(async (category) => {
+        mainCategories.map(async (category) => {
           try {
+            // Count products in this main category AND all its subcategories using 'child_of'
             const count = await this.searchCount('product.product', [
-              ['categ_id', '=', category.id],
+              ['categ_id', 'child_of', category.id], // Include all subcategories
               ['active', '=', true]
             ]);
+            
             return {
               ...category,
-              product_count: count
+              complete_name: category.name, // Use simple name for main categories
+              product_count: count,
+              is_main_category: true,
+              description: `Main category containing ${count} products across all subcategories`
             };
           } catch (error) {
-            console.log(`⚠️  Could not get count for category ${category.id}: ${error.message}`);
+            console.log(`⚠️  Could not get count for main category ${category.id}: ${error.message}`);
             return {
               ...category,
-              product_count: 0
+              complete_name: category.name,
+              product_count: 0,
+              is_main_category: true,
+              description: 'Main category (product count unavailable)'
             };
           }
         })
       );
 
-      console.log(`✅ Successfully fetched ${categoriesWithCount.length} categories with product counts`);
+      // Sort by product count (highest first) then by name
+      categoriesWithCount.sort((a, b) => {
+        if (b.product_count !== a.product_count) {
+          return b.product_count - a.product_count;
+        }
+        return a.name.localeCompare(b.name);
+      });
+
+      console.log(`✅ Successfully fetched ${categoriesWithCount.length} main categories with total product counts`);
       return categoriesWithCount;
     } catch (error) {
-      console.error('❌ Error fetching categories for sync:', error.message);
+      console.error('❌ Error fetching main categories for sync:', error.message);
       throw error;
     }
   }
