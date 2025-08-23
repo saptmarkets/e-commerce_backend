@@ -773,8 +773,28 @@ const syncToStore = async (req, res) => {
         }
 
         if (allowed.stock) {
-          const stockQty = op.qty_available || 0;
-          updateData.stock = stockQty;
+          // Get stock from OdooStock collection (location-specific stock)
+          const stockRecords = await OdooStock.find({ 
+            product_id: op.id, 
+            is_active: true 
+          }).lean();
+          
+          if (stockRecords && stockRecords.length > 0) {
+            // Calculate total stock across all locations
+            const totalStock = stockRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
+            const totalAvailable = stockRecords.reduce((sum, record) => sum + (record.available_quantity || 0), 0);
+            
+            updateData.stock = totalStock;
+            updateData.availableStock = totalAvailable;
+            
+            console.log(`📊 Product ${op.id} stock: Total=${totalStock}, Available=${totalAvailable}, Locations=${stockRecords.length}`);
+          } else {
+            // Fallback to qty_available if no OdooStock records
+            const stockQty = op.qty_available || 0;
+            updateData.stock = stockQty;
+            updateData.availableStock = stockQty;
+            console.log(`⚠️ No OdooStock records for product ${op.id}, using qty_available: ${stockQty}`);
+          }
         }
 
         // 🚀 Use pre-fetched category map only (no on-demand imports)
@@ -813,6 +833,50 @@ const syncToStore = async (req, res) => {
       const bulkResult = await Product.bulkWrite(bulkOps);
       updated = bulkResult.modifiedCount || bulkResult.nModified || 0;
       console.log(`✅ Bulk update completed: ${updated} products updated`);
+    }
+
+    // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit stock for products with stock changes
+    if (allowed.stock) {
+      console.log(`🔄 Updating ProductUnit stock for ${odooProducts.length} products...`);
+      const ProductUnit = require('../models/ProductUnit');
+      
+      let unitsUpdated = 0;
+      for (const op of odooProducts) {
+        try {
+          if (!op.store_product_id) continue;
+          
+          // Get stock from OdooStock collection
+          const stockRecords = await OdooStock.find({ 
+            product_id: op.id, 
+            is_active: true 
+          }).lean();
+          
+          if (stockRecords && stockRecords.length > 0) {
+            // Calculate total stock across all locations
+            const totalStock = stockRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
+            const totalAvailable = stockRecords.reduce((sum, record) => sum + (record.available_quantity || 0), 0);
+            
+            // Update all ProductUnits for this product
+            const updateResult = await ProductUnit.updateMany(
+              { product: op.store_product_id },
+              { 
+                $set: { 
+                  stock: totalStock,
+                  availableStock: totalAvailable
+                }
+              }
+            );
+            
+            if (updateResult.modifiedCount > 0) {
+              unitsUpdated += updateResult.modifiedCount;
+              console.log(`✅ Updated ${updateResult.modifiedCount} ProductUnits for product ${op.id} with stock: ${totalStock}`);
+            }
+          }
+        } catch (unitErr) {
+          console.warn('⚠️ ProductUnit stock update error for product', op.id, unitErr.message);
+        }
+      }
+      console.log(`✅ ProductUnit stock update completed: ${unitsUpdated} units updated`);
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Batch process units
@@ -889,8 +953,8 @@ const syncToStore = async (req, res) => {
       }
     }
 
-    console.log(`✅ Sync completed: ${updated} products updated, ${promosUpdated} promotions updated, ${errors.length} errors`);
-    res.json({ success: true, updated, promosUpdated, errors });
+    console.log(`✅ Sync completed: ${updated} products updated, ${unitsUpdated || 0} units updated, ${promosUpdated} promotions updated, ${errors.length} errors`);
+    res.json({ success: true, updated, unitsUpdated: unitsUpdated || 0, promosUpdated, errors });
   } catch (error) {
     console.error('SyncToStore error:', error);
     res.status(500).json({ success: false, message: error.message });
