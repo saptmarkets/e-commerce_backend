@@ -12,6 +12,7 @@ const OdooPricelistItem = require('../models/OdooPricelistItem');
 const Product = require('../models/Product');
 const ProductUnit = require('../models/ProductUnit');
 const StockPushSession = require('../models/StockPushSession');
+const StockMovementLog = require('../models/StockMovementLog');
 const Admin = require('../models/Admin');
 
 /**
@@ -1081,19 +1082,51 @@ const pushBackStock = async (req, res) => {
         let odooProductName = null;
         let odooUnitName = null;
 
-        const bu = await OdooBarcodeUnit.findOne({ store_product_unit_id: unit._id });
-        if (bu && bu.product_id) {
-          productIdForStock = bu.product_id;
-          odooProductName = bu.product_name || 'Unknown Product';
-          odooUnitName = bu.unit_name || 'Unknown Unit';
+        // First, try to find product through StockMovementLog for combo deals
+        const stockMovement = await StockMovementLog.findOne({ 
+          product: unit.product, 
+          odoo_sync_status: 'pending',
+          is_combo_deal: true 
+        }).sort({ movement_date: -1 });
+
+        if (stockMovement && stockMovement.odoo_id) {
+          productIdForStock = stockMovement.odoo_id;
+          odooProductName = stockMovement.product_title || 'Combo Product';
+          console.log(`🎯 Found combo deal product through StockMovementLog: ${odooProductName} (Odoo ID: ${productIdForStock})`);
         }
+
+        // If not found through stock movement, try OdooBarcodeUnit
+        if (!productIdForStock) {
+          const bu = await OdooBarcodeUnit.findOne({ store_product_unit_id: unit._id });
+          if (bu && bu.product_id) {
+            productIdForStock = bu.product_id;
+            odooProductName = bu.product_name || 'Unknown Product';
+            odooUnitName = bu.unit_name || 'Unknown Unit';
+            console.log(`🎯 Found product through OdooBarcodeUnit: ${odooProductName} (Odoo ID: ${productIdForStock})`);
+          }
+        }
+
+        // If still not found, try OdooProduct
         if (!productIdForStock) {
           const op = await OdooProduct.findOne({ store_product_id: unit.product });
           if (op && op.id) {
             productIdForStock = op.id;
             odooProductName = op.name || 'Unknown Product';
+            console.log(`🎯 Found product through OdooProduct: ${odooProductName} (Odoo ID: ${productIdForStock})`);
           }
         }
+
+        // If still not found, try to get from Product model directly
+        if (!productIdForStock) {
+          const Product = require('../models/Product');
+          const product = await Product.findById(unit.product).select('odoo_id title');
+          if (product && product.odoo_id) {
+            productIdForStock = product.odoo_id;
+            odooProductName = product.title?.en || product.title || 'Store Product';
+            console.log(`🎯 Found product through Product model: ${odooProductName} (Odoo ID: ${productIdForStock})`);
+          }
+        }
+
         if (bu && bu.unit) {
           const unitValue = parseInt(bu.unit);
           if (!isNaN(unitValue) && unitValue > 0) {

@@ -88,6 +88,26 @@ const stockMovementLogSchema = new mongoose.Schema({
   odoo_record_id: {
     type: String
   },
+  // Enhanced product identification fields for combo deals
+  product_title: {
+    type: String,
+    trim: true
+  },
+  product_sku: {
+    type: String,
+    trim: true
+  },
+  odoo_id: {
+    type: String
+  },
+  is_combo_deal: {
+    type: Boolean,
+    default: false
+  },
+  combo_reference: {
+    type: String,
+    trim: true
+  },
   batch_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SyncBatch'
