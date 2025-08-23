@@ -572,23 +572,13 @@ class OdooService {
       }
 
       // Import required models
-      const Product = require('../models/Product');
-      const Category = require('../models/Category');
       const OdooProduct = require('../models/OdooProduct');
       const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
-      const odooImportService = require('./odooImportService');
 
-      // Ensure category exists in store
-      let storeCategory = await Category.findOne({ odoo_id: category.id });
-      if (!storeCategory) {
-        console.log(`📂 Creating store category for: ${category.complete_name}`);
-        storeCategory = await Category.create({
-          name: { en: category.name, ar: category.name },
-          slug: category.name.toLowerCase().replace(/\s+/g, '-'),
-          odoo_id: category.id,
-          parent: null
-        });
-      }
+      // 🔥 NOTE: We only sync products to odoo_* tables, NOT create store categories
+      // Store categories should be managed separately from product sync
+      console.log(`📂 Syncing products for category: ${category.complete_name} (ID: ${category.id})`);
+      console.log(`💡 Store categories are not affected by this sync`);
 
       // 🔥 STEP 1: COMPLETELY REPLACE products in odoo_products collection for this category
       console.log(`🗑️ Clearing existing odoo_products for category ${category.complete_name}...`);
