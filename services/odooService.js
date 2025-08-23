@@ -627,7 +627,7 @@ class OdooService {
               'qty_available', 'virtual_available', 'barcode_unit_ids',
               'write_date', 'create_date', 'write_uid', 'create_uid'
             ],
-            offset,
+            batchOffset,
             remainingInBatch,
             'write_date desc'
           );
@@ -671,6 +671,7 @@ class OdooService {
                     barcode_unit_ids: Array.isArray(product.barcode_unit_ids) ? product.barcode_unit_ids : [],
                     create_date: product.create_date ? new Date(product.create_date) : new Date(),
                     write_date: product.write_date ? new Date(product.write_date) : new Date(),
+                    last_stock_update: new Date(), // Track when stock was last updated
                     _sync_status: 'pending',
                     is_active: true,
                   }
@@ -684,43 +685,17 @@ class OdooService {
             await OdooProduct.bulkWrite(operations, { ordered: false });
           }
 
-          // 🔥 STEP 3: Fetch and sync stock data for this batch
-          console.log(`📊 Fetching stock data for ${products.length} products...`);
+          // 🔥 STEP 3: Sync barcode units for products that have them
+          console.log(`📊 Syncing barcode units for products with barcode_unit_ids...`);
           
           for (const product of products) {
             try {
-              // Fetch stock data for this product
-              const stockData = await this.searchRead(
-                'product.product',
-                [['id', '=', product.id]],
-                ['qty_available', 'virtual_available', 'barcode_unit_ids'],
-                0,
-                1
-              );
-
-              if (stockData && stockData.length > 0) {
-                const stock = stockData[0];
-                
-                // Update stock in odoo_products
-                await OdooProduct.updateOne(
-                  { id: product.id },
-                  { 
-                    $set: {
-                      qty_available: Number(stock.qty_available || 0),
-                      virtual_available: Number(stock.virtual_available || 0),
-                      barcode_unit_ids: Array.isArray(stock.barcode_unit_ids) ? stock.barcode_unit_ids : [],
-                      last_stock_update: new Date()
-                    }
-                  }
-                );
-
-                // Sync barcode units if they exist
-                if (stock.barcode_unit_ids && stock.barcode_unit_ids.length > 0) {
-                  await this.syncBarcodeUnitsForProduct(product.id, stock.barcode_unit_ids);
-                }
+              // Use stock data already fetched in the product data
+              if (product.barcode_unit_ids && product.barcode_unit_ids.length > 0) {
+                await this.syncBarcodeUnitsForProduct(product.id, product.barcode_unit_ids);
               }
-            } catch (stockError) {
-              console.error(`⚠️ Error fetching stock for product ${product.id}:`, stockError.message);
+            } catch (unitError) {
+              console.error(`⚠️ Error syncing barcode units for product ${product.id}:`, unitError.message);
             }
           }
 
