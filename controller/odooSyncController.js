@@ -1313,6 +1313,12 @@ const syncSelectedCategories = async (req, res) => {
           message: `Successfully synced ${result.synced || 0} products in category ${result.category?.complete_name || categoryId}`
         });
 
+        console.log(`📊 Category ${categoryId} sync result:`, {
+          synced: result.synced,
+          total: result.total,
+          category: result.category
+        });
+
         console.log(`✅ Category ${categoryId} sync completed`);
 
       } catch (categoryError) {

@@ -795,6 +795,14 @@ class OdooService {
       }
 
       console.log(`✅ Successfully synced ${syncedCount} products for category: ${category.complete_name}`);
+      console.log(`📊 Final sync summary:`, {
+        categoryId: category.id,
+        categoryName: category.complete_name,
+        totalProducts: effectiveMaxLimit,
+        syncedProducts: syncedCount,
+        errors: errors.length
+      });
+      
       if (errors.length > 0) {
         console.log(`⚠️ ${errors.length} products had errors during sync`);
       }
