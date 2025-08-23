@@ -685,6 +685,10 @@ class OdooService {
                 barcode_unit_ids: typeof products[0].barcode_unit_ids !== 'undefined'
               }
             });
+            
+            // Log ALL fields returned to see what Odoo actually provides
+            console.log(`🔍 All fields returned for sample product:`, Object.keys(products[0]));
+            console.log(`🔍 Raw product data:`, JSON.stringify(products[0], null, 2));
           }
 
           // Process products into odoo_products collection
@@ -752,12 +756,50 @@ class OdooService {
                   barcode_unit_ids: savedProduct.barcode_unit_ids,
                   last_stock_update: savedProduct.last_stock_update
                 });
+                
+                // Compare original vs saved stock data
+                const originalProduct = products[0];
+                console.log(`🔍 Stock data comparison - Original vs Saved:`, {
+                  original: {
+                    qty_available: originalProduct.qty_available,
+                    virtual_available: originalProduct.virtual_available,
+                    barcode_unit_ids: originalProduct.barcode_unit_ids
+                  },
+                  saved: {
+                    qty_available: savedProduct.qty_available,
+                    virtual_available: savedProduct.virtual_available,
+                    barcode_unit_ids: savedProduct.barcode_unit_ids
+                  }
+                });
               }
             }
           }
 
           // 🔥 STEP 3: Sync barcode units for products that have them
           console.log(`📊 Syncing barcode units for products with barcode_unit_ids...`);
+          
+          // Test: Try to fetch stock data separately for the first product to see if it's a computed field issue
+          if (products.length > 0) {
+            try {
+              console.log(`🧪 Testing separate stock data fetch for product ${products[0].id}...`);
+              const stockTest = await this.searchRead(
+                'product.product',
+                [['id', '=', products[0].id]],
+                ['id', 'qty_available', 'virtual_available', 'barcode_unit_ids'],
+                0, 1
+              );
+              if (stockTest && stockTest.length > 0) {
+                console.log(`🧪 Separate stock fetch result:`, {
+                  id: stockTest[0].id,
+                  qty_available: stockTest[0].qty_available,
+                  virtual_available: stockTest[0].virtual_available,
+                  barcode_unit_ids: stockTest[0].barcode_unit_ids
+                });
+              }
+            } catch (stockTestError) {
+              console.log(`🧪 Separate stock fetch test failed:`, stockTestError.message);
+            }
+          }
           
           for (const product of products) {
             try {
