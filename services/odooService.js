@@ -610,18 +610,17 @@ class OdooService {
             'product.product',
             domain,
             [
-              'id', 'name', 'default_code', 'barcode', 
-              'list_price', 'standard_price', 'lst_price', 'cost',
-              'price', 'pricelist_price', 'pricelist_ids',
-              'categ_id', 'description', 'description_sale', 'image_1920',
-              'product_template_attribute_value_ids', 'attribute_line_ids',
-              'uom_id', 'uom_po_id', 'product_tmpl_id',
-              'qty_available', 'virtual_available', 'barcode_unit_ids',  // ✅ Include stock fields directly
-              'write_date', 'create_date', 'write_uid', 'create_uid'
+              // Use EXACTLY the same fields as the working batch fetch function
+              'id', 'product_tmpl_id', 'name', 'default_code', 'barcode',
+              'list_price', 'standard_price', 'qty_available', 'virtual_available',
+              'categ_id', 'uom_id', 'uom_po_id', 'type', 'sale_ok', 'purchase_ok',
+              'active', 'description_sale', 'weight', 'volume',
+              'barcode_unit_ids', 'barcode_unit_count',
+              'create_date', 'write_date'
             ],
             batchOffset,
             remainingInBatch,
-            'write_date desc'
+            'id'  // Use same sorting as batch fetch
           );
 
           if (!products || products.length === 0) {
@@ -656,7 +655,7 @@ class OdooService {
 
           // Process products into odoo_products collection
           const operations = products.map(product => {
-            // Extract IDs properly
+            // Extract IDs properly (same as batch fetch)
             const categ_id = Array.isArray(product.categ_id) ? product.categ_id[0] : product.categ_id;
             const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
             const uom_po_id = Array.isArray(product.uom_po_id) ? product.uom_po_id[0] : product.uom_po_id;
@@ -679,11 +678,13 @@ class OdooService {
                     uom_po_id,
                     categ_id,
                     default_code,
+                    // Use only fields that exist in batch fetch
                     list_price: Number(product.list_price || 0),
                     standard_price: Number(product.standard_price || 0),
                     qty_available: Number(product.qty_available || 0),
                     virtual_available: Number(product.virtual_available || 0),
                     barcode_unit_ids: Array.isArray(product.barcode_unit_ids) ? product.barcode_unit_ids : [],
+                    barcode_unit_count: Number(product.barcode_unit_count || 0),
                     create_date: product.create_date ? new Date(product.create_date) : new Date(),
                     write_date: product.write_date ? new Date(product.write_date) : new Date(),
                     last_stock_update: new Date(), // Track when stock was last updated
