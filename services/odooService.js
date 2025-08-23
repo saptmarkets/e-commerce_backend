@@ -498,14 +498,15 @@ class OdooService {
   }
 
   /**
-   * Sync products by category with progress tracking - ODOO TABLES ONLY
+   * Sync products by category with batch fetching and stock sync - ODOO TABLES ONLY
    * Completely replaces products in odoo_* tables for the selected category
+   * Includes stock data synchronization
    * Does NOT touch store database (preserves custom changes like images)
    * Use 'Sync to Store' function separately when ready to update store
    */
-  async syncProductsByCategory(categoryId, progressCallback = null) {
+  async syncProductsByCategory(categoryId, progressCallback = null, batchConfig = {}) {
     try {
-      console.log(`\n🔄 Starting sync for category ID: ${categoryId}`);
+      console.log(`\n🔄 Starting batch sync for category ID: ${categoryId}`);
       
       // Get category info
       const categoryInfo = await this.searchRead(
@@ -551,10 +552,18 @@ class OdooService {
         };
       }
 
+      // Apply batching configuration
+      const { offset = 0, limit = null } = batchConfig;
+      const effectiveStartOffset = offset || 0;
+      const effectiveMaxLimit = limit || totalCount;
+      const effectiveEndOffset = Math.min(effectiveStartOffset + effectiveMaxLimit, totalCount);
+
+      console.log(`📊 Batching: Processing products ${effectiveStartOffset} to ${effectiveEndOffset} of ${totalCount}`);
+
       if (progressCallback) {
         progressCallback({
           category: category,
-          total: totalCount,
+          total: effectiveMaxLimit,
           current: 0,
           status: 'starting'
         });
@@ -564,6 +573,7 @@ class OdooService {
       const Product = require('../models/Product');
       const Category = require('../models/Category');
       const OdooProduct = require('../models/OdooProduct');
+      const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
       const odooImportService = require('./odooImportService');
 
       // Ensure category exists in store
@@ -589,75 +599,160 @@ class OdooService {
         console.log(`✅ Cleared existing odoo_products for category ${category.complete_name}`);
       }
 
-      // 🔥 STEP 2: Fetch ALL products from Odoo for this category in one go
-      console.log(`📥 Fetching all ${totalCount} products from Odoo for category ${category.complete_name}...`);
+      // 🔥 STEP 2: Fetch products from Odoo for this category using batch processing
+      console.log(`📥 Fetching products from Odoo for category ${category.complete_name} using batch processing...`);
       
-      const allProducts = await this.searchRead(
-        'product.product',
-        domain,
-        [
-          'id', 'name', 'default_code', 'barcode', 
-          'list_price', 'standard_price', 'lst_price', 'cost',
-          'price', 'pricelist_price', 'pricelist_ids',
-          'categ_id', 'description', 'description_sale', 'image_1920',
-          'product_template_attribute_value_ids', 'attribute_line_ids',
-          'uom_id', 'uom_po_id', 'product_tmpl_id',
-          'qty_available', 'virtual_available', 'barcode_unit_ids',
-          'write_date', 'create_date', 'write_uid', 'create_uid'
-        ],
-        0,
-        totalCount, // Get all products at once
-        'write_date desc'
-      );
-
-      if (!allProducts || allProducts.length === 0) {
-        console.log(`⚠️ No products returned from Odoo for category ${category.complete_name}`);
-        throw new Error(`No products returned from Odoo for category ${category.complete_name}`);
-      }
-
-      console.log(`📦 Successfully fetched ${allProducts.length} products from Odoo`);
-
-      // 🔥 STEP 3: Store ALL products in odoo_products collection
-      console.log(`💾 Storing ${allProducts.length} products in odoo_products collection...`);
+      let batchOffset = effectiveStartOffset;
+      let processedCount = 0;
+      const batchSize = 200; // Same batch size as main fetch function
+      let failedAttempts = 0;
+      const maxRetries = 3;
       
-      const odooOperations = allProducts.map(product => {
-        // Extract IDs properly
-        const categ_id = Array.isArray(product.categ_id) ? product.categ_id[0] : product.categ_id;
-        const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
-        const product_tmpl_id = Array.isArray(product.product_tmpl_id) ? product.product_tmpl_id[0] : product.product_tmpl_id;
+      while (batchOffset < effectiveEndOffset && processedCount < effectiveMaxLimit) {
+        try {
+          const remainingInBatch = Math.min(batchSize, effectiveEndOffset - batchOffset, effectiveMaxLimit - processedCount);
+          
+          console.log(`\n🔄 Fetching batch: offset ${batchOffset}, limit ${remainingInBatch}`);
+          
+          const products = await this.searchRead(
+            'product.product',
+            domain,
+            [
+              'id', 'name', 'default_code', 'barcode', 
+              'list_price', 'standard_price', 'lst_price', 'cost',
+              'price', 'pricelist_price', 'pricelist_ids',
+              'categ_id', 'description', 'description_sale', 'image_1920',
+              'product_template_attribute_value_ids', 'attribute_line_ids',
+              'uom_id', 'uom_po_id', 'product_tmpl_id',
+              'qty_available', 'virtual_available', 'barcode_unit_ids',
+              'write_date', 'create_date', 'write_uid', 'create_uid'
+            ],
+            offset,
+            remainingInBatch,
+            'write_date desc'
+          );
 
-        const processedProduct = {
-          id: product.id,
-          name: product.name,
-          default_code: product.default_code,
-          barcode: product.barcode,
-          list_price: product.list_price,
-          standard_price: product.standard_price,
-          lst_price: product.lst_price,
-          cost: product.cost,
-          price: product.price,
-          categ_id: categ_id,
-          uom_id: uom_id,
-          product_tmpl_id: product_tmpl_id,
-          qty_available: product.qty_available,
-          virtual_available: product.virtual_available,
-          barcode_unit_ids: product.barcode_unit_ids || [],
-          write_date: product.write_date ? new Date(product.write_date) : new Date(),
-          create_date: product.create_date ? new Date(product.create_date) : new Date(),
-          _sync_status: 'pending',
-          is_active: true,
-        };
-
-        return {
-          insertOne: {
-            document: processedProduct
+          if (!products || products.length === 0) {
+            console.log('✅ No more products to fetch');
+            break;
           }
-        };
-      });
 
-      // Use insertMany instead of bulkWrite for better performance
-      await OdooProduct.insertMany(odooOperations.map(op => op.insertOne.document));
-      console.log(`✅ Successfully stored ${allProducts.length} products in odoo_products collection`);
+          console.log(`📦 Processing ${products.length} products...`);
+
+          // Process products into odoo_products collection
+          const operations = products.map(product => {
+            // Extract IDs properly
+            const categ_id = Array.isArray(product.categ_id) ? product.categ_id[0] : product.categ_id;
+            const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
+            const uom_po_id = Array.isArray(product.uom_po_id) ? product.uom_po_id[0] : product.uom_po_id;
+            const product_tmpl_id = Array.isArray(product.product_tmpl_id) ? product.product_tmpl_id[0] : product.product_tmpl_id;
+
+            // Clean up default_code
+            let default_code = product.default_code;
+            if (default_code === false || default_code === 'false' || default_code === undefined) {
+              default_code = null;
+            }
+
+            return {
+              updateOne: {
+                filter: { id: product.id },
+                update: {
+                  $set: {
+                    ...product,
+                    product_tmpl_id,
+                    uom_id,
+                    uom_po_id,
+                    categ_id,
+                    default_code,
+                    list_price: Number(product.list_price || 0),
+                    standard_price: Number(product.standard_price || 0),
+                    qty_available: Number(product.qty_available || 0),
+                    virtual_available: Number(product.virtual_available || 0),
+                    barcode_unit_ids: Array.isArray(product.barcode_unit_ids) ? product.barcode_unit_ids : [],
+                    create_date: product.create_date ? new Date(product.create_date) : new Date(),
+                    write_date: product.write_date ? new Date(product.write_date) : new Date(),
+                    _sync_status: 'pending',
+                    is_active: true,
+                  }
+                },
+                upsert: true
+              }
+            };
+          });
+
+          if (operations.length > 0) {
+            await OdooProduct.bulkWrite(operations, { ordered: false });
+          }
+
+          // 🔥 STEP 3: Fetch and sync stock data for this batch
+          console.log(`📊 Fetching stock data for ${products.length} products...`);
+          
+          for (const product of products) {
+            try {
+              // Fetch stock data for this product
+              const stockData = await this.searchRead(
+                'product.product',
+                [['id', '=', product.id]],
+                ['qty_available', 'virtual_available', 'barcode_unit_ids'],
+                0,
+                1
+              );
+
+              if (stockData && stockData.length > 0) {
+                const stock = stockData[0];
+                
+                // Update stock in odoo_products
+                await OdooProduct.updateOne(
+                  { id: product.id },
+                  { 
+                    $set: {
+                      qty_available: Number(stock.qty_available || 0),
+                      virtual_available: Number(stock.virtual_available || 0),
+                      barcode_unit_ids: Array.isArray(stock.barcode_unit_ids) ? stock.barcode_unit_ids : [],
+                      last_stock_update: new Date()
+                    }
+                  }
+                );
+
+                // Sync barcode units if they exist
+                if (stock.barcode_unit_ids && stock.barcode_unit_ids.length > 0) {
+                  await this.syncBarcodeUnitsForProduct(product.id, stock.barcode_unit_ids);
+                }
+              }
+            } catch (stockError) {
+              console.error(`⚠️ Error fetching stock for product ${product.id}:`, stockError.message);
+            }
+          }
+
+          processedCount += products.length;
+          batchOffset += products.length;
+          failedAttempts = 0; // Reset on success
+          
+          console.log(`📊 Progress: ${processedCount}/${effectiveMaxLimit} products processed (${Math.round(processedCount/effectiveMaxLimit*100)}%)`);
+
+          // Update progress callback
+          if (progressCallback) {
+            progressCallback({
+              category: category,
+              total: effectiveMaxLimit,
+              current: processedCount,
+              synced: processedCount,
+              status: 'syncing'
+            });
+          }
+
+        } catch (error) {
+          failedAttempts++;
+          console.error(`❌ Batch failed (attempt ${failedAttempts}/${maxRetries}):`, error.message);
+          
+          if (failedAttempts >= maxRetries) {
+            throw new Error(`Failed to process batch after ${maxRetries} attempts: ${error.message}`);
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000 * failedAttempts));
+        }
+      }
 
       // 🔥 STEP 4: Only sync to store database if explicitly requested (preserve custom changes)
       console.log(`📋 Odoo data updated in odoo_* tables for category ${category.complete_name}`);
@@ -665,24 +760,14 @@ class OdooService {
       console.log(`🛡️ Store database preserved - your custom changes (images, etc.) are safe`);
       
       // Return success without touching store database
-      const syncedCount = allProducts.length;
+      const syncedCount = processedCount;
       const errors = [];
       
       if (progressCallback) {
         progressCallback({
           category: category,
-          total: allProducts.length,
-          current: allProducts.length,
-          synced: syncedCount,
-          status: 'completed'
-        });
-      }
-
-      if (progressCallback) {
-        progressCallback({
-          category: category,
-          total: allProducts.length,
-          current: allProducts.length,
+          total: effectiveMaxLimit,
+          current: effectiveMaxLimit,
           synced: syncedCount,
           status: 'completed'
         });
@@ -695,7 +780,7 @@ class OdooService {
       
       return {
         category: category,
-        total: allProducts.length,
+        total: effectiveMaxLimit,
         synced: syncedCount,
         errors: errors
       };
@@ -798,6 +883,64 @@ class OdooService {
     } catch (error) {
       console.error('❌ Error in batch sync:', error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Sync barcode units for a specific product
+   */
+  async syncBarcodeUnitsForProduct(productId, barcodeUnitIds) {
+    try {
+      if (!barcodeUnitIds || barcodeUnitIds.length === 0) {
+        return;
+      }
+
+      console.log(`🏷️ Syncing ${barcodeUnitIds.length} barcode units for product ${productId}...`);
+      
+      // Import required models
+      const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
+      
+      for (const barcodeUnitId of barcodeUnitIds) {
+        try {
+          // Fetch barcode unit data from Odoo
+          const barcodeUnitData = await this.searchRead(
+            'product.barcode.unit',
+            [['id', '=', barcodeUnitId]],
+            ['id', 'name', 'product_id', 'barcode', 'unit_id', 'price', 'qty_available'],
+            0,
+            1
+          );
+
+          if (barcodeUnitData && barcodeUnitData.length > 0) {
+            const unit = barcodeUnitData[0];
+            
+            // Update or create barcode unit in odoo_barcode_units collection
+            await OdooBarcodeUnit.updateOne(
+              { id: unit.id },
+              {
+                $set: {
+                  id: unit.id,
+                  name: unit.name,
+                  product_id: Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id,
+                  barcode: unit.barcode,
+                  unit_id: Array.isArray(unit.unit_id) ? unit.unit_id[0] : unit.unit_id,
+                  price: Number(unit.price || 0),
+                  qty_available: Number(unit.qty_available || 0),
+                  last_update: new Date(),
+                  _sync_status: 'pending'
+                }
+              },
+              { upsert: true }
+            );
+          }
+        } catch (unitError) {
+          console.error(`⚠️ Error syncing barcode unit ${barcodeUnitId}:`, unitError.message);
+        }
+      }
+      
+      console.log(`✅ Barcode units synced for product ${productId}`);
+    } catch (error) {
+      console.error(`❌ Error syncing barcode units for product ${productId}:`, error.message);
     }
   }
 
