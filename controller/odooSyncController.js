@@ -1304,6 +1304,15 @@ const syncSelectedCategories = async (req, res) => {
         // Use the existing syncProductsByCategory method which properly handles prices
         const result = await odooService.syncProductsByCategory(categoryId);
         
+        console.log(`🔍 Raw result from syncProductsByCategory:`, result);
+        console.log(`🔍 Result structure:`, {
+          hasResult: !!result,
+          synced: result?.synced,
+          total: result?.total,
+          category: result?.category,
+          type: typeof result
+        });
+        
         results.push({
           categoryId: parseInt(categoryId),
           success: true,
