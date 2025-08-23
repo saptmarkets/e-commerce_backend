@@ -787,8 +787,11 @@ class OdooService {
             }
           }
 
-          // 🔥 STEP 3: Fetch location-specific stock data from stock.quant (like batch fetch does)
-          console.log(`📊 Fetching location-specific stock data for ${products.length} products...`);
+          // 🔥 STEP 3: Create OdooStock records from stock.quant (like batch fetch does)
+          console.log(`📊 Creating OdooStock records for ${products.length} products...`);
+          
+          // Import OdooStock model
+          const OdooStock = require('../models/OdooStock');
           
           for (const product of products) {
             try {
@@ -799,40 +802,51 @@ class OdooService {
                   ['product_id', '=', product.id],
                   ['location_id.usage', 'in', ['internal', 'transit']]
                 ],
-                ['id', 'location_id', 'quantity', 'reserved_quantity', 'available_quantity'],
+                ['id', 'location_id', 'quantity', 'reserved_quantity', 'available_quantity', 'lot_id', 'package_id', 'owner_id', 'create_date', 'write_date'],
                 0, 100
               );
               
               if (stockQuants && stockQuants.length > 0) {
                 console.log(`📦 Product ${product.id} has stock in ${stockQuants.length} locations`);
                 
-                // Update the product with location-specific stock data
-                const locationStocks = stockQuants.map(quant => ({
-                  locationId: Array.isArray(quant.location_id) ? quant.location_id[0] : quant.location_id,
-                  locationName: Array.isArray(quant.location_id) ? quant.location_id[1] : 'Unknown',
-                  quantity: quant.quantity || 0,
-                  reservedQuantity: quant.reserved_quantity || 0,
-                  availableQuantity: quant.available_quantity || 0
+                // Create OdooStock records for each location (like batch fetch does)
+                const stockOperations = stockQuants.map(quant => ({
+                  updateOne: {
+                    filter: { id: quant.id },
+                    update: {
+                      $set: {
+                        id: quant.id,
+                        product_id: product.id,
+                        product_name: product.name,
+                        location_id: Array.isArray(quant.location_id) ? quant.location_id[0] : quant.location_id,
+                        location_name: Array.isArray(quant.location_id) ? quant.location_id[1] : 'Unknown',
+                        quantity: quant.quantity || 0,
+                        reserved_quantity: quant.reserved_quantity || 0,
+                        available_quantity: quant.available_quantity || 0,
+                        lot_id: quant.lot_id ? (Array.isArray(quant.lot_id) ? quant.lot_id[0] : quant.lot_id) : null,
+                        lot_name: quant.lot_id ? (Array.isArray(quant.lot_id) ? quant.lot_id[1] : null) : null,
+                        package_id: quant.package_id ? (Array.isArray(quant.package_id) ? quant.package_id[0] : quant.package_id) : null,
+                        owner_id: quant.owner_id ? (Array.isArray(quant.owner_id) ? quant.owner_id[0] : quant.owner_id) : null,
+                        create_date: quant.create_date ? new Date(quant.create_date) : new Date(),
+                        write_date: quant.write_date ? new Date(quant.write_date) : new Date(),
+                        _sync_status: 'pending',
+                        is_active: true,
+                      }
+                    },
+                    upsert: true
+                  }
                 }));
                 
-                // Calculate total stock across all locations
-                const totalStock = locationStocks.reduce((sum, loc) => sum + loc.quantity, 0);
-                const totalAvailable = locationStocks.reduce((sum, loc) => sum + loc.availableQuantity, 0);
+                // Bulk write stock records to database
+                if (stockOperations.length > 0) {
+                  await OdooStock.bulkWrite(stockOperations, { ordered: false });
+                  console.log(`✅ Created ${stockOperations.length} OdooStock records for product ${product.id}`);
+                }
                 
-                console.log(`📊 Product ${product.id} stock summary: Total=${totalStock}, Available=${totalAvailable}, Locations=${locationStocks.length}`);
-                
-                // Update the product in the database with location-specific stock data
-                await OdooProduct.updateOne(
-                  { id: product.id },
-                  { 
-                    $set: {
-                      locationStocks: locationStocks,
-                      totalStock: totalStock,
-                      totalAvailable: totalAvailable,
-                      last_stock_update: new Date()
-                    }
-                  }
-                );
+                // Calculate total stock across all locations for display
+                const totalStock = stockQuants.reduce((sum, quant) => sum + (quant.quantity || 0), 0);
+                const totalAvailable = stockQuants.reduce((sum, quant) => sum + (quant.available_quantity || 0), 0);
+                console.log(`📊 Product ${product.id} stock summary: Total=${totalStock}, Available=${totalAvailable}, Locations=${stockQuants.length}`);
               } else {
                 console.log(`⚠️ Product ${product.id} has no stock data in internal/transit locations`);
               }

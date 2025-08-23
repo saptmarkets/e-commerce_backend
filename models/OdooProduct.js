@@ -91,16 +91,7 @@ const odooProductSchema = new mongoose.Schema(
       default: 0,
     },
     
-    // Location-specific stock data (like batch fetch)
-    locationStocks: [{
-      locationId: Number,
-      locationName: String,
-      quantity: { type: Number, default: 0 },
-      reservedQuantity: { type: Number, default: 0 },
-      availableQuantity: { type: Number, default: 0 }
-    }],
-    totalStock: { type: Number, default: 0 },
-    totalAvailable: { type: Number, default: 0 },
+
     
     // Product attributes and variants
     attributes: [{
