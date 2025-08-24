@@ -399,22 +399,28 @@ router.post('/check-imported', async (req, res) => {
     
     // Get store products that match these Odoo IDs
     const storeProducts = await Product.find({ 
-      odooProductId: { $in: odooProductIds } 
-    }).select('odooProductId price stock title locationStocks');
+      odoo_id: { $in: odooProductIds }  // 🔧 FIX: Use odoo_id instead of odooProductId
+    }).select('odoo_id price stock title locationStocks');  // 🔧 FIX: Select odoo_id instead of odooProductId
+    
+    console.log(`🔍 Found ${storeProducts.length} store products with odoo_id in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
     
     // Get Odoo temp products for comparison
     const odooProducts = await OdooProduct.find({ 
       id: { $in: odooProductIds } 
     }).select('id list_price qty_available name');
     
+    console.log(`🔍 Found ${odooProducts.length} Odoo temp products with id in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
+    
     // Get Odoo stock data for all products
     const odooStockData = await OdooStock.find({ 
       product_id: { $in: odooProductIds } 
     }).select('product_id location_id location_name quantity available_quantity');
     
+    console.log(`🔍 Found ${odooStockData.length} Odoo stock records for products in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
+    
     // Create lookup maps for performance
     const storeProductMap = new Map();
-    storeProducts.forEach(p => storeProductMap.set(p.odooProductId, p));
+    storeProducts.forEach(p => storeProductMap.set(p.odoo_id, p));
     
     const odooProductMap = new Map();
     odooProducts.forEach(p => odooProductMap.set(p.id, p));
@@ -511,7 +517,7 @@ router.post('/check-imported', async (req, res) => {
           
           if (Object.keys(updateData).length > 0) {
             await Product.updateOne(
-              { odooProductId: odooId },
+              { odoo_id: odooId },  // 🔧 FIX: Use odoo_id instead of odooProductId
               { 
                 $set: updateData,
                 updatedAt: new Date()
@@ -532,6 +538,15 @@ router.post('/check-imported', async (req, res) => {
     const imported = results.filter(r => r.status === 'imported').map(r => r.odooId);
     const needsUpdate = results.filter(r => r.status === 'needs_update').map(r => r.odooId);
     const notImported = results.filter(r => r.status === 'not_imported').map(r => r.odooId);
+    
+    console.log(`📊 Final Import Status Results:`);
+    console.log(`   Total Odoo Products: ${odooProductIds.length}`);
+    console.log(`   Store Products Found: ${storeProducts.length}`);
+    console.log(`   Odoo Temp Products Found: ${odooProducts.length}`);
+    console.log(`   Imported & Up-to-date: ${imported.length}`);
+    console.log(`   Needs Update: ${needsUpdate.length}`);
+    console.log(`   Not Imported: ${notImported.length}`);
+    console.log(`   Auto-updated: ${autoUpdatedCount}`);
     
     res.json({ 
       success: true, 
