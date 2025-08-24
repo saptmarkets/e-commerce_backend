@@ -360,14 +360,18 @@ const createProductUnit = async (req, res) => {
     let adjustedPrice = finalPrice;
     let adjustedIsDefault = Boolean(isDefault);
     
-    // If this is the first unit and no price was provided, use the product's basic price
+    // If this is the first unit and no price was provided, check if there's a default unit price
     if (existingUnitsCount === 0 && finalPrice === 0) {
-      console.log(`[ProductUnitController] First unit for product, checking product's basic price`);
-      const productPrice = product.prices?.price || product.price;
-      if (productPrice && productPrice > 0) {
-        adjustedPrice = productPrice;
+      console.log(`[ProductUnitController] First unit for product, checking for existing default unit price`);
+      const existingDefaultUnit = await ProductUnit.findOne({
+        product: finalProductId,
+        isDefault: true
+      });
+      
+      if (existingDefaultUnit && existingDefaultUnit.price > 0) {
+        adjustedPrice = existingDefaultUnit.price;
         adjustedIsDefault = true; // First unit should be default
-        console.log(`[ProductUnitController] Using product's basic price: ${adjustedPrice}`);
+        console.log(`[ProductUnitController] Using existing default unit price: ${adjustedPrice}`);
       }
     }
     

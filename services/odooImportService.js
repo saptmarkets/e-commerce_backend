@@ -810,7 +810,7 @@ class OdooImportService {
               unitType: 'multi',
               unitValue: 1,
               packQty: bu.quantity || 1,
-              price: bu.price || storeProduct.price || 0,
+              price: bu.price || 0,
               sku: `${storeProduct.sku}-${shortCode}`,
               barcode: bu.barcode,
               name: unitName, // Add the unit name
@@ -833,7 +833,7 @@ class OdooImportService {
           } else {
             // Ensure stock fields and prices stay in sync for existing units
             const oldPrice = prodUnit.price;
-            const newPrice = bu.price || storeProduct.price || 0;
+            const newPrice = bu.price || 0;
             
             await prodUnit.set({
               stock: stock || 0,

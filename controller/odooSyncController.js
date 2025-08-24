@@ -897,7 +897,13 @@ const syncToStore = async (req, res) => {
         if (i < 5) { // Only show first 5 for debugging
           console.log(`🔍 Product ${i + 1}: Odoo ID=${odooProduct.id}, Store ID=${storeProduct._id}`);
           if (allowed.price) {
-            console.log(`💰 Price comparison: Store=${storeProduct.price}, Odoo=${odooProduct.list_price}`);
+            // Get default unit price for comparison
+        const defaultUnit = await ProductUnit.findOne({ 
+          product: storeProduct._id, 
+          isDefault: true 
+        });
+        const storePrice = defaultUnit ? defaultUnit.price : 'No default unit';
+        console.log(`💰 Price comparison: Store default unit=${storePrice}, Odoo=${odooProduct.list_price}`);
           }
           if (allowed.stock) {
             console.log(`📊 Stock comparison: Store=${storeProduct.stock}, Odoo=${odooProduct.qty_available}`);
@@ -1069,15 +1075,18 @@ const syncToStore = async (req, res) => {
           
           if (!odooProduct) continue;
           
-          // First, update basic product price
+          // Update default unit price (not all units)
           if (odooProduct.list_price) {
             priceBulkOps.push({
-              updateMany: {
-                filter: { product: storeProduct._id },
+              updateOne: {
+                filter: { 
+                  product: storeProduct._id,
+                  isDefault: true 
+                },
                 update: { $set: { price: odooProduct.list_price } }
               }
             });
-            console.log(`💰 Queuing basic price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
+            console.log(`💰 Queuing default unit price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
           }
           
           // Also update individual unit prices from barcode units

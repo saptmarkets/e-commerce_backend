@@ -1040,8 +1040,9 @@ const getEnhancedProductById = async (req, res) => {
       title: product.title,
       description: product.description,
       slug: product.slug,
-      price: product.price, // Base unit price
-      prices: product.prices,
+      // Price is now retrieved from default ProductUnit
+      price: undefined, // Removed from Product model
+      prices: undefined, // Removed from Product model
       basicUnit: product.basicUnit,
       basicUnitType: product.basicUnitType,
       hasMultiUnits: product.hasMultiUnits,
@@ -1123,8 +1124,9 @@ const getEnhancedProductBySlug = async (req, res) => {
       title: product.title,
       description: product.description,
       slug: product.slug,
-      price: product.price,
-      prices: product.prices,
+      // Price is now retrieved from default ProductUnit
+      price: undefined, // Removed from Product model
+      prices: undefined, // Removed from Product model
       basicUnit: product.basicUnit,
       basicUnitType: product.basicUnitType,
       hasMultiUnits: product.hasMultiUnits,
