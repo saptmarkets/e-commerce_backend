@@ -44,7 +44,7 @@ router.get("/direct-test/:productId", async (req, res) => {
     
     // Check if product exists
     const product = await Product.findById(productId);
-    const units = await ProductUnit.find({ productId }).populate('unitId');
+    const units = await ProductUnit.find({ product: productId }).populate('unit');
     
     res.json({
       message: "Direct test for product units",
@@ -54,9 +54,10 @@ router.get("/direct-test/:productId", async (req, res) => {
       unitsCount: units.length,
       units: units.map(u => ({
         id: u._id,
-        unitName: u.unitId?.name || 'Unknown',
+        unitName: u.unit?.name || 'Unknown',
         unitValue: u.unitValue,
-        price: u.price
+        price: u.price,
+        isDefault: u.isDefault
       }))
     });
   } catch (error) {
