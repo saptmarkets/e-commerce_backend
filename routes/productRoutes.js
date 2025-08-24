@@ -388,35 +388,45 @@ router.get('/test-category-hierarchy', testCategoryHierarchy);
 // Live import status check for Odoo products
 router.post('/check-imported', async (req, res) => {
   try {
-    const { odooProductIds } = req.body;
+    const { odooProductIds, page = 1, limit = 1000 } = req.body; // 🔧 ADD: Pagination support
+    
     if (!Array.isArray(odooProductIds) || odooProductIds.length === 0) {
       return res.status(400).json({ success: false, message: 'odooProductIds must be a non-empty array' });
     }
+
+    // 🔧 MEMORY OPTIMIZATION: Process products in batches to prevent memory overflow
+    const batchSize = Math.min(limit, 1000); // Max 1000 products per batch
+    const startIndex = (page - 1) * batchSize;
+    const endIndex = startIndex + batchSize;
+    const batchProductIds = odooProductIds.slice(startIndex, endIndex);
+    
+    console.log(`🔧 Memory Optimization: Processing batch ${page} (${startIndex + 1}-${endIndex}) of ${odooProductIds.length} total products`);
+    console.log(`🔧 Batch size: ${batchProductIds.length} products`);
 
     const Product = require('../models/Product');
     const OdooProduct = require('../models/OdooProduct'); // For Odoo temp data
     const OdooStock = require('../models/OdooStock'); // For Odoo stock data
     
-    // Get store products that match these Odoo IDs
+    // 🔧 MEMORY OPTIMIZATION: Use lean() queries and limit data fetched
     const storeProducts = await Product.find({ 
-      odoo_id: { $in: odooProductIds }  // 🔧 FIX: Use odoo_id instead of odooProductId
-    }).select('odoo_id price stock title locationStocks');  // 🔧 FIX: Select odoo_id instead of odooProductId
+      odoo_id: { $in: batchProductIds }  // 🔧 FIX: Use odoo_id instead of odooProductId
+    }).select('odoo_id price stock title').lean(); // 🔧 ADD: lean() for memory efficiency
     
-    console.log(`🔍 Found ${storeProducts.length} store products with odoo_id in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
+    console.log(`🔍 Found ${storeProducts.length} store products with odoo_id in batch`);
     
-    // Get Odoo temp products for comparison
+    // 🔧 MEMORY OPTIMIZATION: Use lean() queries and limit data fetched
     const odooProducts = await OdooProduct.find({ 
-      id: { $in: odooProductIds } 
-    }).select('id list_price qty_available name');
+      id: { $in: batchProductIds } 
+    }).select('id list_price qty_available name').lean(); // 🔧 ADD: lean() for memory efficiency
     
-    console.log(`🔍 Found ${odooProducts.length} Odoo temp products with id in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
+    console.log(`🔍 Found ${odoooProducts.length} Odoo temp products with id in batch`);
     
-    // Get Odoo stock data for all products
+    // 🔧 MEMORY OPTIMIZATION: Use lean() queries and limit data fetched
     const odooStockData = await OdooStock.find({ 
-      product_id: { $in: odooProductIds } 
-    }).select('product_id location_id location_name quantity available_quantity');
+      product_id: { $in: batchProductIds } 
+    }).select('product_id location_id location_name quantity available_quantity').lean(); // 🔧 ADD: lean() for memory efficiency
     
-    console.log(`🔍 Found ${odooStockData.length} Odoo stock records for products in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
+    console.log(`🔍 Found ${odooStockData.length} Odoo stock records for products in batch`);
     
     // Create lookup maps for performance
     const storeProductMap = new Map();
@@ -437,7 +447,8 @@ router.post('/check-imported', async (req, res) => {
     const results = [];
     let autoUpdatedCount = 0;
     
-    for (const odooId of odooProductIds) {
+    // 🔧 MEMORY OPTIMIZATION: Process only the current batch
+    for (const odooId of batchProductIds) {
       const storeProduct = storeProductMap.get(odooId);
       const odooProduct = odooProductMap.get(odooId);
       const odooStockRecords = stockByProduct.get(odooId) || [];
@@ -539,14 +550,20 @@ router.post('/check-imported', async (req, res) => {
     const needsUpdate = results.filter(r => r.status === 'needs_update').map(r => r.odooId);
     const notImported = results.filter(r => r.status === 'not_imported').map(r => r.odooId);
     
-    console.log(`📊 Final Import Status Results:`);
-    console.log(`   Total Odoo Products: ${odooProductIds.length}`);
+    // 🔧 PAGINATION: Calculate pagination info
+    const totalPages = Math.ceil(odooProductIds.length / batchSize);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+    
+    console.log(`📊 Batch ${page} Import Status Results:`);
+    console.log(`   Batch Products: ${batchProductIds.length}`);
     console.log(`   Store Products Found: ${storeProducts.length}`);
-    console.log(`   Odoo Temp Products Found: ${odooProducts.length}`);
+    console.log(`   Odoo Temp Products Found: ${odoooProducts.length}`);
     console.log(`   Imported & Up-to-date: ${imported.length}`);
     console.log(`   Needs Update: ${needsUpdate.length}`);
     console.log(`   Not Imported: ${notImported.length}`);
     console.log(`   Auto-updated: ${autoUpdatedCount}`);
+    console.log(`   Pagination: ${page}/${totalPages} (${odooProductIds.length} total products)`);
     
     res.json({ 
       success: true, 
@@ -554,6 +571,14 @@ router.post('/check-imported', async (req, res) => {
       needsUpdate,
       notImported,
       autoUpdatedCount,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalProducts: odooProductIds.length,
+        batchSize,
+        hasNextPage,
+        hasPrevPage
+      },
       summary: {
         total: odooProductIds.length,
         imported: imported.length,
@@ -569,6 +594,39 @@ router.post('/check-imported', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error checking import status', 
+      error: error.message 
+    });
+  }
+});
+
+// 🔧 NEW: Get total product counts for import status (memory efficient)
+router.get('/import-status-counts', async (req, res) => {
+  try {
+    const Product = require('../models/Product');
+    const OdooProduct = require('../models/OdooProduct');
+    
+    // Get counts without loading all data into memory
+    const [totalStoreProducts, totalOdooProducts] = await Promise.all([
+      Product.countDocuments({ odoo_id: { $exists: true, $ne: null } }),
+      OdooProduct.countDocuments({ id: { $exists: true, $ne: null } })
+    ]);
+    
+    console.log(`📊 Import Status Counts: Store: ${totalStoreProducts}, Odoo: ${totalOdooProducts}`);
+    
+    res.json({
+      success: true,
+      counts: {
+        totalStoreProducts,
+        totalOdooProducts,
+        estimatedNotImported: Math.max(0, totalOdooProducts - totalStoreProducts)
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error getting import status counts:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error getting import status counts', 
       error: error.message 
     });
   }
