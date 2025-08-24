@@ -890,6 +890,88 @@ class OdooService {
         }
       }
 
+      // 🔥 STEP 3.5: COMPREHENSIVE BARCODE UNIT SYNC (like fetchFromOdoo does)
+      console.log(`🏷️ Starting comprehensive barcode unit sync for category ${category.complete_name}...`);
+      
+      try {
+        // Get all product IDs in this category (including subcategories)
+        const categoryProductIds = await OdooProduct.find({ 
+          categ_id: { $in: [category.id] } // This will include subcategories if we expand the query
+        }).distinct('id');
+        
+        console.log(`🔍 Found ${categoryProductIds.length} products in category for barcode unit sync`);
+        
+        if (categoryProductIds.length > 0) {
+          // Fetch ALL barcode units for these products (comprehensive approach)
+          const barcodeUnits = await this.searchRead(
+            'product.barcode.unit',
+            [['product_id', 'in', categoryProductIds]],
+            ['id', 'name', 'product_id', 'barcode', 'unit_id', 'price', 'qty_available', 'quantity', 'av_cost', 'purchase_cost'],
+            0,
+            1000 // Fetch up to 1000 units
+          );
+          
+          console.log(`🏷️ Found ${barcodeUnits.length} barcode units for category ${category.complete_name}`);
+          
+          if (barcodeUnits.length > 0) {
+            // Import required model
+            const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
+            
+            // Process barcode units in batches (like fetchFromOdoo does)
+            const batchSize = 100;
+            for (let i = 0; i < barcodeUnits.length; i += batchSize) {
+              const batch = barcodeUnits.slice(i, i + batchSize);
+              
+              const operations = batch.map(unit => ({
+                updateOne: {
+                  filter: { id: unit.id },
+                  update: {
+                    $set: {
+                      id: unit.id,
+                      name: unit.name,
+                      product_id: Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id,
+                      product_tmpl_id: null, // Will be populated if needed
+                      barcode: unit.barcode,
+                      unit_id: Array.isArray(unit.unit_id) ? unit.unit_id[0] : unit.unit_id,
+                      quantity: Number(unit.quantity || 1.0),
+                      price: Number(unit.price || 0),           // ✅ Multi-unit price
+                      av_cost: Number(unit.av_cost || 0),       // ✅ Average cost
+                      purchase_cost: Number(unit.purchase_cost || 0), // ✅ Purchase cost
+                      qty_available: Number(unit.qty_available || 0),
+                      last_update: new Date(),
+                      _sync_status: 'pending',
+                      is_active: true
+                    }
+                  },
+                  upsert: true
+                }
+              }));
+              
+              // Execute batch update
+              if (operations.length > 0) {
+                try {
+                  await OdooBarcodeUnit.bulkWrite(operations, { ordered: false });
+                  console.log(`✅ Processed barcode units batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(barcodeUnits.length/batchSize)}`);
+                } catch (bulkErr) {
+                  // Handle duplicate key errors gracefully
+                  if (bulkErr?.code !== 11000 && bulkErr?.name !== 'BulkWriteError') {
+                    throw bulkErr;
+                  }
+                  console.warn('⚠️ Duplicate barcode encountered – existing records updated where possible.');
+                }
+              }
+            }
+            
+            console.log(`✅ Comprehensive barcode unit sync completed: ${barcodeUnits.length} units processed`);
+          } else {
+            console.log(`ℹ️ No barcode units found for products in category ${category.complete_name}`);
+          }
+        }
+      } catch (barcodeSyncError) {
+        console.error(`❌ Error in comprehensive barcode unit sync:`, barcodeSyncError.message);
+        // Don't fail the entire sync, just log the error
+      }
+
       // 🔥 STEP 4: Only sync to store database if explicitly requested (preserve custom changes)
       console.log(`📋 Odoo data updated in odoo_* tables for category ${category.complete_name}`);
       console.log(`💡 To sync to store database, use the 'Sync to Store' function separately`);
