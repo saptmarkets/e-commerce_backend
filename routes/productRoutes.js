@@ -392,12 +392,138 @@ router.post('/check-imported', async (req, res) => {
     if (!Array.isArray(odooProductIds) || odooProductIds.length === 0) {
       return res.status(400).json({ success: false, message: 'odooProductIds must be a non-empty array' });
     }
+
     const Product = require('../models/Product');
-    const imported = await Product.find({ odooProductId: { $in: odooProductIds } }).select('odooProductId');
-    const importedIds = imported.map(p => p.odooProductId);
-    res.json({ success: true, imported: importedIds });
+    const OdooProduct = require('../models/OdooProduct'); // For Odoo temp data
+    
+    // Get store products that match these Odoo IDs
+    const storeProducts = await Product.find({ 
+      odooProductId: { $in: odooProductIds } 
+    }).select('odooProductId price stock title');
+    
+    // Get Odoo temp products for comparison
+    const odooProducts = await OdooProduct.find({ 
+      id: { $in: odooProductIds } 
+    }).select('id list_price qty_available name');
+    
+    // Create lookup maps for performance
+    const storeProductMap = new Map();
+    storeProducts.forEach(p => storeProductMap.set(p.odooProductId, p));
+    
+    const odooProductMap = new Map();
+    odooProducts.forEach(p => odooProductMap.set(p.id, p));
+    
+    const results = [];
+    let autoUpdatedCount = 0;
+    
+    for (const odooId of odooProductIds) {
+      const storeProduct = storeProductMap.get(odooId);
+      const odooProduct = odooProductMap.get(odooId);
+      
+      if (!storeProduct) {
+        // Product not imported
+        results.push({
+          odooId,
+          status: 'not_imported',
+          message: 'Product not found in store'
+        });
+        continue;
+      }
+      
+      if (!odooProduct) {
+        // Odoo product not found in temp tables
+        results.push({
+          odooId,
+          status: 'imported',
+          message: 'Product imported but Odoo data not available'
+        });
+        continue;
+      }
+      
+      // Check if prices and stock match
+      const priceDiff = storeProduct.price !== odooProduct.list_price;
+      const stockDiff = storeProduct.stock !== odooProduct.qty_available;
+      
+      if (!priceDiff && !stockDiff) {
+        // Everything matches - fully imported and up to date
+        results.push({
+          odooId,
+          status: 'imported',
+          message: 'Product imported and up to date',
+          storePrice: storeProduct.price,
+          odooPrice: odooProduct.list_price,
+          storeStock: storeProduct.stock,
+          odooStock: odooProduct.qty_available
+        });
+      } else {
+        // Product exists but needs update
+        results.push({
+          odooId,
+          status: 'needs_update',
+          message: 'Product imported but needs update',
+          storePrice: storeProduct.price,
+          odooPrice: odooProduct.list_price,
+          storeStock: storeProduct.stock,
+          odooStock: odooProduct.qty_available,
+          differences: {
+            price: priceDiff ? { store: storeProduct.price, odoo: odooProduct.list_price } : null,
+            stock: stockDiff ? { store: storeProduct.stock, odoo: odooProduct.qty_available } : null
+          }
+        });
+        
+        // 🔄 AUTO-UPDATE: Update the product automatically if differences found
+        try {
+          const updateData = {};
+          if (priceDiff) updateData.price = odooProduct.list_price;
+          if (stockDiff) updateData.stock = odooProduct.qty_available;
+          
+          if (Object.keys(updateData).length > 0) {
+            await Product.updateOne(
+              { odooProductId: odooId },
+              { 
+                $set: updateData,
+                updatedAt: new Date()
+              }
+            );
+            
+            autoUpdatedCount++;
+            console.log(`🔄 Auto-updated product ${odooId}:`, updateData);
+          }
+        } catch (updateError) {
+          console.error(`❌ Failed to auto-update product ${odooId}:`, updateError.message);
+          // Don't fail the entire request, just log the error
+        }
+      }
+    }
+    
+    // Group results by status for easy frontend consumption
+    const imported = results.filter(r => r.status === 'imported').map(r => r.odooId);
+    const needsUpdate = results.filter(r => r.status === 'needs_update').map(r => r.odooId);
+    const notImported = results.filter(r => r.status === 'not_imported').map(r => r.odooId);
+    
+    res.json({ 
+      success: true, 
+      imported,
+      needsUpdate,
+      notImported,
+      autoUpdatedCount,
+      summary: {
+        total: odooProductIds.length,
+        imported: imported.length,
+        needsUpdate: needsUpdate.length,
+        notImported: notImported.length,
+        autoUpdated: autoUpdatedCount
+      },
+      details: results // Full details for debugging
+    });
+    
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error checking import status', error: error.message });
+    console.error('Error checking import status:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error checking import status', 
+      error: error.message 
+    });
   }
 });
 
