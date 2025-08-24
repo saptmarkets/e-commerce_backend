@@ -1082,7 +1082,7 @@ const syncToStore = async (req, res) => {
     }
 
     const totalUnitsUpdated = (unitsUpdated || 0) + (priceUnitsUpdated || 0);
-    const totalProcessed = odooProducts.length;
+    const totalProcessed = storeProducts.length;
     
     console.log(`✅ Sync completed: ${updated}/${totalProcessed} products updated, ${totalUnitsUpdated} units updated (${unitsUpdated || 0} stock, ${priceUnitsUpdated || 0} price), ${promosUpdated} promotions updated, ${errors.length} errors`);
     
