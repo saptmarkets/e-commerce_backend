@@ -766,6 +766,8 @@ const syncToStore = async (req, res) => {
     
     // 1. Pre-fetch all Odoo products for these store products
     const storeProductIds = storeProducts.map(p => p._id.toString());
+    console.log(`🔍 Looking for Odoo products with store_product_id in:`, storeProductIds.slice(0, 5), `... (${storeProductIds.length} total)`);
+    
     const allOdooProducts = await OdooProduct.find({ 
       store_product_id: { $in: storeProductIds } 
     }).lean();
@@ -776,6 +778,18 @@ const syncToStore = async (req, res) => {
     );
     
     console.log(`📦 Pre-fetched ${allOdooProducts.length} Odoo products`);
+    console.log(`🔍 Sample Odoo products found:`, allOdooProducts.slice(0, 3).map(op => ({
+      store_product_id: op.store_product_id,
+      id: op.id,
+      name: op.name,
+      list_price: op.list_price
+    })));
+    
+    // Debug: Check if we're finding the right products
+    if (allOdooProducts.length === 0) {
+      console.log(`⚠️ WARNING: No Odoo products found! This means sync will update 0 products.`);
+      console.log(`🔍 Check if store products have correct _id values and if Odoo products have matching store_product_id values.`);
+    }
     
     // 2. Pre-fetch all stock data if stock sync is needed
     let stockMap = new Map();
@@ -838,6 +852,17 @@ const syncToStore = async (req, res) => {
           continue;
         }
         
+        // Debug: Show what we're comparing
+        if (i < 5) { // Only show first 5 for debugging
+          console.log(`🔍 Product ${i + 1}: Store ID=${storeProduct._id}, Odoo ID=${odooProduct.id}`);
+          if (allowed.price) {
+            console.log(`💰 Price comparison: Store=${storeProduct.price}, Odoo=${odooProduct.list_price}`);
+          }
+          if (allowed.stock) {
+            console.log(`📊 Stock comparison: Store=${storeProduct.stock}, Odoo=${odooProduct.qty_available}`);
+          }
+        }
+        
         const updateData = {};
 
         if (allowed.name && odooProduct.name) {
@@ -886,12 +911,19 @@ const syncToStore = async (req, res) => {
 
         // 🚀 PERFORMANCE OPTIMIZATION: Collect bulk operations
         if (Object.keys(updateData).length > 0) {
+          if (i < 5) { // Debug: Show what we're updating
+            console.log(`✅ Adding to bulk update for product ${storeProduct._id}:`, updateData);
+          }
           bulkOps.push({
             updateOne: {
               filter: { _id: storeProduct._id },
               update: { $set: updateData }
             }
           });
+        } else {
+          if (i < 5) { // Debug: Show why no update
+            console.log(`⚠️ No update data for product ${storeProduct._id} - all fields unchanged or empty`);
+          }
         }
 
         // Collect units for batch processing
@@ -908,9 +940,19 @@ const syncToStore = async (req, res) => {
     // 🚀 PERFORMANCE OPTIMIZATION: Execute bulk update
     if (bulkOps.length > 0) {
       console.log(`🚀 Executing bulk update for ${bulkOps.length} products...`);
+      console.log(`🔍 Sample bulk operations:`, bulkOps.slice(0, 3));
+      
       const bulkResult = await Product.bulkWrite(bulkOps);
       updated = bulkResult.modifiedCount || bulkResult.nModified || 0;
       console.log(`✅ Bulk update completed: ${updated} products updated`);
+      console.log(`📊 Bulk result details:`, {
+        matchedCount: bulkResult.matchedCount,
+        modifiedCount: bulkResult.modifiedCount,
+        upsertedCount: bulkResult.upsertedCount,
+        nModified: bulkResult.nModified
+      });
+    } else {
+      console.log(`⚠️ No bulk operations to execute - no products need updates`);
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit stock for products with stock changes
