@@ -590,6 +590,62 @@ const updateProductUnit = async (req, res) => {
   }
 };
 
+// Update default ProductUnit price for a product (used when admin changes product price)
+const updateDefaultUnitPrice = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { price, originalPrice } = req.body;
+    
+    if (price === undefined || price === null) {
+      return res.status(400).json({
+        success: false,
+        message: "Price is required"
+      });
+    }
+    
+    // Find the default ProductUnit for this product
+    const defaultProductUnit = await ProductUnit.findOne({
+      product: productId,
+      isDefault: true
+    });
+    
+    if (!defaultProductUnit) {
+      return res.status(404).json({
+        success: false,
+        message: "Default ProductUnit not found for this product"
+      });
+    }
+    
+    // Update the price
+    const oldPrice = defaultProductUnit.price;
+    defaultProductUnit.price = price;
+    defaultProductUnit.originalPrice = originalPrice || price;
+    
+    await defaultProductUnit.save();
+    
+    console.log(`💰 Updated default ProductUnit price for product ${productId}: ${oldPrice} → ${price}`);
+    
+    res.status(200).json({
+      success: true,
+      message: "Default unit price updated successfully",
+      data: {
+        productId,
+        oldPrice,
+        newPrice: price,
+        unitId: defaultProductUnit._id
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in updateDefaultUnitPrice:', error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update default unit price",
+      error: error.message,
+    });
+  }
+};
+
 // Delete a specific product unit
 const deleteProductUnit = async (req, res) => {
   try {
@@ -928,6 +984,7 @@ module.exports = {
   createProductUnit,
   updateProductUnit,
   deleteProductUnit,
+  updateDefaultUnitPrice,
   calculateStockRequirement,
   getBestValueUnit,
   compareUnitPricing,

@@ -65,27 +65,9 @@ const productSchema = new mongoose.Schema(
     },
     tag: [String],
     
-    // SINGLE selling price only
-    price: {
-      type: Number,
-      required: true, // Price of one single basicUnit
-    },
-    
-    // Structured pricing object (recommended for production)
-    prices: {
-      price: {
-        type: Number,
-        required: false,
-      },
-      originalPrice: {
-        type: Number,
-        required: false,
-      },
-      discount: {
-        type: Number,
-        default: 0,
-      },
-    },
+    // PRICE REMOVED: All pricing is now handled through ProductUnits collection
+    // The default unit price can be accessed via the default ProductUnit document
+    // This ensures proper unit-based pricing architecture
     
     // Basic unit type reference
     basicUnit: {

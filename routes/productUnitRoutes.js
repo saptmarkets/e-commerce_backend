@@ -7,6 +7,7 @@ const {
   createProductUnit,
   updateProductUnit,
   deleteProductUnit,
+  updateDefaultUnitPrice,
   calculateStockRequirement,
   getBestValueUnit,
   compareUnitPricing,
@@ -78,6 +79,9 @@ router.post("/product/:productId", createProductUnit);
 
 // Update a specific product unit - temporarily remove auth for testing
 router.put("/product/:productId/unit/:unitId", updateProductUnit);
+
+// Update default unit price for a product (used when admin changes product price)
+router.put("/product/:productId/default-price", updateDefaultUnitPrice);
 
 // Delete a product unit - temporarily remove auth for testing
 router.delete("/product/:productId/unit/:unitId", deleteProductUnit);
