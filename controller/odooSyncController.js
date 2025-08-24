@@ -960,16 +960,16 @@ const syncToStore = async (req, res) => {
 
     // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit stock for products with stock changes
     if (allowed.stock) {
-      console.log(`🔄 Updating ProductUnit stock for ${storeProducts.length} products...`);
+      console.log(`🔄 Updating ProductUnit stock for ${allStoreProducts.length} products...`);
       const ProductUnit = require('../models/ProductUnit');
       
       let unitsUpdated = 0;
       const unitBulkOps = [];
       
-      for (const storeProduct of storeProducts) {
+      for (const storeProduct of allStoreProducts) {
         try {
           // Get pre-fetched Odoo product data
-          const odooProduct = odooProductMap.get(storeProduct._id.toString());
+          const odooProduct = storeProductMap.get(storeProduct.odoo_id);
           if (!odooProduct) continue;
           
           // Get pre-fetched stock data
@@ -1016,16 +1016,16 @@ const syncToStore = async (req, res) => {
 
     // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit prices separately (even if stock not selected)
     if (allowed.price) {
-      console.log(`💰 Updating ProductUnit prices for ${storeProducts.length} products...`);
+      console.log(`💰 Updating ProductUnit prices for ${allStoreProducts.length} products...`);
       const ProductUnit = require('../models/ProductUnit');
       
       let priceUnitsUpdated = 0;
       const priceBulkOps = [];
       
-      for (const storeProduct of storeProducts) {
+      for (const storeProduct of allStoreProducts) {
         try {
           // Get pre-fetched Odoo product data
-          const odooProduct = odooProductMap.get(storeProduct._id.toString());
+          const odooProduct = storeProductMap.get(storeProduct.odoo_id);
           
           if (!odooProduct || !odooProduct.list_price) continue;
           
@@ -1059,8 +1059,8 @@ const syncToStore = async (req, res) => {
       
       // Get all store products in one query
       const storeProductIds = unitsToSync.map(unit => unit.store_product_id);
-      const storeProducts = await Product.find({ _id: { $in: storeProductIds } }).lean();
-      const storeProductMap = new Map(storeProducts.map(sp => [sp._id.toString(), sp]));
+      const storeProductsForUnits = await Product.find({ _id: { $in: storeProductIds } }).lean();
+      const storeProductMapForUnits = new Map(storeProductsForUnits.map(sp => [sp._id.toString(), sp]));
 
       // Process units in batches
       const batchSize = 10;
@@ -1068,7 +1068,7 @@ const syncToStore = async (req, res) => {
         const batch = unitsToSync.slice(i, i + batchSize);
         await Promise.all(batch.map(async (op) => {
           try {
-            const storeProd = storeProductMap.get(op.store_product_id.toString());
+            const storeProd = storeProductMapForUnits.get(op.store_product_id.toString());
             if (storeProd) {
             await importService.importProductUnits(op, storeProd);
             }
