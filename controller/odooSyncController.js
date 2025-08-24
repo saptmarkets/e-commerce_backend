@@ -761,10 +761,46 @@ const syncToStore = async (req, res) => {
       });
     }
 
-    // 🚀 PERFORMANCE OPTIMIZATION: Pre-fetch categories if needed
+    // 🚀 PERFORMANCE OPTIMIZATION: Pre-fetch ALL data in bulk to avoid individual queries
+    console.log('🚀 Pre-fetching all required data in bulk...');
+    
+    // 1. Pre-fetch all Odoo products for these store products
+    const storeProductIds = storeProducts.map(p => p._id.toString());
+    const allOdooProducts = await OdooProduct.find({ 
+      store_product_id: { $in: storeProductIds } 
+    }).lean();
+    
+    // Create a map for fast lookup: store_product_id -> odooProduct
+    const odooProductMap = new Map(
+      allOdooProducts.map(op => [op.store_product_id, op])
+    );
+    
+    console.log(`📦 Pre-fetched ${allOdooProducts.length} Odoo products`);
+    
+    // 2. Pre-fetch all stock data if stock sync is needed
+    let stockMap = new Map();
+    if (allowed.stock) {
+      const odooProductIds = allOdooProducts.map(op => op.id);
+      const allStockRecords = await OdooStock.find({ 
+        product_id: { $in: odooProductIds },
+        is_active: true 
+      }).lean();
+      
+      // Group stock records by product_id
+      stockMap = new Map();
+      allStockRecords.forEach(record => {
+        if (!stockMap.has(record.product_id)) {
+          stockMap.set(record.product_id, []);
+        }
+        stockMap.get(record.product_id).push(record);
+      });
+      
+      console.log(`📊 Pre-fetched stock data for ${stockMap.size} products`);
+    }
+    
+    // 3. Pre-fetch categories if needed
     let categoryMap = new Map();
     if (allowed.categories) {
-      // Get all unique category IDs from store products
       const categoryIds = [...new Set(storeProducts.map(p => p.category).filter(Boolean))];
       if (categoryIds.length > 0) {
         const categories = await OdooCategory.find({ 
@@ -779,6 +815,8 @@ const syncToStore = async (req, res) => {
     const bulkOps = [];
     const unitsToSync = [];
     let updated = 0;
+    let unitsUpdated = 0;  // Initialize to prevent undefined error
+    let priceUnitsUpdated = 0;  // Initialize to prevent undefined error
     const errors = [];
 
     console.log(`🔄 Starting sync process for ${storeProducts.length} store products...`);
@@ -792,10 +830,8 @@ const syncToStore = async (req, res) => {
       }
       
       try {
-        // Find corresponding Odoo product data
-        const odooProduct = await OdooProduct.findOne({ 
-          store_product_id: storeProduct._id.toString() 
-        }).lean();
+        // Get pre-fetched Odoo product data (no database query needed!)
+        const odooProduct = odooProductMap.get(storeProduct._id.toString());
         
         if (!odooProduct) {
           console.log(`⚠️ No Odoo data found for store product ${storeProduct._id}, skipping...`);
@@ -818,13 +854,10 @@ const syncToStore = async (req, res) => {
         }
 
         if (allowed.stock) {
-          // Get stock from OdooStock collection (location-specific stock)
-          const stockRecords = await OdooStock.find({ 
-            product_id: odooProduct.id, 
-            is_active: true 
-          }).lean();
+          // Get pre-fetched stock data (no database query needed!)
+          const stockRecords = stockMap.get(odooProduct.id) || [];
           
-          if (stockRecords && stockRecords.length > 0) {
+          if (stockRecords.length > 0) {
             // Calculate total stock across all locations
             const totalStock = stockRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
             const totalAvailable = stockRecords.reduce((sum, record) => sum + (record.available_quantity || 0), 0);
@@ -886,22 +919,18 @@ const syncToStore = async (req, res) => {
       const ProductUnit = require('../models/ProductUnit');
       
       let unitsUpdated = 0;
+      const unitBulkOps = [];
+      
       for (const storeProduct of storeProducts) {
         try {
-          // Find corresponding Odoo product data
-          const odooProduct = await OdooProduct.findOne({ 
-            store_product_id: storeProduct._id.toString() 
-          }).lean();
-          
+          // Get pre-fetched Odoo product data
+          const odooProduct = odooProductMap.get(storeProduct._id.toString());
           if (!odooProduct) continue;
           
-          // Get stock from OdooStock collection
-          const stockRecords = await OdooStock.find({ 
-            product_id: odooProduct.id, 
-            is_active: true 
-          }).lean();
+          // Get pre-fetched stock data
+          const stockRecords = stockMap.get(odooProduct.id) || [];
           
-          if (stockRecords && stockRecords.length > 0) {
+          if (stockRecords.length > 0) {
             // Calculate total stock across all locations
             const totalStock = stockRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
             const totalAvailable = stockRecords.reduce((sum, record) => sum + (record.available_quantity || 0), 0);
@@ -918,22 +947,26 @@ const syncToStore = async (req, res) => {
               console.log(`💰 Updating ProductUnit price for product ${storeProduct._id}: ${odooProduct.list_price}`);
             }
             
-            // Update all ProductUnits for this product
-            const updateResult = await ProductUnit.updateMany(
-              { product: storeProduct._id },
-              { $set: unitUpdateData }
-            );
-            
-            if (updateResult.modifiedCount > 0) {
-              unitsUpdated += updateResult.modifiedCount;
-              console.log(`✅ Updated ${updateResult.modifiedCount} ProductUnits for product ${storeProduct._id} with stock: ${totalStock}`);
-            }
+            // Collect bulk operation for ProductUnits
+            unitBulkOps.push({
+              updateMany: {
+                filter: { product: storeProduct._id },
+                update: { $set: unitUpdateData }
+              }
+            });
           }
         } catch (unitErr) {
           console.warn('⚠️ ProductUnit stock update error for product', storeProduct._id, unitErr.message);
         }
       }
-      console.log(`✅ ProductUnit stock update completed: ${unitsUpdated} units updated`);
+      
+      // Execute bulk update for ProductUnits
+      if (unitBulkOps.length > 0) {
+        console.log(`🚀 Executing bulk update for ${unitBulkOps.length} ProductUnits...`);
+        const unitBulkResult = await ProductUnit.bulkWrite(unitBulkOps);
+        unitsUpdated = unitBulkResult.modifiedCount || 0;
+        console.log(`✅ ProductUnit bulk update completed: ${unitsUpdated} units updated`);
+      }
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit prices separately (even if stock not selected)
@@ -942,30 +975,36 @@ const syncToStore = async (req, res) => {
       const ProductUnit = require('../models/ProductUnit');
       
       let priceUnitsUpdated = 0;
+      const priceBulkOps = [];
+      
       for (const storeProduct of storeProducts) {
         try {
-          // Find corresponding Odoo product data
-          const odooProduct = await OdooProduct.findOne({ 
-            store_product_id: storeProduct._id.toString() 
-          }).lean();
+          // Get pre-fetched Odoo product data
+          const odooProduct = odooProductMap.get(storeProduct._id.toString());
           
           if (!odooProduct || !odooProduct.list_price) continue;
           
-          // Update all ProductUnits for this product with new price
-          const updateResult = await ProductUnit.updateMany(
-            { product: storeProduct._id },
-            { $set: { price: odooProduct.list_price } }
-          );
+          // Collect bulk operation for ProductUnit prices
+          priceBulkOps.push({
+            updateMany: {
+              filter: { product: storeProduct._id },
+              update: { $set: { price: odooProduct.list_price } }
+            }
+          });
           
-          if (updateResult.modifiedCount > 0) {
-            priceUnitsUpdated += updateResult.modifiedCount;
-            console.log(`💰 Updated ${updateResult.modifiedCount} ProductUnits for product ${storeProduct._id} with price: ${odooProduct.list_price}`);
-          }
+          console.log(`💰 Queuing price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
         } catch (priceErr) {
           console.warn('⚠️ ProductUnit price update error for product', storeProduct._id, priceErr.message);
         }
       }
-      console.log(`✅ ProductUnit price update completed: ${priceUnitsUpdated} units updated`);
+      
+      // Execute bulk update for ProductUnit prices
+      if (priceBulkOps.length > 0) {
+        console.log(`🚀 Executing bulk update for ${priceBulkOps.length} ProductUnit prices...`);
+        const priceBulkResult = await ProductUnit.bulkWrite(priceBulkOps);
+        priceUnitsUpdated = priceBulkResult.modifiedCount || 0;
+        console.log(`✅ ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
+      }
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Batch process units
