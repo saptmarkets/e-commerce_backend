@@ -780,15 +780,15 @@ const syncToStore = async (req, res) => {
     // Create a map for fast lookup: store_product_id -> odooProduct
     // Use ObjectId for lookup since store_product_id is stored as ObjectId in OdooProduct
     const odooProductMap = new Map(
-      allOdooProducts.map(op => [op.store_product_id.toString(), op])
+      allOdooProducts.map(product => [product.store_product_id.toString(), product])
     );
     
     console.log(`📦 Pre-fetched ${allOdooProducts.length} Odoo products`);
-    console.log(`🔍 Sample Odoo products found:`, allOdooProducts.slice(0, 3).map(op => ({
-      store_product_id: op.store_product_id,
-      id: op.id,
-      name: op.name,
-      list_price: op.list_price
+    console.log(`🔍 Sample Odoo products found:`, allOdooProducts.slice(0, 3).map(product => ({
+      store_product_id: product.store_product_id,
+      id: product.id,
+      name: product.name,
+      list_price: product.list_price
     })));
     
     // Debug: Check if we're finding the right products
@@ -800,7 +800,7 @@ const syncToStore = async (req, res) => {
     // 2. Pre-fetch all stock data if stock sync is needed
     let stockMap = new Map();
     if (allowed.stock) {
-      const odooProductIds = allOdooProducts.map(op => op.id);
+      const odooProductIds = allOdooProducts.map(product => product.id);
       const allStockRecords = await OdooStock.find({ 
         product_id: { $in: odooProductIds },
         is_active: true 
@@ -938,7 +938,7 @@ const syncToStore = async (req, res) => {
         }
 
       } catch (pErr) {
-        console.error('Sync error for product', op.id, pErr);
+        console.error('Sync error for product', odooProduct?.id || 'unknown', pErr);
         errors.push(pErr.message);
       }
     }
@@ -1061,7 +1061,7 @@ const syncToStore = async (req, res) => {
             const importService = require('../services/odooImportService');
       
       // Get all store products in one query
-      const storeProductIds = unitsToSync.map(op => op.store_product_id);
+      const storeProductIds = unitsToSync.map(unit => unit.store_product_id);
       const storeProducts = await Product.find({ _id: { $in: storeProductIds } }).lean();
       const storeProductMap = new Map(storeProducts.map(sp => [sp._id.toString(), sp]));
 
