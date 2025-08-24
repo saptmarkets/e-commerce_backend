@@ -728,13 +728,39 @@ const syncToStore = async (req, res) => {
 
     console.log('📋 Allowed fields for sync:', allowed);
 
-    const prodFilter = productIds && productIds.length > 0 ? { id: { $in: productIds.map(Number) } } : {};
-
-    const odooProducts = await OdooProduct.find(prodFilter).lean();
-    console.log(`📦 Found ${odooProducts.length} Odoo products to sync`);
+    // 🚀 PERFORMANCE OPTIMIZATION: Only sync products that exist in store database
+    let odooProducts = [];
+    
+    if (productIds && productIds.length > 0) {
+      // If specific product IDs provided, use those
+      const prodFilter = { id: { $in: productIds.map(Number) } };
+      odooProducts = await OdooProduct.find(prodFilter).lean();
+      console.log(`📦 Found ${odooProducts.length} specific Odoo products to sync`);
+    } else {
+      // If no specific IDs, only sync products that have store_product_id (exist in store)
+      // Add limit to prevent unlimited processing
+      const MAX_SYNC_PRODUCTS = 1000; // Safety limit
+      odooProducts = await OdooProduct.find({ 
+        store_product_id: { $exists: true, $ne: null } 
+      }).limit(MAX_SYNC_PRODUCTS).lean();
+      
+      if (odooProducts.length === MAX_SYNC_PRODUCTS) {
+        console.log(`⚠️ Reached safety limit of ${MAX_SYNC_PRODUCTS} products. Consider syncing specific categories or products.`);
+      }
+      
+      console.log(`📦 Found ${odooProducts.length} Odoo products with existing store records to sync`);
+    }
     
     if (odooProducts.length === 0) {
-      return res.json({ success: true, updated: 0, promosUpdated: 0, errors: [] });
+      return res.json({ 
+        success: true, 
+        updated: 0, 
+        unitsUpdated: 0,
+        priceUnitsUpdated: 0,
+        promosUpdated: 0, 
+        errors: [],
+        message: 'No products found to sync. Make sure products exist in both Odoo and store databases.'
+      });
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Pre-fetch categories if needed
@@ -754,7 +780,16 @@ const syncToStore = async (req, res) => {
     let updated = 0;
     const errors = [];
 
-    for (const op of odooProducts) {
+    console.log(`🔄 Starting sync process for ${odooProducts.length} products...`);
+    
+    for (let i = 0; i < odooProducts.length; i++) {
+      const op = odooProducts[i];
+      
+      // Show progress every 50 products
+      if (i % 50 === 0 || i === odooProducts.length - 1) {
+        console.log(`📊 Progress: ${i + 1}/${odooProducts.length} products processed (${Math.round(((i + 1) / odooProducts.length) * 100)}%)`);
+      }
+      
       try {
         if (!op.store_product_id) continue;
         
@@ -988,8 +1023,20 @@ const syncToStore = async (req, res) => {
     }
 
     const totalUnitsUpdated = (unitsUpdated || 0) + (priceUnitsUpdated || 0);
-    console.log(`✅ Sync completed: ${updated} products updated, ${totalUnitsUpdated} units updated (${unitsUpdated || 0} stock, ${priceUnitsUpdated || 0} price), ${promosUpdated} promotions updated, ${errors.length} errors`);
-    res.json({ success: true, updated, unitsUpdated: totalUnitsUpdated, priceUnitsUpdated: priceUnitsUpdated || 0, promosUpdated, errors });
+    const totalProcessed = odooProducts.length;
+    
+    console.log(`✅ Sync completed: ${updated}/${totalProcessed} products updated, ${totalUnitsUpdated} units updated (${unitsUpdated || 0} stock, ${priceUnitsUpdated || 0} price), ${promosUpdated} promotions updated, ${errors.length} errors`);
+    
+    res.json({ 
+      success: true, 
+      updated, 
+      totalProcessed,
+      unitsUpdated: totalUnitsUpdated, 
+      priceUnitsUpdated: priceUnitsUpdated || 0, 
+      promosUpdated, 
+      errors,
+      message: `Successfully synced ${updated} out of ${totalProcessed} products. ${totalUnitsUpdated} units updated.`
+    });
   } catch (error) {
     console.error('SyncToStore error:', error);
     res.status(500).json({ success: false, message: error.message });
