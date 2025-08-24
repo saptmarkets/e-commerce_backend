@@ -712,6 +712,7 @@ const getImportPreview = async (req, res) => {
  */
 const syncToStore = async (req, res) => {
   try {
+    console.log('🚨🚨🚨 SYNC TO STORE FUNCTION CALLED! 🚨🚨🚨');
     console.log('🔍 syncToStore called with:', { fields: req.body?.fields, productIds: req.body?.productIds });
     
     const { fields = {}, productIds = [] } = req.body || {};
@@ -768,13 +769,18 @@ const syncToStore = async (req, res) => {
     const storeProductIds = storeProducts.map(p => p._id.toString());
     console.log(`🔍 Looking for Odoo products with store_product_id in:`, storeProductIds.slice(0, 5), `... (${storeProductIds.length} total)`);
     
+    // Convert string ObjectIds to actual ObjectIds for the query
+    const storeProductObjectIds = storeProducts.map(p => p._id);
+    console.log(`🔍 Converted to ObjectIds for query:`, storeProductObjectIds.slice(0, 5).map(id => id.toString()), `... (${storeProductObjectIds.length} total)`);
+    
     const allOdooProducts = await OdooProduct.find({ 
-      store_product_id: { $in: storeProductIds } 
+      store_product_id: { $in: storeProductObjectIds } 
     }).lean();
     
     // Create a map for fast lookup: store_product_id -> odooProduct
+    // Use ObjectId for lookup since store_product_id is stored as ObjectId in OdooProduct
     const odooProductMap = new Map(
-      allOdooProducts.map(op => [op.store_product_id, op])
+      allOdooProducts.map(op => [op.store_product_id.toString(), op])
     );
     
     console.log(`📦 Pre-fetched ${allOdooProducts.length} Odoo products`);
