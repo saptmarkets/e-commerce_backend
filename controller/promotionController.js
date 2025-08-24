@@ -258,7 +258,7 @@ const getAllPromotions = async (req, res) => {
     }
     
     console.log('🔍 Final query object:', queryObject);
-    
+
     const count = await Promotion.countDocuments(queryObject);
     console.log('📊 Total promotions found in DB:', count);
     
@@ -326,29 +326,29 @@ const getActivePromotions = async (req, res) => {
     
     const promotionsWithDates = await Promotion.find(promotionsQuery)
       .populate({
-        path: 'productUnit',
-        populate: [
-          {
-            path: 'product',
-            select: 'title slug sku image prices stock'
-          },
-          {
-            path: 'unit',
-            select: 'name shortName nameAr'
-          }
-        ]
+      path: 'productUnit',
+      populate: [
+        {
+          path: 'product',
+          select: 'title slug sku image prices stock'
+        },
+        {
+          path: 'unit',
+          select: 'name shortName nameAr'
+        }
+      ]
       })
       .populate({
-        path: 'productUnits',
-        populate: [
-          {
-            path: 'product',
-            select: 'title slug sku image prices stock'
-          },
-          {
-            path: 'unit',
-            select: 'name shortName nameAr'
-          }
+      path: 'productUnits',
+      populate: [
+        {
+          path: 'product',
+          select: 'title slug sku image prices stock'
+        },
+        {
+          path: 'unit',
+          select: 'name shortName nameAr'
+        }
         ],
         // Include stock and price fields from ProductUnit itself
         select: 'stock price product unit'

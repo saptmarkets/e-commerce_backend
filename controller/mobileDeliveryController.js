@@ -419,7 +419,7 @@ const getMobileOrderDetails = async (req, res) => {
       );
       if (order.cart && order.cart.length > 0) {
         productChecklist = await regenerateIncompleteChecklist(order);
-        
+
         // IMPORTANT: Save the newly generated checklist back to the order
         try {
           await Order.findByIdAndUpdate(

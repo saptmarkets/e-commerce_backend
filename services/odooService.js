@@ -421,7 +421,7 @@ class OdooService {
       
       const products = await this.searchRead(
         'product.product',
-        domain,
+      domain,
         [
           'id', 'name', 'default_code', 'barcode', 
           'list_price', 'standard_price', 'lst_price', 'cost',
@@ -432,8 +432,8 @@ class OdooService {
           'qty_available', 'virtual_available', 'barcode_unit_ids',  // ✅ Add stock fields
           'write_date', 'create_date', 'write_uid', 'create_uid'
         ],
-        offset,
-        limit,
+      offset,
+      limit,
         'write_date desc'  // Get most recently updated products first
       );
 
@@ -548,9 +548,9 @@ class OdooService {
 
       if (totalCount === 0) {
         console.log(`⚠️ No products found in category ${category.complete_name}`);
-        if (progressCallback) {
-          progressCallback({
-            category: category,
+      if (progressCallback) {
+        progressCallback({
+          category: category,
             total: 0,
             current: 0,
             synced: 0,
@@ -615,7 +615,7 @@ class OdooService {
       console.log(`   - Batch size: ${batchSize}`);
       console.log(`   - Start offset: ${effectiveStartOffset}`);
       console.log(`   - End offset: ${effectiveEndOffset}`);
-      
+
       while (batchOffset < effectiveEndOffset && processedCount < effectiveMaxLimit) {
         try {
           const remainingInBatch = Math.min(batchSize, effectiveEndOffset - batchOffset, effectiveMaxLimit - processedCount);
@@ -635,9 +635,9 @@ class OdooService {
           let products;
           try {
             products = await this.searchRead(
-              'product.product',
-              domain,
-              [
+            'product.product',
+            domain,
+            [
                 // Use EXACTLY the same fields as the working batch fetch function
                 'id', 'product_tmpl_id', 'name', 'default_code', 'barcode',
                 'list_price', 'standard_price', 'qty_available', 'virtual_available',
@@ -645,7 +645,7 @@ class OdooService {
                 'active', 'description_sale', 'weight', 'volume',
                 'barcode_unit_ids', 'barcode_unit_count',
                 'create_date', 'write_date'
-              ],
+            ],
               batchOffset,
               remainingInBatch,
               'id'  // Use same sorting as batch fetch
@@ -670,7 +670,7 @@ class OdooService {
           }
 
           console.log(`📦 Processing ${products.length} products...`);
-          
+
           // Debug: Log first product to see what fields are returned
           if (products.length > 0) {
             console.log(`🔍 Sample product data from Odoo:`, {
@@ -711,14 +711,14 @@ class OdooService {
                 update: {
                   $set: {
                     // Explicitly set each field to ensure stock data is preserved
-                    id: product.id,
+              id: product.id,
                     product_tmpl_id,
                     uom_id,
                     uom_po_id,
                     categ_id,
                     default_code,
-                    name: product.name,
-                    barcode: product.barcode,
+              name: product.name,
+              barcode: product.barcode,
                     type: product.type,
                     sale_ok: product.sale_ok,
                     purchase_ok: product.purchase_ok,
@@ -735,11 +735,11 @@ class OdooService {
                     list_price: Number(product.list_price || 0),
                     standard_price: Number(product.standard_price || 0),
                     // Timestamps
-                    create_date: product.create_date ? new Date(product.create_date) : new Date(),
+              create_date: product.create_date ? new Date(product.create_date) : new Date(),
                     write_date: product.write_date ? new Date(product.write_date) : new Date(),
                     last_stock_update: new Date(), // Track when stock was last updated
-                    _sync_status: 'pending',
-                    is_active: true,
+              _sync_status: 'pending',
+              is_active: true,
                   }
                 },
                 upsert: true
@@ -768,7 +768,7 @@ class OdooService {
                   barcode_unit_ids: savedProduct.barcode_unit_ids,
                   last_stock_update: savedProduct.last_stock_update
                 });
-                
+
                 // Compare original vs saved stock data
                 const originalProduct = products[0];
                 console.log(`🔍 Stock data comparison - Original vs Saved:`, {
@@ -805,16 +805,16 @@ class OdooService {
                 ['id', 'location_id', 'quantity', 'reserved_quantity', 'available_quantity', 'lot_id', 'package_id', 'owner_id', 'create_date', 'write_date'],
                 0, 100
               );
-              
+
               if (stockQuants && stockQuants.length > 0) {
                 console.log(`📦 Product ${product.id} has stock in ${stockQuants.length} locations`);
-                
+            
                 // Create OdooStock records for each location (like batch fetch does)
                 const stockOperations = stockQuants.map(quant => ({
-                  updateOne: {
+              updateOne: {
                     filter: { id: quant.id },
-                    update: {
-                      $set: {
+                update: {
+                  $set: {
                         id: quant.id,
                         product_id: product.id,
                         product_name: product.name,
@@ -829,14 +829,14 @@ class OdooService {
                         owner_id: quant.owner_id ? (Array.isArray(quant.owner_id) ? quant.owner_id[0] : quant.owner_id) : null,
                         create_date: quant.create_date ? new Date(quant.create_date) : new Date(),
                         write_date: quant.write_date ? new Date(quant.write_date) : new Date(),
-                        _sync_status: 'pending',
-                        is_active: true,
-                      }
-                    },
-                    upsert: true
+                    _sync_status: 'pending',
+                    is_active: true,
                   }
-                }));
-                
+                },
+                upsert: true
+              }
+            }));
+
                 // Bulk write stock records to database
                 if (stockOperations.length > 0) {
                   await OdooStock.bulkWrite(stockOperations, { ordered: false });
@@ -898,7 +898,7 @@ class OdooService {
       // Return success without touching store database
       const syncedCount = processedCount;
       const errors = [];
-      
+
       if (progressCallback) {
         progressCallback({
           category: category,
