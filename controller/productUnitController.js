@@ -360,18 +360,14 @@ const createProductUnit = async (req, res) => {
     let adjustedPrice = finalPrice;
     let adjustedIsDefault = Boolean(isDefault);
     
-    // If this is the first unit and no price was provided, check if there's a default unit price
+    // If this is the first unit and no price was provided, use the product's basic price
     if (existingUnitsCount === 0 && finalPrice === 0) {
-      console.log(`[ProductUnitController] First unit for product, checking for existing default unit price`);
-      const existingDefaultUnit = await ProductUnit.findOne({
-        product: finalProductId,
-        isDefault: true
-      });
-      
-      if (existingDefaultUnit && existingDefaultUnit.price > 0) {
-        adjustedPrice = existingDefaultUnit.price;
+      console.log(`[ProductUnitController] First unit for product, checking product's basic price`);
+      const productPrice = product.prices?.price || product.price;
+      if (productPrice && productPrice > 0) {
+        adjustedPrice = productPrice;
         adjustedIsDefault = true; // First unit should be default
-        console.log(`[ProductUnitController] Using existing default unit price: ${adjustedPrice}`);
+        console.log(`[ProductUnitController] Using product's basic price: ${adjustedPrice}`);
       }
     }
     
@@ -589,86 +585,6 @@ const updateProductUnit = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update product unit",
-      error: error.message,
-    });
-  }
-};
-
-// Update default ProductUnit price for a product (used when admin changes product price)
-const updateDefaultUnitPrice = async (req, res) => {
-  try {
-    console.log('🚀 updateDefaultUnitPrice called with:', { 
-      params: req.params, 
-      body: req.body,
-      headers: req.headers 
-    });
-    
-    const { productId } = req.params;
-    const { price, originalPrice } = req.body;
-    
-    console.log('📋 Parsed data:', { productId, price, originalPrice });
-    
-    if (price === undefined || price === null) {
-      console.log('❌ Price validation failed: price is undefined or null');
-      return res.status(400).json({
-        success: false,
-        message: "Price is required"
-      });
-    }
-    
-    console.log('🔍 Searching for default ProductUnit with product:', productId);
-    
-    // Find the default ProductUnit for this product
-    const defaultProductUnit = await ProductUnit.findOne({
-      product: productId,
-      isDefault: true
-    });
-    
-    console.log('🔍 Default ProductUnit search result:', defaultProductUnit ? {
-      id: defaultProductUnit._id,
-      price: defaultProductUnit.price,
-      isDefault: defaultProductUnit.isDefault
-    } : 'NOT FOUND');
-    
-    if (!defaultProductUnit) {
-      console.log('❌ Default ProductUnit not found for product:', productId);
-      return res.status(404).json({
-        success: false,
-        message: "Default ProductUnit not found for this product"
-      });
-    }
-    
-    // Update the price
-    const oldPrice = defaultProductUnit.price;
-    defaultProductUnit.price = price;
-    defaultProductUnit.originalPrice = originalPrice || price;
-    
-    console.log('💾 Saving ProductUnit with new price:', {
-      oldPrice,
-      newPrice: price,
-      originalPrice: defaultProductUnit.originalPrice
-    });
-    
-    await defaultProductUnit.save();
-    
-    console.log(`💰 Successfully updated default ProductUnit price for product ${productId}: ${oldPrice} → ${price}`);
-    
-    res.status(200).json({
-      success: true,
-      message: "Default unit price updated successfully",
-      data: {
-        productId,
-        oldPrice,
-        newPrice: price,
-        unitId: defaultProductUnit._id
-      }
-    });
-    
-  } catch (error) {
-    console.error('❌ Error in updateDefaultUnitPrice:', error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update default unit price",
       error: error.message,
     });
   }
@@ -1012,7 +928,6 @@ module.exports = {
   createProductUnit,
   updateProductUnit,
   deleteProductUnit,
-  updateDefaultUnitPrice,
   calculateStockRequirement,
   getBestValueUnit,
   compareUnitPricing,

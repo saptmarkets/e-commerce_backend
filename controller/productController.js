@@ -41,11 +41,15 @@ const addProduct = async (req, res) => {
       return res.status(400).send({ message: "Invalid basicUnit ID. Unit not found." });
     }
 
-    // PRICE REMOVED: Price is no longer stored in Product collection
-    // All pricing is handled through ProductUnits collection
-    // Remove any price-related fields from the request
-    delete productData.price;
-    delete productData.prices;
+    // Handle legacy prices object if present
+    if (req.body.prices) {
+      productData.price = req.body.prices.price;
+      delete productData.prices;
+    }
+
+    if (productData.price === undefined || productData.price === null) {
+        return res.status(400).send({ message: "Product price is required (price of one basicUnit)." });
+    }
 
     const newProduct = new Product({
       ...productData,
@@ -62,8 +66,8 @@ const addProduct = async (req, res) => {
       unit: newProduct.basicUnit,
       unitValue: 1,
       packQty: 1,
-      price: 0, // Default price, should be set by admin through ProductUnits API
-      originalPrice: 0, // Default price, should be set by admin through ProductUnits API
+      price: newProduct.price,
+      originalPrice: productData.originalPrice || newProduct.price,
       sku: newProduct.sku,
       barcode: newProduct.barcode,
       isDefault: true,
@@ -449,8 +453,9 @@ const updateProduct = async (req, res) => {
       return res.status(404).send({ message: "Product Not Found!" });
     }
 
-    // Keep a reference to the old basicUnit for comparison
+    // Keep a reference to the old basicUnit and price for comparison
     const oldBasicUnitId = product.basicUnit ? product.basicUnit.toString() : null;
+    const oldPrice = product.price;
 
     // Update standard fields
     if (req.body.title) product.title = { ...product.title, ...req.body.title };
@@ -469,6 +474,7 @@ const updateProduct = async (req, res) => {
     if (req.body.variants) product.variants = req.body.variants;
 
     let basicUnitChanged = false;
+    let priceChanged = false;
 
     // Handle basicUnit update
     if (req.body.basicUnit && req.body.basicUnit.toString() !== oldBasicUnitId) {
@@ -480,14 +486,21 @@ const updateProduct = async (req, res) => {
       basicUnitChanged = true;
     }
 
-    // PRICE REMOVED: Price updates are now handled through ProductUnits
-    // The admin interface should update the default ProductUnit price instead
-    // This ensures proper unit-based pricing architecture
+    // Handle price update (price of one basicUnit)
+    if (req.body.price !== undefined && req.body.price !== oldPrice) {
+        product.price = req.body.price;
+        priceChanged = true;
+    }
+    // Legacy prices object handling (only if new price not set directly)
+    else if (req.body.prices && req.body.prices.price !== undefined && req.body.prices.price !== oldPrice) {
+        product.price = req.body.prices.price;
+        priceChanged = true;
+    }
 
     await product.save();
 
-    // If basicUnit changed, update the default ProductUnit
-    if (basicUnitChanged) {
+    // If basicUnit or price changed, update the default ProductUnit
+    if (basicUnitChanged || priceChanged) {
       let defaultProductUnit = await ProductUnit.findOne({
         product: product._id,
         isDefault: true,
@@ -508,8 +521,8 @@ const updateProduct = async (req, res) => {
           defaultProductUnit.barcode = product.barcode;
           defaultProductUnit.packQty = 1; // Ensure packQty is set for basic unit
         }
-        // Price updates are now handled through ProductUnits API
-        // The admin interface should update the default ProductUnit price directly
+        defaultProductUnit.price = product.price;
+        defaultProductUnit.originalPrice = req.body.originalPrice || product.price;
         await defaultProductUnit.save();
       } else if (basicUnitChanged) {
         // Generate a unique SKU for the new default product unit
@@ -524,8 +537,8 @@ const updateProduct = async (req, res) => {
             unit: product.basicUnit,
             unitValue: 1,
             packQty: 1,
-            price: 0, // Default price, should be set by admin through ProductUnits API
-            originalPrice: 0, // Default price, should be set by admin through ProductUnits API
+            price: product.price,
+            originalPrice: req.body.originalPrice || product.price,
             sku: newSku,
             barcode: product.barcode,
             isDefault: true,
@@ -561,8 +574,8 @@ const updateProduct = async (req, res) => {
           unit: product.basicUnit,
           unitValue: 1,
           packQty: 1,
-          price: 0, // Default price, should be set by admin through ProductUnits API
-          originalPrice: 0, // Default price, should be set by admin through ProductUnits API
+          price: product.price,
+          originalPrice: req.body.originalPrice || product.price,
           sku: newSku,
           barcode: product.barcode,
           isDefault: true,
@@ -1040,9 +1053,8 @@ const getEnhancedProductById = async (req, res) => {
       title: product.title,
       description: product.description,
       slug: product.slug,
-      // Price is now retrieved from default ProductUnit
-      price: undefined, // Removed from Product model
-      prices: undefined, // Removed from Product model
+      price: product.price, // Base unit price
+      prices: product.prices,
       basicUnit: product.basicUnit,
       basicUnitType: product.basicUnitType,
       hasMultiUnits: product.hasMultiUnits,
@@ -1124,9 +1136,8 @@ const getEnhancedProductBySlug = async (req, res) => {
       title: product.title,
       description: product.description,
       slug: product.slug,
-      // Price is now retrieved from default ProductUnit
-      price: undefined, // Removed from Product model
-      prices: undefined, // Removed from Product model
+      price: product.price,
+      prices: product.prices,
       basicUnit: product.basicUnit,
       basicUnitType: product.basicUnitType,
       hasMultiUnits: product.hasMultiUnits,

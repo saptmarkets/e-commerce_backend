@@ -897,13 +897,7 @@ const syncToStore = async (req, res) => {
         if (i < 5) { // Only show first 5 for debugging
           console.log(`🔍 Product ${i + 1}: Odoo ID=${odooProduct.id}, Store ID=${storeProduct._id}`);
           if (allowed.price) {
-            // Get default unit price for comparison
-        const defaultUnit = await ProductUnit.findOne({ 
-          product: storeProduct._id, 
-          isDefault: true 
-        });
-        const storePrice = defaultUnit ? defaultUnit.price : 'No default unit';
-        console.log(`💰 Price comparison: Store default unit=${storePrice}, Odoo=${odooProduct.list_price}`);
+            console.log(`💰 Price comparison: Store=${storeProduct.price}, Odoo=${odooProduct.list_price}`);
           }
           if (allowed.stock) {
             console.log(`📊 Stock comparison: Store=${storeProduct.stock}, Odoo=${odooProduct.qty_available}`);
@@ -1058,101 +1052,48 @@ const syncToStore = async (req, res) => {
       }
     }
 
-    // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit prices using SAME METHOD as import service
+    // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit prices separately (even if stock not selected)
     if (allowed.price) {
       console.log(`💰 Updating ProductUnit prices for ${allStoreProducts.length} products...`);
-      console.log(`💡 Note: Using SAME METHOD as import service - update both Product and ProductUnit prices`);
       const ProductUnit = require('../models/ProductUnit');
-      const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
       
       let priceUnitsUpdated = 0;
-      let productsUpdated = 0;
+      const priceBulkOps = [];
       
       for (const storeProduct of allStoreProducts) {
         try {
           // Get pre-fetched Odoo product data
           const odooProduct = storeProductMap.get(storeProduct.odoo_id);
           
-          if (!odooProduct) continue;
+          if (!odooProduct || !odooProduct.list_price) continue;
           
-          // STEP 1: Update Product.price (like import service does)
-          if (odooProduct.list_price) {
-            try {
-              await Product.findByIdAndUpdate(storeProduct._id, {
-                price: odooProduct.list_price,
-                originalPrice: odooProduct.standard_price || odooProduct.list_price || 0
-              });
-              productsUpdated++;
-              console.log(`💰 Updated Product.price for ${storeProduct._id}: ${odooProduct.list_price}`);
-            } catch (productUpdateErr) {
-              console.warn('⚠️ Failed to update Product.price:', productUpdateErr.message);
+          // Collect bulk operation for ProductUnit prices
+          priceBulkOps.push({
+            updateMany: {
+              filter: { product: storeProduct._id },
+              update: { $set: { price: odooProduct.list_price } }
             }
-          }
+          });
           
-          // STEP 2: Update default ProductUnit.price (like import service does)
-          if (odooProduct.list_price) {
-            try {
-              const defaultUnit = await ProductUnit.findOne({
-                product: storeProduct._id,
-                isDefault: true
-              });
-              
-              if (defaultUnit) {
-                defaultUnit.price = odooProduct.list_price;
-                defaultUnit.originalPrice = odooProduct.standard_price || odooProduct.list_price || 0;
-                await defaultUnit.save();
-                priceUnitsUpdated++;
-                console.log(`💰 Updated default ProductUnit.price for ${storeProduct._id}: ${odooProduct.list_price}`);
-              } else {
-                console.warn('⚠️ No default ProductUnit found for product:', storeProduct._id);
-              }
-            } catch (unitUpdateErr) {
-              console.warn('⚠️ Failed to update default ProductUnit.price:', unitUpdateErr.message);
-            }
-          }
-          
-          // STEP 3: Update individual unit prices from barcode units (existing logic)
-          if (odooProduct.barcode_unit_ids && odooProduct.barcode_unit_ids.length > 0) {
-            const barcodeUnits = await OdooBarcodeUnit.find({ 
-              id: { $in: odooProduct.barcode_unit_ids },
-              active: true 
-            });
-            
-            for (const bu of barcodeUnits) {
-              if (bu.price && bu.price > 0) {
-                try {
-                  const unitToUpdate = await ProductUnit.findOne({
-                    product: storeProduct._id,
-                    barcode: bu.barcode
-                  });
-                  
-                  if (unitToUpdate) {
-                    unitToUpdate.price = bu.price;
-                    await unitToUpdate.save();
-                    priceUnitsUpdated++;
-                    console.log(`💰 Updated unit price for product ${storeProduct._id}, barcode ${bu.barcode}: ${bu.price}`);
-                  }
-                } catch (buUpdateErr) {
-                  console.warn('⚠️ Failed to update barcode unit price:', buUpdateErr.message);
-                }
-              }
-            }
-          }
-          
+          console.log(`💰 Queuing price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
         } catch (priceErr) {
           console.warn('⚠️ ProductUnit price update error for product', storeProduct._id, priceErr.message);
         }
       }
       
-      console.log(`✅ Price sync completed: ${productsUpdated} products updated, ${priceUnitsUpdated} units updated`);
+      // Execute bulk update for ProductUnit prices
+      if (priceBulkOps.length > 0) {
+        console.log(`🚀 Executing bulk update for ${priceBulkOps.length} ProductUnit prices...`);
+        const priceBulkResult = await ProductUnit.bulkWrite(priceBulkOps);
+        priceUnitsUpdated = priceBulkResult.modifiedCount || 0;
+        console.log(`✅ ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
+      }
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Batch process units
     if (allowed.units && unitsToSync.length > 0) {
       console.log(`🔄 Processing units for ${unitsToSync.length} products...`);
-      console.log(`💡 Note: Unit sync includes updating unit prices from Odoo barcode units`);
-      console.log(`💡 Note: This ensures individual unit prices (e.g., pack prices) are synced from Odoo`);
-      const importService = require('../services/odooImportService');
+            const importService = require('../services/odooImportService');
       
       // Get all store products in one query
       const storeProductIds = unitsToSync.map(unit => unit.store_product_id);

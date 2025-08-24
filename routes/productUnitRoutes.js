@@ -7,7 +7,6 @@ const {
   createProductUnit,
   updateProductUnit,
   deleteProductUnit,
-  updateDefaultUnitPrice,
   calculateStockRequirement,
   getBestValueUnit,
   compareUnitPricing,
@@ -44,7 +43,7 @@ router.get("/direct-test/:productId", async (req, res) => {
     
     // Check if product exists
     const product = await Product.findById(productId);
-    const units = await ProductUnit.find({ product: productId }).populate('unit');
+    const units = await ProductUnit.find({ productId }).populate('unitId');
     
     res.json({
       message: "Direct test for product units",
@@ -54,10 +53,9 @@ router.get("/direct-test/:productId", async (req, res) => {
       unitsCount: units.length,
       units: units.map(u => ({
         id: u._id,
-        unitName: u.unit?.name || 'Unknown',
+        unitName: u.unitId?.name || 'Unknown',
         unitValue: u.unitValue,
-        price: u.price,
-        isDefault: u.isDefault
+        price: u.price
       }))
     });
   } catch (error) {
@@ -80,9 +78,6 @@ router.post("/product/:productId", createProductUnit);
 
 // Update a specific product unit - temporarily remove auth for testing
 router.put("/product/:productId/unit/:unitId", updateProductUnit);
-
-// Update default unit price for a product (used when admin changes product price)
-router.put("/product/:productId/default-price", updateDefaultUnitPrice);
 
 // Delete a product unit - temporarily remove auth for testing
 router.delete("/product/:productId/unit/:unitId", deleteProductUnit);

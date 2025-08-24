@@ -810,7 +810,7 @@ class OdooImportService {
               unitType: 'multi',
               unitValue: 1,
               packQty: bu.quantity || 1,
-              price: bu.price || 0,
+              price: bu.price || storeProduct.price || 0,
               sku: `${storeProduct.sku}-${shortCode}`,
               barcode: bu.barcode,
               name: unitName, // Add the unit name
@@ -831,22 +831,13 @@ class OdooImportService {
             
             units++;
           } else {
-            // Ensure stock fields and prices stay in sync for existing units
-            const oldPrice = prodUnit.price;
-            const newPrice = bu.price || 0;
-            
+            // Ensure stock fields stay in sync for existing units
             await prodUnit.set({
               stock: stock || 0,
               locationStocks: locationStocks || [],
-              price: newPrice, // Sync unit price from Odoo
               isActive: true,
               isAvailable: true
             }).save();
-            
-            // Log price changes for debugging
-            if (oldPrice !== newPrice) {
-              console.log(`💰 Updated unit price for ${storeProduct.title?.en || storeProduct.title}: ${oldPrice} → ${newPrice} (${bu.name || bu.unit})`);
-            }
           }
 
           // Update Odoo barcode unit mapping
