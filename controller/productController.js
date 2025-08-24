@@ -28,6 +28,45 @@ const getAllChildCategoryIds = async (categoryId) => {
   return result;
 };
 
+// 🔧 UTILITY: Ensure default ProductUnit price matches product price
+const syncDefaultProductUnitPrice = async (productId) => {
+  try {
+    const ProductUnit = require('../models/ProductUnit');
+    
+    // Find the default ProductUnit for this product
+    const defaultUnit = await ProductUnit.findOne({
+      product: productId,
+      isDefault: true
+    });
+    
+    if (!defaultUnit) {
+      console.log(`⚠️ No default ProductUnit found for product ${productId}`);
+      return false;
+    }
+    
+    // Get the current product price
+    const product = await Product.findById(productId).select('price');
+    if (!product) {
+      console.log(`⚠️ Product not found: ${productId}`);
+      return false;
+    }
+    
+    // Check if prices match
+    if (defaultUnit.price !== product.price) {
+      console.log(`💰 Syncing default unit price from ${defaultUnit.price} to ${product.price}`);
+      defaultUnit.price = product.price;
+      defaultUnit.originalPrice = product.price;
+      await defaultUnit.save();
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error(`❌ Error syncing default ProductUnit price for product ${productId}:`, error.message);
+    return false;
+  }
+};
+
 const addProduct = async (req, res) => {
   try {
     let productData = { ...req.body };
@@ -521,8 +560,14 @@ const updateProduct = async (req, res) => {
           defaultProductUnit.barcode = product.barcode;
           defaultProductUnit.packQty = 1; // Ensure packQty is set for basic unit
         }
-        defaultProductUnit.price = product.price;
-        defaultProductUnit.originalPrice = req.body.originalPrice || product.price;
+        
+        // 🔧 FIX: Always ensure default unit price matches product price
+        if (priceChanged) {
+          defaultProductUnit.price = product.price;
+          defaultProductUnit.originalPrice = req.body.originalPrice || product.price;
+          console.log(`💰 Synchronized default unit price with product price: ${product.price}`);
+        }
+        
         await defaultProductUnit.save();
       } else if (basicUnitChanged) {
         // Generate a unique SKU for the new default product unit
@@ -592,8 +637,18 @@ const updateProduct = async (req, res) => {
       }
     }
     
+    // 🔧 FIX: Ensure default ProductUnit price is always synchronized
+    if (priceChanged) {
+      try {
+        await syncDefaultProductUnitPrice(product._id);
+        console.log(`✅ Default ProductUnit price synchronized for product ${product._id}`);
+      } catch (syncError) {
+        console.warn(`⚠️ Failed to sync default ProductUnit price:`, syncError.message);
+      }
+    }
+    
     const populatedProduct = await Product.findById(product._id)
-                                .populate('basicUnit', 'name shortCode')
+                                .populate('basicUnit', '_id name')
                                 .populate('category', '_id name')
                                 .populate('categories', '_id name');
 
@@ -1325,4 +1380,5 @@ module.exports = {
   getEnhancedProductBySlug,
   checkCategoryHasProducts,
   testCategoryHierarchy,
+  syncDefaultProductUnitPrice, // 🔧 Export the utility function
 };

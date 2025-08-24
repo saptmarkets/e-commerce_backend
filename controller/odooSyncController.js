@@ -793,6 +793,44 @@ const syncToStore = async (req, res) => {
     if (allStoreProducts.length === 0) {
       console.log(`⚠️ WARNING: No store products found! This means sync will update 0 products.`);
       console.log(`🔍 Check if store products have correct odoo_id values that match Odoo product IDs.`);
+    } else {
+      console.log(`✅ Found ${allStoreProducts.length} store products to potentially update`);
+      
+      // Debug: Show sample store products and their odoo_id values
+      console.log(`🔍 Sample store products with odoo_id:`, allStoreProducts.slice(0, 5).map(sp => ({
+        _id: sp._id,
+        odoo_id: sp.odoo_id,
+        title: sp.title,
+        price: sp.price,
+        stock: sp.stock
+      })));
+      
+      // Debug: Show sample Odoo products and their ID values
+      console.log(`🔍 Sample Odoo products with ID:`, odooProducts.slice(0, 5).map(op => ({
+        id: op.id,
+        name: op.name,
+        list_price: op.list_price,
+        qty_available: op.qty_available
+      })));
+      
+      // Debug: Check for matching IDs
+      const storeOdooIds = allStoreProducts.map(sp => sp.odoo_id).filter(Boolean);
+      const odooIds = odooProducts.map(op => op.id);
+      
+      console.log(`🔍 Store products with odoo_id: ${storeOdooIds.length}`);
+      console.log(`🔍 Odoo products available: ${odooIds.length}`);
+      
+      // Find matches
+      const matches = storeOdooIds.filter(id => odooIds.includes(id));
+      console.log(`🔍 Matching IDs found: ${matches.length}`);
+      
+      if (matches.length === 0) {
+        console.log(`⚠️ NO MATCHES FOUND! This explains why 0 products are updated.`);
+        console.log(`🔍 Sample store odoo_ids:`, storeOdooIds.slice(0, 10));
+        console.log(`🔍 Sample Odoo IDs:`, odooIds.slice(0, 10));
+      } else {
+        console.log(`✅ Found ${matches.length} matching products that can be updated`);
+      }
     }
     
     // 2. Pre-fetch all stock data if stock sync is needed (like category sync does)
@@ -988,17 +1026,32 @@ const syncToStore = async (req, res) => {
             
             // Also update prices if price sync is enabled
             if (allowed.price && odooProduct.list_price) {
+              // 🔧 FIX: Only update the DEFAULT unit price, not all units
+              // This ensures consistency between product price and default unit price
               unitUpdateData.price = odooProduct.list_price;
-              console.log(`💰 Updating ProductUnit price for product ${storeProduct._id}: ${odooProduct.list_price}`);
+              unitUpdateData.originalPrice = odooProduct.list_price;
+              
+              // Update the filter to only target the DEFAULT unit
+              unitBulkOps.push({
+                updateOne: {
+                  filter: { 
+                    product: storeProduct._id,
+                    isDefault: true  // Only update the DEFAULT unit
+                  },
+                  update: { $set: unitUpdateData }
+                }
+              });
+              
+              console.log(`💰 Updating DEFAULT ProductUnit price for product ${storeProduct._id}: ${odooProduct.list_price}`);
+            } else {
+              // If not updating price, update all units for stock only
+              unitBulkOps.push({
+                updateMany: {
+                  filter: { product: storeProduct._id },
+                  update: { $set: unitUpdateData }
+                }
+              });
             }
-            
-            // Collect bulk operation for ProductUnits
-            unitBulkOps.push({
-              updateMany: {
-                filter: { product: storeProduct._id },
-                update: { $set: unitUpdateData }
-              }
-            });
           }
         } catch (unitErr) {
           console.warn('⚠️ ProductUnit stock update error for product', storeProduct._id, unitErr.message);
@@ -1029,26 +1082,35 @@ const syncToStore = async (req, res) => {
           
           if (!odooProduct || !odooProduct.list_price) continue;
           
-          // Collect bulk operation for ProductUnit prices
+          // 🔧 FIX: Only update the DEFAULT unit price to match product price
+          // This ensures the default unit always shows the correct price
           priceBulkOps.push({
-            updateMany: {
-              filter: { product: storeProduct._id },
-              update: { $set: { price: odooProduct.list_price } }
+            updateOne: {
+              filter: { 
+                product: storeProduct._id,
+                isDefault: true  // Only update the DEFAULT unit
+              },
+              update: { 
+                $set: { 
+                  price: odooProduct.list_price,
+                  originalPrice: odooProduct.list_price
+                } 
+              }
             }
           });
           
-          console.log(`💰 Queuing price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
+          console.log(`💰 Queuing DEFAULT unit price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
         } catch (priceErr) {
           console.warn('⚠️ ProductUnit price update error for product', storeProduct._id, priceErr.message);
         }
       }
       
-      // Execute bulk update for ProductUnit prices
+      // Execute bulk update for DEFAULT ProductUnit prices only
       if (priceBulkOps.length > 0) {
-        console.log(`🚀 Executing bulk update for ${priceBulkOps.length} ProductUnit prices...`);
+        console.log(`🚀 Executing bulk update for ${priceBulkOps.length} DEFAULT ProductUnit prices...`);
         const priceBulkResult = await ProductUnit.bulkWrite(priceBulkOps);
         priceUnitsUpdated = priceBulkResult.modifiedCount || 0;
-        console.log(`✅ ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
+        console.log(`✅ DEFAULT ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
       }
     }
 
