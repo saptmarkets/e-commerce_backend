@@ -935,7 +935,7 @@ const syncToStore = async (req, res) => {
           } else {
             // Fallback to qty_available if no OdooStock records
             const stockQty = odooProduct.qty_available || 0;
-            updateData.stock = stockQty;
+          updateData.stock = stockQty;
             updateData.availableStock = stockQty;
             console.log(`⚠️ No OdooStock records for product ${storeProduct._id}, using qty_available: ${stockQty}`);
           }
@@ -1026,29 +1026,17 @@ const syncToStore = async (req, res) => {
             
             // Also update prices if price sync is enabled
             if (allowed.price && odooProduct.list_price) {
-              // 🔧 FIX: Update ALL ProductUnit prices, not just the default one
-              // This ensures customer app shows correct prices
               unitUpdateData.price = odooProduct.list_price;
-              unitUpdateData.originalPrice = odooProduct.list_price;
-              
-              // Update ALL ProductUnits for this product (not just default)
-              unitBulkOps.push({
-                updateMany: {
-                  filter: { product: storeProduct._id }, // Update ALL units
-                  update: { $set: unitUpdateData }
-                }
-              });
-              
-              console.log(`💰 Updating ALL ProductUnit prices for product ${storeProduct._id}: ${odooProduct.list_price}`);
-            } else {
-              // If not updating price, update all units for stock only
-              unitBulkOps.push({
-                updateMany: {
-                  filter: { product: storeProduct._id },
-                  update: { $set: unitUpdateData }
-                }
-              });
+              console.log(`💰 Updating ProductUnit price for product ${storeProduct._id}: ${odooProduct.list_price}`);
             }
+            
+            // Collect bulk operation for ProductUnits
+            unitBulkOps.push({
+              updateMany: {
+                filter: { product: storeProduct._id },
+                update: { $set: unitUpdateData }
+              }
+            });
           }
         } catch (unitErr) {
           console.warn('⚠️ ProductUnit stock update error for product', storeProduct._id, unitErr.message);
@@ -1067,7 +1055,9 @@ const syncToStore = async (req, res) => {
     // 🚀 PERFORMANCE OPTIMIZATION: Update ProductUnit prices separately (even if stock not selected)
     if (allowed.price) {
       console.log(`💰 Updating ProductUnit prices for ${allStoreProducts.length} products...`);
+      console.log(`💡 Note: Price sync includes updating individual unit prices from Odoo barcode units`);
       const ProductUnit = require('../models/ProductUnit');
+      const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
       
       let priceUnitsUpdated = 0;
       const priceBulkOps = [];
@@ -1077,41 +1067,62 @@ const syncToStore = async (req, res) => {
           // Get pre-fetched Odoo product data
           const odooProduct = storeProductMap.get(storeProduct.odoo_id);
           
-          if (!odooProduct || !odooProduct.list_price) continue;
+          if (!odooProduct) continue;
           
-          // 🔧 FIX: Update ALL ProductUnit prices, not just the default one
-          // This ensures customer app shows correct prices
-          priceBulkOps.push({
-            updateMany: {
-              filter: { product: storeProduct._id }, // Update ALL units for this product
-              update: { 
-                $set: { 
-                  price: odooProduct.list_price,
-                  originalPrice: odooProduct.list_price
-                } 
+          // First, update basic product price
+          if (odooProduct.list_price) {
+            priceBulkOps.push({
+              updateMany: {
+                filter: { product: storeProduct._id },
+                update: { $set: { price: odooProduct.list_price } }
+              }
+            });
+            console.log(`💰 Queuing basic price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
+          }
+          
+          // Also update individual unit prices from barcode units
+          if (odooProduct.barcode_unit_ids && odooProduct.barcode_unit_ids.length > 0) {
+            const barcodeUnits = await OdooBarcodeUnit.find({ 
+              id: { $in: odooProduct.barcode_unit_ids },
+              active: true 
+            });
+            
+            for (const bu of barcodeUnits) {
+              if (bu.price && bu.price > 0) {
+                priceBulkOps.push({
+                  updateOne: {
+                    filter: { 
+                      product: storeProduct._id,
+                      barcode: bu.barcode 
+                    },
+                    update: { $set: { price: bu.price } }
+                  }
+                });
+                console.log(`💰 Queuing unit price update for product ${storeProduct._id}, barcode ${bu.barcode}: ${bu.price}`);
               }
             }
-          });
+          }
           
-          console.log(`💰 Queuing ALL ProductUnit price updates for product ${storeProduct._id}: ${odooProduct.list_price}`);
         } catch (priceErr) {
           console.warn('⚠️ ProductUnit price update error for product', storeProduct._id, priceErr.message);
         }
       }
       
-      // Execute bulk update for ALL ProductUnit prices
+      // Execute bulk update for ProductUnit prices
       if (priceBulkOps.length > 0) {
         console.log(`🚀 Executing bulk update for ${priceBulkOps.length} ProductUnit prices...`);
         const priceBulkResult = await ProductUnit.bulkWrite(priceBulkOps);
         priceUnitsUpdated = priceBulkResult.modifiedCount || 0;
-        console.log(`✅ ALL ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
+        console.log(`✅ ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
       }
     }
 
     // 🚀 PERFORMANCE OPTIMIZATION: Batch process units
     if (allowed.units && unitsToSync.length > 0) {
       console.log(`🔄 Processing units for ${unitsToSync.length} products...`);
-            const importService = require('../services/odooImportService');
+      console.log(`💡 Note: Unit sync includes updating unit prices from Odoo barcode units`);
+      console.log(`💡 Note: This ensures individual unit prices (e.g., pack prices) are synced from Odoo`);
+      const importService = require('../services/odooImportService');
       
       // Get all store products in one query
       const storeProductIds = unitsToSync.map(unit => unit.store_product_id);
@@ -1405,12 +1416,12 @@ const pushBackStock = async (req, res) => {
         let bu = null; // Declare bu in wider scope
         if (!productIdForStock) {
           bu = await OdooBarcodeUnit.findOne({ store_product_unit_id: unit._id });
-          if (bu && bu.product_id) {
-            productIdForStock = bu.product_id;
-            odooProductName = bu.product_name || 'Unknown Product';
-            odooUnitName = bu.unit_name || 'Unknown Unit';
+        if (bu && bu.product_id) {
+          productIdForStock = bu.product_id;
+          odooProductName = bu.product_name || 'Unknown Product';
+          odooUnitName = bu.unit_name || 'Unknown Unit';
             console.log(`🎯 Found product through OdooBarcodeUnit: ${odooProductName} (Odoo ID: ${productIdForStock})`);
-          }
+        }
         }
 
         // If still not found, try OdooProduct

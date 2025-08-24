@@ -831,13 +831,22 @@ class OdooImportService {
             
             units++;
           } else {
-            // Ensure stock fields stay in sync for existing units
+            // Ensure stock fields and prices stay in sync for existing units
+            const oldPrice = prodUnit.price;
+            const newPrice = bu.price || storeProduct.price || 0;
+            
             await prodUnit.set({
               stock: stock || 0,
               locationStocks: locationStocks || [],
+              price: newPrice, // Sync unit price from Odoo
               isActive: true,
               isAvailable: true
             }).save();
+            
+            // Log price changes for debugging
+            if (oldPrice !== newPrice) {
+              console.log(`💰 Updated unit price for ${storeProduct.title?.en || storeProduct.title}: ${oldPrice} → ${newPrice} (${bu.name || bu.unit})`);
+            }
           }
 
           // Update Odoo barcode unit mapping
