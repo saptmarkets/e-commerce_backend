@@ -395,16 +395,22 @@ router.post('/check-imported', async (req, res) => {
 
     const Product = require('../models/Product');
     const OdooProduct = require('../models/OdooProduct'); // For Odoo temp data
+    const OdooStock = require('../models/OdooStock'); // For Odoo stock data
     
     // Get store products that match these Odoo IDs
     const storeProducts = await Product.find({ 
       odooProductId: { $in: odooProductIds } 
-    }).select('odooProductId price stock title');
+    }).select('odooProductId price stock title locationStocks');
     
     // Get Odoo temp products for comparison
     const odooProducts = await OdooProduct.find({ 
       id: { $in: odooProductIds } 
     }).select('id list_price qty_available name');
+    
+    // Get Odoo stock data for all products
+    const odooStockData = await OdooStock.find({ 
+      product_id: { $in: odooProductIds } 
+    }).select('product_id location_id location_name quantity available_quantity');
     
     // Create lookup maps for performance
     const storeProductMap = new Map();
@@ -413,12 +419,22 @@ router.post('/check-imported', async (req, res) => {
     const odooProductMap = new Map();
     odooProducts.forEach(p => odooProductMap.set(p.id, p));
     
+    // Group stock data by product_id
+    const stockByProduct = new Map();
+    odooStockData.forEach(stock => {
+      if (!stockByProduct.has(stock.product_id)) {
+        stockByProduct.set(stock.product_id, []);
+      }
+      stockByProduct.get(stock.product_id).push(stock);
+    });
+    
     const results = [];
     let autoUpdatedCount = 0;
     
     for (const odooId of odooProductIds) {
       const storeProduct = storeProductMap.get(odooId);
       const odooProduct = odooProductMap.get(odooId);
+      const odooStockRecords = stockByProduct.get(odooId) || [];
       
       if (!storeProduct) {
         // Product not imported
@@ -440,9 +456,12 @@ router.post('/check-imported', async (req, res) => {
         continue;
       }
       
+      // Calculate total stock from Odoo locations
+      const totalOdooStock = odooStockRecords.reduce((sum, stock) => sum + (stock.available_quantity || stock.quantity || 0), 0);
+      
       // Check if prices and stock match
       const priceDiff = storeProduct.price !== odooProduct.list_price;
-      const stockDiff = storeProduct.stock !== odooProduct.qty_available;
+      const stockDiff = storeProduct.stock !== totalOdooStock;
       
       if (!priceDiff && !stockDiff) {
         // Everything matches - fully imported and up to date
@@ -453,7 +472,8 @@ router.post('/check-imported', async (req, res) => {
           storePrice: storeProduct.price,
           odooPrice: odooProduct.list_price,
           storeStock: storeProduct.stock,
-          odooStock: odooProduct.qty_available
+          odooStock: totalOdooStock,
+          odooLocations: odooStockRecords.length
         });
       } else {
         // Product exists but needs update
@@ -464,10 +484,11 @@ router.post('/check-imported', async (req, res) => {
           storePrice: storeProduct.price,
           odooPrice: odooProduct.list_price,
           storeStock: storeProduct.stock,
-          odooStock: odooProduct.qty_available,
+          odooStock: totalOdooStock,
+          odooLocations: odooStockRecords.length,
           differences: {
             price: priceDiff ? { store: storeProduct.price, odoo: odooProduct.list_price } : null,
-            stock: stockDiff ? { store: storeProduct.stock, odoo: odooProduct.qty_available } : null
+            stock: stockDiff ? { store: storeProduct.stock, odoo: totalOdooStock } : null
           }
         });
         
@@ -475,7 +496,18 @@ router.post('/check-imported', async (req, res) => {
         try {
           const updateData = {};
           if (priceDiff) updateData.price = odooProduct.list_price;
-          if (stockDiff) updateData.stock = odooProduct.qty_available;
+          if (stockDiff) {
+            updateData.stock = totalOdooStock;
+            
+            // Update locationStocks array with Odoo stock data
+            const locationStocks = odooStockRecords.map(stock => ({
+              qty: stock.available_quantity || stock.quantity || 0,
+              locationId: stock.location_id,
+              name: stock.location_name
+            }));
+            
+            updateData.locationStocks = locationStocks;
+          }
           
           if (Object.keys(updateData).length > 0) {
             await Product.updateOne(
