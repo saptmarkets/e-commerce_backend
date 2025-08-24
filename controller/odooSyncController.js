@@ -1026,23 +1026,20 @@ const syncToStore = async (req, res) => {
             
             // Also update prices if price sync is enabled
             if (allowed.price && odooProduct.list_price) {
-              // 🔧 FIX: Only update the DEFAULT unit price, not all units
-              // This ensures consistency between product price and default unit price
+              // 🔧 FIX: Update ALL ProductUnit prices, not just the default one
+              // This ensures customer app shows correct prices
               unitUpdateData.price = odooProduct.list_price;
               unitUpdateData.originalPrice = odooProduct.list_price;
               
-              // Update the filter to only target the DEFAULT unit
+              // Update ALL ProductUnits for this product (not just default)
               unitBulkOps.push({
-                updateOne: {
-                  filter: { 
-                    product: storeProduct._id,
-                    isDefault: true  // Only update the DEFAULT unit
-                  },
+                updateMany: {
+                  filter: { product: storeProduct._id }, // Update ALL units
                   update: { $set: unitUpdateData }
                 }
               });
               
-              console.log(`💰 Updating DEFAULT ProductUnit price for product ${storeProduct._id}: ${odooProduct.list_price}`);
+              console.log(`💰 Updating ALL ProductUnit prices for product ${storeProduct._id}: ${odooProduct.list_price}`);
             } else {
               // If not updating price, update all units for stock only
               unitBulkOps.push({
@@ -1082,14 +1079,11 @@ const syncToStore = async (req, res) => {
           
           if (!odooProduct || !odooProduct.list_price) continue;
           
-          // 🔧 FIX: Only update the DEFAULT unit price to match product price
-          // This ensures the default unit always shows the correct price
+          // 🔧 FIX: Update ALL ProductUnit prices, not just the default one
+          // This ensures customer app shows correct prices
           priceBulkOps.push({
-            updateOne: {
-              filter: { 
-                product: storeProduct._id,
-                isDefault: true  // Only update the DEFAULT unit
-              },
+            updateMany: {
+              filter: { product: storeProduct._id }, // Update ALL units for this product
               update: { 
                 $set: { 
                   price: odooProduct.list_price,
@@ -1099,18 +1093,18 @@ const syncToStore = async (req, res) => {
             }
           });
           
-          console.log(`💰 Queuing DEFAULT unit price update for product ${storeProduct._id}: ${odooProduct.list_price}`);
+          console.log(`💰 Queuing ALL ProductUnit price updates for product ${storeProduct._id}: ${odooProduct.list_price}`);
         } catch (priceErr) {
           console.warn('⚠️ ProductUnit price update error for product', storeProduct._id, priceErr.message);
         }
       }
       
-      // Execute bulk update for DEFAULT ProductUnit prices only
+      // Execute bulk update for ALL ProductUnit prices
       if (priceBulkOps.length > 0) {
-        console.log(`🚀 Executing bulk update for ${priceBulkOps.length} DEFAULT ProductUnit prices...`);
+        console.log(`🚀 Executing bulk update for ${priceBulkOps.length} ProductUnit prices...`);
         const priceBulkResult = await ProductUnit.bulkWrite(priceBulkOps);
         priceUnitsUpdated = priceBulkResult.modifiedCount || 0;
-        console.log(`✅ DEFAULT ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
+        console.log(`✅ ALL ProductUnit price bulk update completed: ${priceUnitsUpdated} units updated`);
       }
     }
 

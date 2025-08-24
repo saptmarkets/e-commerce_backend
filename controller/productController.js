@@ -28,21 +28,10 @@ const getAllChildCategoryIds = async (categoryId) => {
   return result;
 };
 
-// 🔧 UTILITY: Ensure default ProductUnit price matches product price
-const syncDefaultProductUnitPrice = async (productId) => {
+// 🔧 UTILITY: Ensure ALL ProductUnit prices match product price
+const syncAllProductUnitPrices = async (productId) => {
   try {
     const ProductUnit = require('../models/ProductUnit');
-    
-    // Find the default ProductUnit for this product
-    const defaultUnit = await ProductUnit.findOne({
-      product: productId,
-      isDefault: true
-    });
-    
-    if (!defaultUnit) {
-      console.log(`⚠️ No default ProductUnit found for product ${productId}`);
-      return false;
-    }
     
     // Get the current product price
     const product = await Product.findById(productId).select('price');
@@ -51,18 +40,35 @@ const syncDefaultProductUnitPrice = async (productId) => {
       return false;
     }
     
-    // Check if prices match
-    if (defaultUnit.price !== product.price) {
-      console.log(`💰 Syncing default unit price from ${defaultUnit.price} to ${product.price}`);
-      defaultUnit.price = product.price;
-      defaultUnit.originalPrice = product.price;
-      await defaultUnit.save();
+    // Find ALL ProductUnits for this product (not just default)
+    const allUnits = await ProductUnit.find({ product: productId });
+    
+    if (allUnits.length === 0) {
+      console.log(`⚠️ No ProductUnits found for product ${productId}`);
+      return false;
+    }
+    
+    let updatedCount = 0;
+    
+    // Update ALL units to match the product price
+    for (const unit of allUnits) {
+      if (unit.price !== product.price) {
+        console.log(`💰 Syncing unit ${unit._id} price from ${unit.price} to ${product.price}`);
+        unit.price = product.price;
+        unit.originalPrice = product.price;
+        await unit.save();
+        updatedCount++;
+      }
+    }
+    
+    if (updatedCount > 0) {
+      console.log(`✅ Updated ${updatedCount} ProductUnit prices for product ${productId}`);
       return true;
     }
     
     return false;
   } catch (error) {
-    console.error(`❌ Error syncing default ProductUnit price for product ${productId}:`, error.message);
+    console.error(`❌ Error syncing ProductUnit prices for product ${productId}:`, error.message);
     return false;
   }
 };
@@ -640,10 +646,10 @@ const updateProduct = async (req, res) => {
     // 🔧 FIX: Ensure default ProductUnit price is always synchronized
     if (priceChanged) {
       try {
-        await syncDefaultProductUnitPrice(product._id);
-        console.log(`✅ Default ProductUnit price synchronized for product ${product._id}`);
+        await syncAllProductUnitPrices(product._id);
+        console.log(`✅ All ProductUnit prices synchronized for product ${product._id}`);
       } catch (syncError) {
-        console.warn(`⚠️ Failed to sync default ProductUnit price:`, syncError.message);
+        console.warn(`⚠️ Failed to sync all ProductUnit prices:`, syncError.message);
       }
     }
     
@@ -1380,5 +1386,5 @@ module.exports = {
   getEnhancedProductBySlug,
   checkCategoryHasProducts,
   testCategoryHierarchy,
-  syncDefaultProductUnitPrice, // 🔧 Export the utility function
+  syncAllProductUnitPrices, // 🔧 Export the utility function
 };
