@@ -501,7 +501,8 @@ const updateProduct = async (req, res) => {
 
     console.log(`🔍 Update flags: basicUnitChanged=${basicUnitChanged}, priceChanged=${priceChanged}`);
 
-    await product.save();
+    // DON'T save product yet - we need to update ProductUnit first, then sync back
+    // await product.save(); // REMOVED THIS LINE
 
     // If basicUnit or price changed, update the default ProductUnit
     if (basicUnitChanged || priceChanged) {
@@ -544,12 +545,9 @@ const updateProduct = async (req, res) => {
         await defaultProductUnit.save();
         console.log(`✅ ProductUnit updated and saved`);
         
-        // Sync Product.price from the updated ProductUnit
+        // Do NOT sync Product.price; price is only managed in ProductUnit
         if (priceChanged) {
-          console.log(`🔄 Syncing Product.price: ${product.price} → ${defaultProductUnit.price}`);
-          product.price = defaultProductUnit.price;
-          await product.save();
-          console.log(`✅ Product.price synced from ProductUnit`);
+          console.log(`ℹ️ Skipping Product.price sync; price managed in ProductUnit only`);
         }
       } else if (basicUnitChanged || priceChanged) {
         console.log(`🆕 Creating new default ProductUnit: basicUnitChanged=${basicUnitChanged}, priceChanged=${priceChanged}`);
@@ -583,12 +581,9 @@ const updateProduct = async (req, res) => {
         await newDefaultPU.save();
         console.log(`✅ New default ProductUnit created with price: ${newPrice}`);
         
-        // Sync Product.price from the new ProductUnit
+        // Do NOT sync Product.price; price is only managed in ProductUnit
         if (priceChanged) {
-          console.log(`🔄 Syncing Product.price: ${product.price} → ${newPrice}`);
-          product.price = newPrice;
-          await product.save();
-          console.log(`✅ Product.price synced from new ProductUnit`);
+          console.log(`ℹ️ Skipping Product.price sync; price managed in ProductUnit only`);
         }
       }
       // Update Product.availableUnits if basicUnit changed and it's not already there
