@@ -490,21 +490,29 @@ const updateProduct = async (req, res) => {
     if (req.body.price !== undefined && req.body.price !== oldPrice) {
         // Don't set product.price yet - we'll sync it from ProductUnit after saving
         priceChanged = true;
+        console.log(`🔍 Price change detected: old=${oldPrice}, new=${req.body.price}`);
     }
     // Legacy prices object handling (only if new price not set directly)
     else if (req.body.prices && req.body.prices.price !== undefined && req.body.prices.price !== oldPrice) {
         // Don't set product.price yet - we'll sync it from ProductUnit after saving
         priceChanged = true;
+        console.log(`🔍 Price change detected (legacy): old=${oldPrice}, new=${req.body.prices.price}`);
     }
+
+    console.log(`🔍 Update flags: basicUnitChanged=${basicUnitChanged}, priceChanged=${priceChanged}`);
 
     await product.save();
 
     // If basicUnit or price changed, update the default ProductUnit
     if (basicUnitChanged || priceChanged) {
+      console.log(`🔄 Updating ProductUnit: basicUnitChanged=${basicUnitChanged}, priceChanged=${priceChanged}`);
+      
       let defaultProductUnit = await ProductUnit.findOne({
         product: product._id,
         isDefault: true,
       });
+
+      console.log(`🔍 Default ProductUnit found:`, defaultProductUnit ? `ID: ${defaultProductUnit._id}, current price: ${defaultProductUnit.price}` : 'NOT FOUND');
 
       if (defaultProductUnit) {
         if (basicUnitChanged) {
@@ -526,18 +534,26 @@ const updateProduct = async (req, res) => {
         if (priceChanged) {
           const newPrice = req.body.price !== undefined ? req.body.price : 
                           (req.body.prices && req.body.prices.price !== undefined ? req.body.prices.price : defaultProductUnit.price);
+          
+          console.log(`💰 Updating ProductUnit price: ${defaultProductUnit.price} → ${newPrice}`);
+          
           defaultProductUnit.price = newPrice;
           defaultProductUnit.originalPrice = req.body.originalPrice || newPrice;
         }
         
         await defaultProductUnit.save();
+        console.log(`✅ ProductUnit updated and saved`);
         
         // Sync Product.price from the updated ProductUnit
         if (priceChanged) {
+          console.log(`🔄 Syncing Product.price: ${product.price} → ${defaultProductUnit.price}`);
           product.price = defaultProductUnit.price;
           await product.save();
+          console.log(`✅ Product.price synced from ProductUnit`);
         }
-      } else if (basicUnitChanged) {
+      } else if (basicUnitChanged || priceChanged) {
+        console.log(`🆕 Creating new default ProductUnit: basicUnitChanged=${basicUnitChanged}, priceChanged=${priceChanged}`);
+        
         // Generate a unique SKU for the new default product unit
         const timestamp = new Date().getTime();
         const randomPart = Math.floor(Math.random() * 10000);
@@ -548,6 +564,8 @@ const updateProduct = async (req, res) => {
         // Get the new price from request or use existing product price
         const newPrice = req.body.price !== undefined ? req.body.price : 
                         (req.body.prices && req.body.prices.price !== undefined ? req.body.prices.price : product.price);
+        
+        console.log(`💰 Creating ProductUnit with price: ${newPrice}`);
         
         const newDefaultPU = new ProductUnit({
             product: product._id,
@@ -563,11 +581,14 @@ const updateProduct = async (req, res) => {
             createdBy: req.admin?._id || null,
         });
         await newDefaultPU.save();
+        console.log(`✅ New default ProductUnit created with price: ${newPrice}`);
         
         // Sync Product.price from the new ProductUnit
         if (priceChanged) {
+          console.log(`🔄 Syncing Product.price: ${product.price} → ${newPrice}`);
           product.price = newPrice;
           await product.save();
+          console.log(`✅ Product.price synced from new ProductUnit`);
         }
       }
       // Update Product.availableUnits if basicUnit changed and it's not already there
