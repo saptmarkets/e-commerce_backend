@@ -39,6 +39,11 @@ class OdooSyncService {
    * Fetch all data from Odoo and store in odoo_* collections
    */
   async fetchFromOdoo(dataTypes = ['all'], config = {}, user = null) {
+    // 🔥 NEW: Check for force refresh flag
+    if (config.forceRefresh) {
+      console.log(`🔄 Force refresh requested - will perform full sync ignoring incremental settings`);
+      config.incremental = false;
+    }
     const syncLog = await OdooSyncLog.startSync('fetch_from_odoo', dataTypes.includes('all') ? 'all' : dataTypes.join(','), config, user);
     
     try {
@@ -589,7 +594,12 @@ class OdooSyncService {
   /**
    * Fetch pricelist items from Odoo
    */
-  async fetchPricelistItems(incremental = false) {
+  async fetchPricelistItems(incremental = false, forceRefresh = false) {
+    // 🔥 NEW: Force refresh option
+    if (forceRefresh) {
+      console.log(`🔄 Force refresh requested for pricelist items - performing full sync`);
+      incremental = false;
+    }
     console.log('🎯 Fetching pricelist items from Odoo (Public pricelist only)...');
     
     // 🔥 IMPROVED: Better public pricelist detection and sync
@@ -674,16 +684,24 @@ class OdooSyncService {
     ];
     
     if (incremental) {
+      // 🔥 FIXED: Better incremental sync logic
       const lastSync = await OdooPricelistItem.findOne().sort({ write_date: -1 });
-      if (lastSync) {
-        domain.push(['write_date', '>', lastSync.write_date.toISOString()]);
-        console.log(`🔄 Incremental sync: Only fetching items updated after ${lastSync.write_date}`);
+      if (lastSync && lastSync.write_date) {
+        // Add buffer time to ensure we catch all changes
+        const bufferTime = new Date(lastSync.write_date.getTime() - 60000); // 1 minute buffer
+        domain.push(['write_date', '>', bufferTime.toISOString()]);
+        console.log(`🔄 Incremental sync: Fetching items updated after ${bufferTime} (with 1min buffer)`);
       } else {
         console.log(`🔄 Full sync: No previous sync found, fetching all items`);
       }
     } else {
       console.log(`🔄 Full sync: Fetching all pricelist items`);
     }
+    
+    // 🔥 NEW: Always add a safety check for recent changes (last 24 hours)
+    const safetyDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    domain.push(['write_date', '>', safetyDate.toISOString()]);
+    console.log(`🔄 Safety check: Also fetching items updated in last 24 hours (after ${safetyDate})`);
 
     let offset = 0;
     let totalProcessed = 0;
@@ -699,17 +717,28 @@ class OdooSyncService {
 
       console.log(`📦 Processing ${items.length} pricelist items (batch ${Math.floor(offset/this.batchSize) + 1})...`);
 
+      // 🔥 NEW: Check for price changes before processing
+      console.log(`🔍 Checking for price changes in ${items.length} pricelist items...`);
+      for (const item of items) {
+        const productId = item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null;
+        if (productId) {
+          const existingItem = await OdooPricelistItem.findOne({ id: item.id }).lean();
+          if (existingItem && existingItem.fixed_price !== item.fixed_price) {
+            console.log(`💰 PRICE CHANGE DETECTED for product ${productId}: ${existingItem.fixed_price} → ${item.fixed_price}`);
+          } else if (existingItem) {
+            console.log(`✅ Price unchanged for product ${productId}: ${item.fixed_price}`);
+          } else {
+            console.log(`🆕 New pricelist item for product ${productId}: ${item.fixed_price}`);
+          }
+        }
+      }
+      
       const operations = items.map(item => {
         // 🔥 IMPROVED: Better data extraction and validation
         const pricelistId = item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[0] : item.pricelist_id) : null;
         const productId = item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null;
         const productTmplId = item.product_tmpl_id ? (Array.isArray(item.product_tmpl_id) ? item.product_tmpl_id[0] : item.product_tmpl_id) : null;
         const barcodeUnitId = item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[0] : item.barcode_unit_id) : null;
-        
-        // Log new products being added to pricelist
-        if (productId) {
-          console.log(`🎯 Processing pricelist item for product ${productId} (${item.product_id?.[1] || 'Unknown'})`);
-        }
         
         return {
         updateOne: {

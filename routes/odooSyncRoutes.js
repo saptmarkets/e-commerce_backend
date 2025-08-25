@@ -58,6 +58,31 @@ router.post('/import-promotions', importPromotions);
 router.post('/push-back/stock', pushBackStock);
 router.post('/download-report', downloadPushBackReport);
 
+// 🔥 NEW: Force refresh pricelist items route
+router.post('/force-refresh-pricelist-items', async (req, res) => {
+  try {
+    console.log('🔄 Force refresh pricelist items requested...');
+    
+    const odooSyncService = require('../services/odooSyncService');
+    const syncService = new odooSyncService();
+    
+    const result = await syncService.fetchPricelistItems(false, true); // forceRefresh = true
+    
+    res.json({
+      success: true,
+      message: `Force refreshed ${result} pricelist items`,
+      data: { totalRefreshed: result }
+    });
+  } catch (error) {
+    console.error('❌ Error force refreshing pricelist items:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to force refresh pricelist items',
+      error: error.message
+    });
+  }
+});
+
 // Category-based sync routes
 router.post('/sync-category/:categoryId', async (req, res) => {
   try {
