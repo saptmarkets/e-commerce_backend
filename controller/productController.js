@@ -488,12 +488,12 @@ const updateProduct = async (req, res) => {
 
     // Handle price update (price of one basicUnit)
     if (req.body.price !== undefined && req.body.price !== oldPrice) {
-        product.price = req.body.price;
+        // Don't set product.price yet - we'll sync it from ProductUnit after saving
         priceChanged = true;
     }
     // Legacy prices object handling (only if new price not set directly)
     else if (req.body.prices && req.body.prices.price !== undefined && req.body.prices.price !== oldPrice) {
-        product.price = req.body.prices.price;
+        // Don't set product.price yet - we'll sync it from ProductUnit after saving
         priceChanged = true;
     }
 
@@ -521,9 +521,22 @@ const updateProduct = async (req, res) => {
           defaultProductUnit.barcode = product.barcode;
           defaultProductUnit.packQty = 1; // Ensure packQty is set for basic unit
         }
-        defaultProductUnit.price = product.price;
-        defaultProductUnit.originalPrice = req.body.originalPrice || product.price;
+        
+        // Update ProductUnit price with the new price from request
+        if (priceChanged) {
+          const newPrice = req.body.price !== undefined ? req.body.price : 
+                          (req.body.prices && req.body.prices.price !== undefined ? req.body.prices.price : defaultProductUnit.price);
+          defaultProductUnit.price = newPrice;
+          defaultProductUnit.originalPrice = req.body.originalPrice || newPrice;
+        }
+        
         await defaultProductUnit.save();
+        
+        // Sync Product.price from the updated ProductUnit
+        if (priceChanged) {
+          product.price = defaultProductUnit.price;
+          await product.save();
+        }
       } else if (basicUnitChanged) {
         // Generate a unique SKU for the new default product unit
         const timestamp = new Date().getTime();
@@ -532,13 +545,17 @@ const updateProduct = async (req, res) => {
                       product.sku : 
                       `PU-${product._id.toString().substr(-6)}-1-${timestamp.toString().substr(-5)}-${randomPart}`;
         
+        // Get the new price from request or use existing product price
+        const newPrice = req.body.price !== undefined ? req.body.price : 
+                        (req.body.prices && req.body.prices.price !== undefined ? req.body.prices.price : product.price);
+        
         const newDefaultPU = new ProductUnit({
             product: product._id,
             unit: product.basicUnit,
             unitValue: 1,
             packQty: 1,
-            price: product.price,
-            originalPrice: req.body.originalPrice || product.price,
+            price: newPrice, // Use the new price from request
+            originalPrice: req.body.originalPrice || newPrice,
             sku: newSku,
             barcode: product.barcode,
             isDefault: true,
@@ -546,6 +563,12 @@ const updateProduct = async (req, res) => {
             createdBy: req.admin?._id || null,
         });
         await newDefaultPU.save();
+        
+        // Sync Product.price from the new ProductUnit
+        if (priceChanged) {
+          product.price = newPrice;
+          await product.save();
+        }
       }
       // Update Product.availableUnits if basicUnit changed and it's not already there
       if (product.basicUnit) {
@@ -1047,13 +1070,17 @@ const getEnhancedProductById = async (req, res) => {
       ]
     }).populate('unit', '_id name nameAr shortCode');
     
+    // Find the default ProductUnit to get the correct price
+    const defaultProductUnit = productUnits.find(unit => unit.isDefault) || productUnits[0];
+    const defaultPrice = defaultProductUnit ? defaultProductUnit.price : product.price;
+    
     // Create enhanced product structure with multiUnits array
     const enhancedProduct = {
       _id: product._id,
       title: product.title,
       description: product.description,
       slug: product.slug,
-      price: product.price, // Base unit price
+      price: defaultPrice, // Get price from default ProductUnit (correct source)
       prices: product.prices,
       basicUnit: product.basicUnit,
       basicUnitType: product.basicUnitType,
@@ -1130,13 +1157,17 @@ const getEnhancedProductBySlug = async (req, res) => {
       ]
     }).populate('unit', '_id name nameAr shortCode');
     
+    // Find the default ProductUnit to get the correct price
+    const defaultProductUnit = productUnits.find(unit => unit.isDefault) || productUnits[0];
+    const defaultPrice = defaultProductUnit ? defaultProductUnit.price : product.price;
+    
     // Create enhanced product structure
     const enhancedProduct = {
       _id: product._id,
       title: product.title,
       description: product.description,
       slug: product.slug,
-      price: product.price,
+      price: defaultPrice, // Get price from default ProductUnit (correct source)
       prices: product.prices,
       basicUnit: product.basicUnit,
       basicUnitType: product.basicUnitType,
