@@ -77,6 +77,32 @@ class OdooSyncService {
 
       const totalRecords = Object.values(results).reduce((sum, count) => sum + count, 0);
       
+      // 🔥 NEW: Import pricelist items into store promotions after batch fetch
+      if (results.pricelist_items && results.pricelist_items > 0) {
+        try {
+          console.log(`🎯 Importing ${results.pricelist_items} pricelist items into store promotions...`);
+          const odooImportService = require('./odooImportService');
+          const importService = new odooImportService();
+          
+          // Get all pending pricelist items that were just synced
+          const pendingItems = await OdooPricelistItem.find({ 
+            _sync_status: 'pending',
+            last_sync_date: { $gte: new Date(Date.now() - 60000) } // Items synced in last minute
+          }).select('id').lean();
+          
+          if (pendingItems.length > 0) {
+            const itemIds = pendingItems.map(item => item.id);
+            console.log(`🎯 Importing ${itemIds.length} pricelist items with IDs:`, itemIds);
+            
+            const importResult = await importService.importPromotions(itemIds);
+            console.log(`✅ Import completed:`, importResult);
+          }
+        } catch (importError) {
+          console.error(`⚠️ Warning: Failed to import pricelist items after batch fetch:`, importError);
+          // Don't throw error, just log warning - sync succeeded even if import failed
+        }
+      }
+      
       await syncLog.markCompleted({
         total: totalRecords,
         processed: totalRecords,
@@ -583,28 +609,28 @@ class OdooSyncService {
         );
         
         // Upsert them to our local collection
-        const plOps = publicListsFromOdoo.map(pl => ({
-          updateOne: {
-            filter: { id: pl.id },
-            update: {
-              $set: {
-                id: pl.id,
-                name: pl.name,
-                currency_id: pl.currency_id ? (Array.isArray(pl.currency_id) ? pl.currency_id[0] : pl.currency_id) : null,
-                currency_name: pl.currency_id ? (Array.isArray(pl.currency_id) ? pl.currency_id[1] : null) : null,
-                company_id: pl.company_id ? (Array.isArray(pl.company_id) ? pl.company_id[0] : pl.company_id) : null,
-                company_name: pl.company_id ? (Array.isArray(pl.company_id) ? pl.company_id[1] : null) : null,
-                discount_policy: pl.discount_policy || 'with_discount',
-                active: pl.active !== false,
-                create_date: pl.create_date ? new Date(pl.create_date) : new Date(),
-                write_date: pl.write_date ? new Date(pl.write_date) : new Date(),
-                _sync_status: 'pending',
-                is_active: true,
-              }
-            },
-            upsert: true
-          }
-        }));
+          const plOps = publicListsFromOdoo.map(pl => ({
+            updateOne: {
+              filter: { id: pl.id },
+              update: {
+                $set: {
+                  id: pl.id,
+                  name: pl.name,
+                  currency_id: pl.currency_id ? (Array.isArray(pl.currency_id) ? pl.currency_id[0] : pl.currency_id) : null,
+                  currency_name: pl.currency_id ? (Array.isArray(pl.currency_id) ? pl.currency_id[1] : null) : null,
+                  company_id: pl.company_id ? (Array.isArray(pl.company_id) ? pl.company_id[0] : pl.company_id) : null,
+                  company_name: pl.company_id ? (Array.isArray(pl.company_id) ? pl.company_id[1] : null) : null,
+                  discount_policy: pl.discount_policy || 'with_discount',
+                  active: pl.active !== false,
+                  create_date: pl.create_date ? new Date(pl.create_date) : new Date(),
+                  write_date: pl.write_date ? new Date(pl.write_date) : new Date(),
+                  _sync_status: 'pending',
+                  is_active: true,
+                }
+              },
+              upsert: true
+            }
+          }));
         
         if (plOps.length > 0) {
           await OdooPricelist.bulkWrite(plOps, { ordered: false });
@@ -650,14 +676,8 @@ class OdooSyncService {
     if (incremental) {
       const lastSync = await OdooPricelistItem.findOne().sort({ write_date: -1 });
       if (lastSync) {
-        console.log(`🕒 Last sync timestamp: ${lastSync.write_date}`);
-        console.log(`🕒 Last sync timestamp ISO: ${lastSync.write_date.toISOString()}`);
-        
-        // 🔥 IMPROVED: Use a more flexible incremental sync
-        // Sometimes Odoo's write_date might be slightly off, so we use a buffer
-        const bufferTime = new Date(lastSync.write_date.getTime() - (5 * 60 * 1000)); // 5 minutes buffer
-        domain.push(['write_date', '>', bufferTime.toISOString()]);
-        console.log(`🔄 Incremental sync: Fetching items updated after ${bufferTime.toISOString()} (with 5min buffer)`);
+        domain.push(['write_date', '>', lastSync.write_date.toISOString()]);
+        console.log(`🔄 Incremental sync: Only fetching items updated after ${lastSync.write_date}`);
       } else {
         console.log(`🔄 Full sync: No previous sync found, fetching all items`);
       }
@@ -692,47 +712,47 @@ class OdooSyncService {
         }
         
         return {
-          updateOne: {
-            filter: { id: item.id },
-            update: {
-              $set: {
-                id: item.id,
+        updateOne: {
+          filter: { id: item.id },
+          update: {
+            $set: {
+              id: item.id,
                 pricelist_id: pricelistId,
-                pricelist_name: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[1] : null) : null,
+              pricelist_name: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[1] : null) : null,
                 product_tmpl_id: productTmplId,
                 product_id: productId,
-                product_name: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[1] : null) : null,
+              product_name: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[1] : null) : null,
                 barcode_unit_id: barcodeUnitId,
-                barcode_unit_name: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[1] : null) : null,
-                applied_on: item.applied_on || '1_product',
-                compute_price: item.compute_price || 'fixed',
-                fixed_price: item.fixed_price,
-                price_discount: item.price_discount || 0,
-                price_surcharge: item.price_surcharge || 0,
-                price_round: item.price_round || 0,
-                price_min_margin: item.price_min_margin || 0,
-                price_max_margin: item.price_max_margin || 0,
-                percent_price: item.percent_price || 0,
-                min_quantity: item.min_quantity || 0,
-                max_quantity: item.max_quantity,
-                date_start: item.date_start ? new Date(item.date_start) : null,
-                date_end: item.date_end ? new Date(item.date_end) : null,
-                base_pricelist_id: item.base_pricelist_id ? (Array.isArray(item.base_pricelist_id) ? item.base_pricelist_id[0] : item.base_pricelist_id) : null,
-                base: item.base || 'list_price',
-                company_id: item.company_id ? (Array.isArray(item.company_id) ? item.company_id[0] : item.company_id) : null,
-                currency_id: item.currency_id ? (Array.isArray(item.currency_id) ? item.currency_id[0] : item.currency_id) : null,
-                active: item.active !== false,
-                create_date: item.create_date ? new Date(item.create_date) : new Date(),
-                write_date: item.write_date ? new Date(item.write_date) : new Date(),
-                _sync_status: 'pending',
-                is_active: true,
-                // 🔥 NEW: Track when this item was last synced
-                last_sync_date: new Date(),
-                sync_count: { $inc: 1 } // Increment sync counter
-              }
-            },
-            upsert: true
-          }
+              barcode_unit_name: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[1] : null) : null,
+              applied_on: item.applied_on || '1_product',
+              compute_price: item.compute_price || 'fixed',
+              fixed_price: item.fixed_price,
+              price_discount: item.price_discount || 0,
+              price_surcharge: item.price_surcharge || 0,
+              price_round: item.price_round || 0,
+              price_min_margin: item.price_min_margin || 0,
+              price_max_margin: item.price_max_margin || 0,
+              percent_price: item.percent_price || 0,
+              min_quantity: item.min_quantity || 0,
+              max_quantity: item.max_quantity,
+              date_start: item.date_start ? new Date(item.date_start) : null,
+              date_end: item.date_end ? new Date(item.date_end) : null,
+              base_pricelist_id: item.base_pricelist_id ? (Array.isArray(item.base_pricelist_id) ? item.base_pricelist_id[0] : item.base_pricelist_id) : null,
+              base: item.base || 'list_price',
+              company_id: item.company_id ? (Array.isArray(item.company_id) ? item.company_id[0] : item.company_id) : null,
+              currency_id: item.currency_id ? (Array.isArray(item.currency_id) ? item.currency_id[0] : item.currency_id) : null,
+              active: item.active !== false,
+              create_date: item.create_date ? new Date(item.create_date) : new Date(),
+              write_date: item.write_date ? new Date(item.write_date) : new Date(),
+                            _sync_status: 'pending',
+              is_active: true,
+              // 🔥 NEW: Track when this item was last synced
+              last_sync_date: new Date(),
+              sync_count: { $inc: 1 } // Increment sync counter
+            }
+          },
+          upsert: true
+        }
         };
       });
 
@@ -758,7 +778,7 @@ class OdooSyncService {
    * 🔥 NEW: Sync pricelist items for specific category products
    * This ensures that when syncing a category, we also get the latest pricelist promotions
    */
-  async syncPricelistItemsForCategory(categoryId, progressCallback = null, forceRefresh = false) {
+  async syncPricelistItemsForCategory(categoryId, progressCallback = null) {
     try {
       console.log(`🎯 Syncing pricelist items for category ${categoryId}...`);
       
@@ -791,32 +811,11 @@ class OdooSyncService {
       console.log(`🎯 Found ${productIds.length} products in category for pricelist sync`);
       
       // 🔥 IMPROVED: Try category-specific first, then fallback to all public pricelist items
-      // Also add incremental sync to detect price changes
       let domain = [
         ['pricelist_id', 'in', publicIds],
         ['product_id', 'in', productIds],
         ['active', '=', true]
       ];
-      
-      // 🔥 NEW: Add incremental sync to detect price changes
-      if (!forceRefresh) {
-        const lastSync = await OdooPricelistItem.findOne({ 
-          category_sync: true,
-          category_id: categoryId 
-        }).sort({ write_date: -1 });
-        
-        if (lastSync && lastSync.write_date) {
-          console.log(`🕒 Last sync for category ${categoryId}: ${lastSync.write_date}`);
-          // Use a buffer to ensure we catch recent changes
-          const bufferTime = new Date(lastSync.write_date.getTime() - (5 * 60 * 1000)); // 5 minutes buffer
-          domain.push(['write_date', '>', bufferTime.toISOString()]);
-          console.log(`🔄 Using incremental sync to detect price changes (with 5min buffer)`);
-        } else {
-          console.log(`🔄 First time sync for category ${categoryId}, fetching all items`);
-        }
-      } else {
-        console.log(`🔄 Force refresh requested for category ${categoryId}, fetching all items regardless of last sync`);
-      }
       
       console.log(`🔍 Domain for pricelist items:`, JSON.stringify(domain, null, 2));
       console.log(`🎯 Public pricelist IDs:`, publicIds);
@@ -931,6 +930,34 @@ class OdooSyncService {
       }
       
       console.log(`✅ Synced ${totalProcessed} pricelist items for category ${categoryId}`);
+      
+      // 🔥 NEW: Import the synced pricelist items into store promotions
+      if (totalProcessed > 0) {
+        try {
+          console.log(`🎯 Importing ${totalProcessed} pricelist items into store promotions...`);
+          const odooImportService = require('./odooImportService');
+          const importService = new odooImportService();
+          
+          // Get the IDs of items we just synced
+          const syncedItems = await OdooPricelistItem.find({ 
+            category_sync: true, 
+            category_id: categoryId,
+            _sync_status: 'pending'
+          }).select('id').lean();
+          
+          if (syncedItems.length > 0) {
+            const itemIds = syncedItems.map(item => item.id);
+            console.log(`🎯 Importing ${itemIds.length} pricelist items with IDs:`, itemIds);
+            
+            const importResult = await importService.importPromotions(itemIds);
+            console.log(`✅ Import completed:`, importResult);
+          }
+        } catch (importError) {
+          console.error(`⚠️ Warning: Failed to import pricelist items for category ${categoryId}:`, importError);
+          // Don't throw error, just log warning - sync succeeded even if import failed
+        }
+      }
+      
       return totalProcessed;
       
     } catch (error) {
@@ -1052,116 +1079,6 @@ class OdooSyncService {
         success_rate: lastSync.success_rate,
       } : null,
     };
-  }
-
-  /**
-   * 🔥 NEW: Force refresh all pricelist items to get latest prices
-   * This bypasses incremental sync to ensure we get the most recent data
-   */
-  async forceRefreshPricelistItems() {
-    console.log('🔄 Force refreshing all pricelist items to get latest prices...');
-    
-    try {
-      // Get public pricelist IDs
-      const publicPricelists = await OdooPricelist.find({ 
-        name: /public/i,
-        active: true 
-      }).lean();
-      
-      if (publicPricelists.length === 0) {
-        console.log('⚠️ No public pricelists found for force refresh');
-        return 0;
-      }
-      
-      const publicIds = publicPricelists.map(pl => pl.id);
-      console.log(`🎯 Force refreshing pricelist items for public pricelist IDs: ${publicIds.join(', ')}`);
-      
-      // Force full sync without incremental filtering
-      const domain = [
-        ['pricelist_id', 'in', publicIds],
-        ['active', '=', true]
-      ];
-      
-      console.log(`🔍 Force refresh domain:`, domain);
-      
-      let offset = 0;
-      let totalProcessed = 0;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const items = await odooService.fetchPricelistItems(domain, this.batchSize, offset);
-        
-        if (!items || items.length === 0) {
-          hasMore = false;
-          break;
-        }
-        
-        console.log(`📦 Force refreshing ${items.length} pricelist items (batch ${Math.floor(offset / this.batchSize) + 1})...`);
-        
-        const operations = items.map(item => ({
-          updateOne: {
-            filter: { id: item.id },
-            update: {
-              $set: {
-                id: item.id,
-                pricelist_id: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[0] : item.pricelist_id) : null,
-                pricelist_name: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[1] : null) : null,
-                product_tmpl_id: item.product_tmpl_id ? (Array.isArray(item.product_tmpl_id) ? item.product_tmpl_id[0] : item.product_tmpl_id) : null,
-                product_id: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null,
-                product_name: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[1] : null) : null,
-                barcode_unit_id: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[0] : item.barcode_unit_id) : null,
-                barcode_unit_name: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[1] : null) : null,
-                applied_on: item.applied_on || '1_product',
-                compute_price: item.compute_price || 'fixed',
-                fixed_price: item.fixed_price,
-                price_discount: item.price_discount || 0,
-                price_surcharge: item.price_surcharge || 0,
-                price_round: item.price_round || 0,
-                price_min_margin: item.price_min_margin || 0,
-                price_max_margin: item.price_max_margin || 0,
-                percent_price: item.percent_price || 0,
-                min_quantity: item.min_quantity || 0,
-                max_quantity: item.max_quantity,
-                date_start: item.date_start ? new Date(item.date_start) : null,
-                date_end: item.date_end ? new Date(item.date_end) : null,
-                base_pricelist_id: item.base_pricelist_id ? (Array.isArray(item.base_pricelist_id) ? item.base_pricelist_id[0] : item.base_pricelist_id) : null,
-                base: item.base || 'list_price',
-                company_id: item.company_id ? (Array.isArray(item.company_id) ? item.company_id[0] : item.company_id) : null,
-                currency_id: item.currency_id ? (Array.isArray(item.currency_id) ? item.currency_id[0] : item.currency_id) : null,
-                active: item.active !== false,
-                create_date: item.create_date ? new Date(item.create_date) : new Date(),
-                write_date: item.write_date ? new Date(item.write_date) : new Date(),
-                _sync_status: 'pending',
-                is_active: true,
-                last_sync_date: new Date(),
-                force_refresh: true, // Mark as force refreshed
-                sync_count: { $inc: 1 }
-              }
-            },
-            upsert: true
-          }
-        }));
-        
-        if (operations.length > 0) {
-          await OdooPricelistItem.bulkWrite(operations, { ordered: false });
-          totalProcessed += operations.length;
-        }
-        
-        offset += this.batchSize;
-        if (items.length < this.batchSize) {
-          hasMore = false;
-        }
-        
-        console.log(`🎯 Force refreshed ${totalProcessed} pricelist items...`);
-      }
-      
-      console.log(`✅ Force refresh completed: ${totalProcessed} pricelist items updated`);
-      return totalProcessed;
-      
-    } catch (error) {
-      console.error('❌ Force refresh pricelist items failed:', error);
-      throw error;
-    }
   }
 }
 
