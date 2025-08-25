@@ -908,7 +908,7 @@ class OdooService {
           const barcodeUnits = await this.searchRead(
             'product.barcode.unit',
             [], // No domain filter - get ALL units like fetchFromOdoo
-            ['id', 'name', 'product_id', 'barcode', 'unit_id', 'price', 'qty_available', 'quantity', 'av_cost', 'purchase_cost', 'unit', 'sequence', 'active'],
+            ['id','name','sequence','product_id','product_tmpl_id','barcode','quantity','unit','price','av_cost','purchase_qty','purchase_cost','sales_vat','sale_qty','company_id','currency_id','active','create_date','write_date'],
             offset,
             batchSize
           );
@@ -933,21 +933,25 @@ class OdooService {
             
             const operations = categoryUnits.map(unit => ({
               updateOne: {
-                filter: { id: unit.id },
+                // Use barcode as primary key when available to avoid duplicate-barcode conflicts
+                filter: unit.barcode ? { barcode: unit.barcode } : { id: unit.id },
                 update: {
                   $set: {
                     id: unit.id,
                     name: unit.name,
                     product_id: Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id,
-                    product_tmpl_id: null,
+                    product_tmpl_id: Array.isArray(unit.product_tmpl_id) ? unit.product_tmpl_id[0] : (unit.product_tmpl_id || null),
                     barcode: unit.barcode,
-                    unit_id: Array.isArray(unit.unit_id) ? unit.unit_id[0] : unit.unit_id,
                     quantity: Number(unit.quantity || 1.0),
-                    price: Number(unit.price || 0),           // ✅ Multi-unit price
-                    av_cost: Number(unit.av_cost || 0),       // ✅ Average cost
-                    purchase_cost: Number(unit.purchase_cost || 0), // ✅ Purchase cost
-                    qty_available: Number(unit.qty_available || 0),
                     unit: unit.unit ? (Array.isArray(unit.unit) ? unit.unit[1] : unit.unit) : null,
+                    price: Number(unit.price || 0),
+                    av_cost: Number(unit.av_cost || 0),
+                    purchase_qty: Number(unit.purchase_qty || 0),
+                    purchase_cost: Number(unit.purchase_cost || 0),
+                    sales_vat: Number(unit.sales_vat || 0),
+                    sale_qty: Number(unit.sale_qty || 0),
+                    company_id: Array.isArray(unit.company_id) ? unit.company_id[0] : (unit.company_id || null),
+                    currency_id: Array.isArray(unit.currency_id) ? unit.currency_id[0] : (unit.currency_id || null),
                     sequence: unit.sequence || 10,
                     active: unit.active !== false,
                     last_update: new Date(),
