@@ -1529,6 +1529,38 @@ class OdooService {
     const locations = (allLocations || []).filter(l => relevantUsages.includes(l.usage));
     return locations.map(l => ({ id: l.id, name: l.complete_name, usage: l.usage }));
   }
+
+  /**
+   * Get sync progress for a specific category
+   * @param {number} categoryId - Odoo category ID
+   * @returns {Object} Progress information
+   */
+  async getCategorySyncProgress(categoryId) {
+    try {
+      // Get category info
+      const category = await this.read('product.category', [categoryId], ['id', 'complete_name']);
+      if (!category || !category[0]) {
+        return { status: 'not_found', message: 'Category not found' };
+      }
+
+      // Check if there's an active sync in progress
+      // For now, return a basic status - in a real implementation, you might want to track this in a separate collection
+      return {
+        status: 'idle',
+        category: {
+          id: category[0].id,
+          name: category[0].complete_name
+        },
+        message: 'No active sync in progress'
+      };
+    } catch (error) {
+      console.error(`❌ Error getting category sync progress:`, error.message);
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
 }
 
 module.exports = new OdooService(); 

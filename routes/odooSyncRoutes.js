@@ -81,6 +81,28 @@ router.post('/sync-category/:categoryId', async (req, res) => {
   }
 });
 
+// Get sync progress for a category
+router.get('/sync-category/:categoryId/progress', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    
+    // Get the current sync progress from odooService
+    const progress = await odooService.getCategorySyncProgress(categoryId);
+    
+    res.json({
+      success: true,
+      data: progress
+    });
+  } catch (error) {
+    console.error(`❌ Error getting progress for category ${req.params.categoryId}:`, error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get sync progress',
+      error: error.message
+    });
+  }
+});
+
 // Sync multiple categories
 router.post('/sync-categories', async (req, res) => {
   try {
