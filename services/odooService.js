@@ -894,20 +894,31 @@ class OdooService {
         // Import required model
         const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
         
-        // 🚀 OPTIMIZATION: Use the same approach as fetchFromOdoo - fetch ALL barcode units at once
-        // This is much faster than filtering by product IDs
-        console.log(`🚀 Fetching ALL barcode units from Odoo (like fetchFromOdoo does)...`);
+        // 🚀 OPTIMIZATION: Direct domain filtering - fetch ONLY barcode units for this category
+        console.log(`🚀 Fetching barcode units directly for category ${category.complete_name}...`);
+        
+        // First, get product IDs in this category from our local odoo_products collection
+        const categoryProductIds = await OdooProduct.find({ 
+          categ_id: { $in: [category.id] }
+        }).select('id').lean().distinct('id');
+        
+        console.log(`🔍 Found ${categoryProductIds.length} products in category ${category.complete_name}`);
+        
+        if (categoryProductIds.length === 0) {
+          console.log(`ℹ️ No products found in category ${category.complete_name}, skipping barcode unit sync`);
+          return;
+        }
         
         let totalProcessed = 0;
         let offset = 0;
         let hasMore = true;
-        const batchSize = 1000; // Use larger batches like fetchFromOdoo
+        const batchSize = 1000; // Use larger batches for efficiency
         
         while (hasMore) {
-          // Fetch barcode units in large batches (no filtering - get everything)
+          // 🎯 DIRECT FILTERING: Only fetch barcode units for products in this category
           const barcodeUnits = await this.searchRead(
             'product.barcode.unit',
-            [], // No domain filter - get ALL units like fetchFromOdoo
+            [['product_id', 'in', categoryProductIds]], // Direct domain filter - much faster!
             ['id','name','sequence','product_id','product_tmpl_id','barcode','quantity','unit','price','av_cost','purchase_qty','purchase_cost','sales_vat','sale_qty','company_id','currency_id','active','create_date','write_date'],
             offset,
             batchSize
@@ -918,15 +929,10 @@ class OdooService {
             break;
           }
           
-          // Filter units that belong to products in this category (in memory - much faster)
-          const categoryProductIds = await OdooProduct.find({ 
-            categ_id: { $in: [category.id] }
-          }).select('id').lean().distinct('id');
+          console.log(`🏷️ Processing ${barcodeUnits.length} barcode units for category ${category.complete_name} (batch ${Math.floor(offset/batchSize) + 1})`);
           
-          const categoryUnits = barcodeUnits.filter(unit => {
-            const productId = Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id;
-            return categoryProductIds.includes(productId);
-          });
+          // No need to filter in memory - Odoo already filtered for us!
+          const categoryUnits = barcodeUnits;
           
           if (categoryUnits.length > 0) {
             console.log(`🏷️ Processing ${categoryUnits.length} barcode units for category ${category.complete_name} (batch ${Math.floor(offset/batchSize) + 1})`);
@@ -1015,19 +1021,28 @@ class OdooService {
         // Import required model
         const OdooStock = require('../models/OdooStock');
         
-        // 🚀 OPTIMIZATION: Use the same approach as fetchFromOdoo - fetch ALL stock at once
-        console.log(`🚀 Fetching ALL stock from Odoo (like fetchFromOdoo does)...`);
+        // 🚀 OPTIMIZATION: Direct domain filtering - fetch ONLY stock for this category
+        console.log(`🚀 Fetching stock directly for category ${category.complete_name}...`);
+        
+        // Reuse the categoryProductIds we already fetched for barcode units
+        if (!categoryProductIds || categoryProductIds.length === 0) {
+          console.log(`ℹ️ No products found in category ${category.complete_name}, skipping stock sync`);
+          return;
+        }
         
         let totalStockProcessed = 0;
         let stockOffset = 0;
         let stockHasMore = true;
-        const stockBatchSize = 1000; // Use larger batches like fetchFromOdoo
+        const stockBatchSize = 1000; // Use larger batches for efficiency
         
         while (stockHasMore) {
-          // Fetch stock in large batches (no filtering - get everything)
+          // 🎯 DIRECT FILTERING: Only fetch stock for products in this category
           const stockQuants = await this.searchRead(
             'stock.quant',
-            [['location_id.usage', 'in', ['internal', 'transit']]], // Only internal/transit locations
+            [
+              ['location_id.usage', 'in', ['internal', 'transit']], // Only internal/transit locations
+              ['product_id', 'in', categoryProductIds] // Direct domain filter - much faster!
+            ],
             ['id', 'product_id', 'location_id', 'quantity', 'reserved_quantity', 'available_quantity', 'lot_id', 'package_id', 'owner_id', 'create_date', 'write_date'],
             stockOffset,
             stockBatchSize
@@ -1038,15 +1053,10 @@ class OdooService {
             break;
           }
           
-          // Filter stock that belongs to products in this category (in memory - much faster)
-          const categoryProductIds = await OdooProduct.find({ 
-            categ_id: { $in: [category.id] }
-          }).select('id').lean().distinct('id');
+          console.log(`📦 Processing ${stockQuants.length} stock records for category ${category.complete_name} (batch ${Math.floor(stockOffset/stockBatchSize) + 1})`);
           
-          const categoryStock = stockQuants.filter(quant => {
-            const productId = Array.isArray(quant.product_id) ? quant.product_id[0] : quant.product_id;
-            return categoryProductIds.includes(productId);
-          });
+          // No need to filter in memory - Odoo already filtered for us!
+          const categoryStock = stockQuants;
           
           if (categoryStock.length > 0) {
             console.log(`📦 Processing ${categoryStock.length} stock records for category ${category.complete_name} (batch ${Math.floor(stockOffset/stockBatchSize) + 1})`);
