@@ -851,10 +851,7 @@ class OdooService {
                 console.log(`⚠️ Product ${product.id} has no stock data in internal/transit locations`);
               }
               
-              // Sync barcode units if available
-              if (product.barcode_unit_ids && product.barcode_unit_ids.length > 0) {
-                await this.syncBarcodeUnitsForProduct(product.id, product.barcode_unit_ids);
-              }
+              // Barcode units will be synced comprehensively in STEP 3.5
             } catch (error) {
               console.error(`❌ Error processing stock for product ${product.id}:`, error.message);
             }
@@ -894,10 +891,10 @@ class OdooService {
       console.log(`🏷️ Starting comprehensive barcode unit sync for category ${category.complete_name}...`);
       
       try {
-        // Get all product IDs in this category (including subcategories)
+        // Get all product IDs in this category (including subcategories) - optimized query
         const categoryProductIds = await OdooProduct.find({ 
           categ_id: { $in: [category.id] } // This will include subcategories if we expand the query
-        }).distinct('id');
+        }).select('id').lean().distinct('id');
         
         console.log(`🔍 Found ${categoryProductIds.length} products in category for barcode unit sync`);
         
@@ -908,7 +905,7 @@ class OdooService {
             [['product_id', 'in', categoryProductIds]],
             ['id', 'name', 'product_id', 'barcode', 'unit_id', 'price', 'qty_available', 'quantity', 'av_cost', 'purchase_cost'],
             0,
-            1000 // Fetch up to 1000 units
+            5000 // Increased limit for better performance
           );
           
           console.log(`🏷️ Found ${barcodeUnits.length} barcode units for category ${category.complete_name}`);
@@ -917,8 +914,10 @@ class OdooService {
             // Import required model
             const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
             
-            // Process barcode units in batches (like fetchFromOdoo does)
-            const batchSize = 100;
+            // Process barcode units in larger batches for better performance
+            const batchSize = 500; // Increased from 100 to 500
+            console.log(`🚀 Processing ${barcodeUnits.length} barcode units in batches of ${batchSize}...`);
+            
             for (let i = 0; i < barcodeUnits.length; i += batchSize) {
               const batch = barcodeUnits.slice(i, i + batchSize);
               
@@ -947,11 +946,29 @@ class OdooService {
                 }
               }));
               
-              // Execute batch update
+              // Execute batch update with progress logging
               if (operations.length > 0) {
                 try {
                   await OdooBarcodeUnit.bulkWrite(operations, { ordered: false });
-                  console.log(`✅ Processed barcode units batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(barcodeUnits.length/batchSize)}`);
+                  const currentBatch = Math.floor(i/batchSize) + 1;
+                  const totalBatches = Math.ceil(barcodeUnits.length/batchSize);
+                  console.log(`✅ Barcode units batch ${currentBatch}/${totalBatches} processed (${operations.length} units)`);
+                  
+                  // Update progress callback if available
+                  if (progressCallback) {
+                    progressCallback({
+                      category: category,
+                      total: effectiveMaxLimit,
+                      current: processedCount,
+                      synced: processedCount,
+                      status: 'syncing_barcode_units',
+                      barcodeUnitsProgress: {
+                        current: currentBatch,
+                        total: totalBatches,
+                        unitsProcessed: i + operations.length
+                      }
+                    });
+                  }
                 } catch (bulkErr) {
                   // Handle duplicate key errors gracefully
                   if (bulkErr?.code !== 11000 && bulkErr?.name !== 'BulkWriteError') {
@@ -962,7 +979,7 @@ class OdooService {
               }
             }
             
-            console.log(`✅ Comprehensive barcode unit sync completed: ${barcodeUnits.length} units processed`);
+            console.log(`✅ Comprehensive barcode unit sync completed: ${barcodeUnits.length} units processed in ${Math.ceil(barcodeUnits.length/batchSize)} batches`);
           } else {
             console.log(`ℹ️ No barcode units found for products in category ${category.complete_name}`);
           }
