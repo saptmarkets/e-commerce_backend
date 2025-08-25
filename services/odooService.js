@@ -887,105 +887,235 @@ class OdooService {
         }
       }
 
-      // 🔥 STEP 3.5: COMPREHENSIVE BARCODE UNIT SYNC (like fetchFromOdoo does)
-      console.log(`🏷️ Starting comprehensive barcode unit sync for category ${category.complete_name}...`);
+      // 🔥 STEP 3.5: ULTRA-FAST BARCODE UNIT SYNC (like fetchFromOdoo - direct approach)
+      console.log(`🏷️ Starting ultra-fast barcode unit sync for category ${category.complete_name}...`);
       
       try {
-        // Get all product IDs in this category (including subcategories) - optimized query
-        const categoryProductIds = await OdooProduct.find({ 
-          categ_id: { $in: [category.id] } // This will include subcategories if we expand the query
-        }).select('id').lean().distinct('id');
+        // Import required model
+        const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
         
-        console.log(`🔍 Found ${categoryProductIds.length} products in category for barcode unit sync`);
+        // 🚀 OPTIMIZATION: Use the same approach as fetchFromOdoo - fetch ALL barcode units at once
+        // This is much faster than filtering by product IDs
+        console.log(`🚀 Fetching ALL barcode units from Odoo (like fetchFromOdoo does)...`);
         
-        if (categoryProductIds.length > 0) {
-          // Fetch ALL barcode units for these products (comprehensive approach)
+        let totalProcessed = 0;
+        let offset = 0;
+        let hasMore = true;
+        const batchSize = 1000; // Use larger batches like fetchFromOdoo
+        
+        while (hasMore) {
+          // Fetch barcode units in large batches (no filtering - get everything)
           const barcodeUnits = await this.searchRead(
             'product.barcode.unit',
-            [['product_id', 'in', categoryProductIds]],
-            ['id', 'name', 'product_id', 'barcode', 'unit_id', 'price', 'qty_available', 'quantity', 'av_cost', 'purchase_cost'],
-            0,
-            5000 // Increased limit for better performance
+            [], // No domain filter - get ALL units like fetchFromOdoo
+            ['id', 'name', 'product_id', 'barcode', 'unit_id', 'price', 'qty_available', 'quantity', 'av_cost', 'purchase_cost', 'unit', 'sequence', 'active'],
+            offset,
+            batchSize
           );
           
-          console.log(`🏷️ Found ${barcodeUnits.length} barcode units for category ${category.complete_name}`);
+          if (!barcodeUnits || barcodeUnits.length === 0) {
+            hasMore = false;
+            break;
+          }
           
-          if (barcodeUnits.length > 0) {
-            // Import required model
-            const OdooBarcodeUnit = require('../models/OdooBarcodeUnit');
+          // Filter units that belong to products in this category (in memory - much faster)
+          const categoryProductIds = await OdooProduct.find({ 
+            categ_id: { $in: [category.id] }
+          }).select('id').lean().distinct('id');
+          
+          const categoryUnits = barcodeUnits.filter(unit => {
+            const productId = Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id;
+            return categoryProductIds.includes(productId);
+          });
+          
+          if (categoryUnits.length > 0) {
+            console.log(`🏷️ Processing ${categoryUnits.length} barcode units for category ${category.complete_name} (batch ${Math.floor(offset/batchSize) + 1})`);
             
-            // Process barcode units in larger batches for better performance
-            const batchSize = 500; // Increased from 100 to 500
-            console.log(`🚀 Processing ${barcodeUnits.length} barcode units in batches of ${batchSize}...`);
+            const operations = categoryUnits.map(unit => ({
+              updateOne: {
+                filter: { id: unit.id },
+                update: {
+                  $set: {
+                    id: unit.id,
+                    name: unit.name,
+                    product_id: Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id,
+                    product_tmpl_id: null,
+                    barcode: unit.barcode,
+                    unit_id: Array.isArray(unit.unit_id) ? unit.unit_id[0] : unit.unit_id,
+                    quantity: Number(unit.quantity || 1.0),
+                    price: Number(unit.price || 0),           // ✅ Multi-unit price
+                    av_cost: Number(unit.av_cost || 0),       // ✅ Average cost
+                    purchase_cost: Number(unit.purchase_cost || 0), // ✅ Purchase cost
+                    qty_available: Number(unit.qty_available || 0),
+                    unit: unit.unit ? (Array.isArray(unit.unit) ? unit.unit[1] : unit.unit) : null,
+                    sequence: unit.sequence || 10,
+                    active: unit.active !== false,
+                    last_update: new Date(),
+                    _sync_status: 'pending',
+                    is_active: true
+                  }
+                },
+                upsert: true
+              }
+            }));
             
-            for (let i = 0; i < barcodeUnits.length; i += batchSize) {
-              const batch = barcodeUnits.slice(i, i + batchSize);
-              
-              const operations = batch.map(unit => ({
-                updateOne: {
-                  filter: { id: unit.id },
-                  update: {
-                    $set: {
-                      id: unit.id,
-                      name: unit.name,
-                      product_id: Array.isArray(unit.product_id) ? unit.product_id[0] : unit.product_id,
-                      product_tmpl_id: null, // Will be populated if needed
-                      barcode: unit.barcode,
-                      unit_id: Array.isArray(unit.unit_id) ? unit.unit_id[0] : unit.unit_id,
-                      quantity: Number(unit.quantity || 1.0),
-                      price: Number(unit.price || 0),           // ✅ Multi-unit price
-                      av_cost: Number(unit.av_cost || 0),       // ✅ Average cost
-                      purchase_cost: Number(unit.purchase_cost || 0), // ✅ Purchase cost
-                      qty_available: Number(unit.qty_available || 0),
-                      last_update: new Date(),
-                      _sync_status: 'pending',
-                      is_active: true
+            // Execute batch update
+            if (operations.length > 0) {
+              try {
+                await OdooBarcodeUnit.bulkWrite(operations, { ordered: false });
+                totalProcessed += operations.length;
+                
+                console.log(`✅ Barcode units batch processed: ${operations.length} units (Total: ${totalProcessed})`);
+                
+                // Update progress callback if available
+                if (progressCallback) {
+                  progressCallback({
+                    category: category,
+                    total: effectiveMaxLimit,
+                    current: processedCount,
+                    synced: processedCount,
+                    status: 'syncing_barcode_units',
+                    barcodeUnitsProgress: {
+                      current: Math.floor(offset/batchSize) + 1,
+                      total: 'unknown', // We don't know total batches upfront
+                      unitsProcessed: totalProcessed
                     }
-                  },
-                  upsert: true
+                  });
                 }
-              }));
-              
-              // Execute batch update with progress logging
-              if (operations.length > 0) {
-                try {
-                  await OdooBarcodeUnit.bulkWrite(operations, { ordered: false });
-                  const currentBatch = Math.floor(i/batchSize) + 1;
-                  const totalBatches = Math.ceil(barcodeUnits.length/batchSize);
-                  console.log(`✅ Barcode units batch ${currentBatch}/${totalBatches} processed (${operations.length} units)`);
-                  
-                  // Update progress callback if available
-                  if (progressCallback) {
-                    progressCallback({
-                      category: category,
-                      total: effectiveMaxLimit,
-                      current: processedCount,
-                      synced: processedCount,
-                      status: 'syncing_barcode_units',
-                      barcodeUnitsProgress: {
-                        current: currentBatch,
-                        total: totalBatches,
-                        unitsProcessed: i + operations.length
-                      }
-                    });
-                  }
-                } catch (bulkErr) {
-                  // Handle duplicate key errors gracefully
-                  if (bulkErr?.code !== 11000 && bulkErr?.name !== 'BulkWriteError') {
-                    throw bulkErr;
-                  }
-                  console.warn('⚠️ Duplicate barcode encountered – existing records updated where possible.');
+              } catch (bulkErr) {
+                // Handle duplicate key errors gracefully
+                if (bulkErr?.code !== 11000 && bulkErr?.name !== 'BulkWriteError') {
+                  throw bulkErr;
                 }
+                console.warn('⚠️ Duplicate barcode encountered – existing records updated where possible.');
               }
             }
-            
-            console.log(`✅ Comprehensive barcode unit sync completed: ${barcodeUnits.length} units processed in ${Math.ceil(barcodeUnits.length/batchSize)} batches`);
-          } else {
-            console.log(`ℹ️ No barcode units found for products in category ${category.complete_name}`);
+          }
+          
+          offset += batchSize;
+          if (barcodeUnits.length < batchSize) {
+            hasMore = false;
           }
         }
+        
+        console.log(`✅ Ultra-fast barcode unit sync completed: ${totalProcessed} units processed for category ${category.complete_name}`);
       } catch (barcodeSyncError) {
-        console.error(`❌ Error in comprehensive barcode unit sync:`, barcodeSyncError.message);
+        console.error(`❌ Error in ultra-fast barcode unit sync:`, barcodeSyncError.message);
+        // Don't fail the entire sync, just log the error
+      }
+
+      // 🔥 STEP 3.6: ULTRA-FAST STOCK SYNC (like fetchFromOdoo - direct approach)
+      console.log(`📦 Starting ultra-fast stock sync for category ${category.complete_name}...`);
+      
+      try {
+        // Import required model
+        const OdooStock = require('../models/OdooStock');
+        
+        // 🚀 OPTIMIZATION: Use the same approach as fetchFromOdoo - fetch ALL stock at once
+        console.log(`🚀 Fetching ALL stock from Odoo (like fetchFromOdoo does)...`);
+        
+        let totalStockProcessed = 0;
+        let stockOffset = 0;
+        let stockHasMore = true;
+        const stockBatchSize = 1000; // Use larger batches like fetchFromOdoo
+        
+        while (stockHasMore) {
+          // Fetch stock in large batches (no filtering - get everything)
+          const stockQuants = await this.searchRead(
+            'stock.quant',
+            [['location_id.usage', 'in', ['internal', 'transit']]], // Only internal/transit locations
+            ['id', 'product_id', 'location_id', 'quantity', 'reserved_quantity', 'available_quantity', 'lot_id', 'package_id', 'owner_id', 'create_date', 'write_date'],
+            stockOffset,
+            stockBatchSize
+          );
+          
+          if (!stockQuants || stockQuants.length === 0) {
+            stockHasMore = false;
+            break;
+          }
+          
+          // Filter stock that belongs to products in this category (in memory - much faster)
+          const categoryProductIds = await OdooProduct.find({ 
+            categ_id: { $in: [category.id] }
+          }).select('id').lean().distinct('id');
+          
+          const categoryStock = stockQuants.filter(quant => {
+            const productId = Array.isArray(quant.product_id) ? quant.product_id[0] : quant.product_id;
+            return categoryProductIds.includes(productId);
+          });
+          
+          if (categoryStock.length > 0) {
+            console.log(`📦 Processing ${categoryStock.length} stock records for category ${category.complete_name} (batch ${Math.floor(stockOffset/stockBatchSize) + 1})`);
+            
+            const stockOperations = categoryStock.map(quant => ({
+              updateOne: {
+                filter: { id: quant.id },
+                update: {
+                  $set: {
+                    id: quant.id,
+                    product_id: Array.isArray(quant.product_id) ? quant.product_id[0] : quant.product_id,
+                    product_name: null, // Will be populated if needed
+                    location_id: Array.isArray(quant.location_id) ? quant.location_id[0] : quant.location_id,
+                    location_name: Array.isArray(quant.location_id) ? quant.location_id[1] : 'Unknown',
+                    quantity: quant.quantity || 0,
+                    reserved_quantity: quant.reserved_quantity || 0,
+                    available_quantity: quant.available_quantity || 0,
+                    lot_id: quant.lot_id ? (Array.isArray(quant.lot_id) ? quant.lot_id[0] : quant.lot_id) : null,
+                    lot_name: quant.lot_id ? (Array.isArray(quant.lot_id) ? quant.lot_id[1] : null) : null,
+                    package_id: quant.package_id ? (Array.isArray(quant.package_id) ? quant.package_id[0] : quant.package_id) : null,
+                    owner_id: quant.owner_id ? (Array.isArray(quant.owner_id) ? quant.owner_id[0] : quant.owner_id) : null,
+                    create_date: quant.create_date ? new Date(quant.create_date) : new Date(),
+                    write_date: quant.write_date ? new Date(quant.write_date) : new Date(),
+                    _sync_status: 'pending',
+                    is_active: true
+                  }
+                },
+                upsert: true
+              }
+            }));
+            
+            // Execute batch update
+            if (stockOperations.length > 0) {
+              try {
+                await OdooStock.bulkWrite(stockOperations, { ordered: false });
+                totalStockProcessed += stockOperations.length;
+                
+                console.log(`✅ Stock batch processed: ${stockOperations.length} records (Total: ${totalStockProcessed})`);
+                
+                // Update progress callback if available
+                if (progressCallback) {
+                  progressCallback({
+                    category: category,
+                    total: effectiveMaxLimit,
+                    current: processedCount,
+                    synced: processedCount,
+                    status: 'syncing_stock',
+                    stockProgress: {
+                      current: Math.floor(stockOffset/stockBatchSize) + 1,
+                      total: 'unknown',
+                      recordsProcessed: totalStockProcessed
+                    }
+                  });
+                }
+              } catch (stockErr) {
+                // Handle duplicate key errors gracefully
+                if (stockErr?.code !== 11000 && stockErr?.name !== 'BulkWriteError') {
+                  throw stockErr;
+                }
+                console.warn('⚠️ Duplicate stock record encountered – existing records updated where possible.');
+              }
+            }
+          }
+          
+          stockOffset += stockBatchSize;
+          if (stockQuants.length < stockBatchSize) {
+            stockHasMore = false;
+          }
+        }
+        
+        console.log(`✅ Ultra-fast stock sync completed: ${totalStockProcessed} records processed for category ${category.complete_name}`);
+      } catch (stockSyncError) {
+        console.error(`❌ Error in ultra-fast stock sync:`, stockSyncError.message);
         // Don't fail the entire sync, just log the error
       }
 
