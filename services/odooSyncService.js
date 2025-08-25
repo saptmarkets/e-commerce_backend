@@ -850,26 +850,63 @@ class OdooSyncService {
       console.log(`🎯 Public pricelist IDs:`, publicIds);
       console.log(`🎯 Product IDs in category:`, productIds);
       
-      // First try to fetch category-specific items
-      let items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
+      // 🔥 DEBUG: Let's see what's actually happening with the sync
+      console.log(`🔍 DEBUGGING PRICELIST SYNC FOR CATEGORY ${categoryId}`);
       
-      if (!items || items.length === 0) {
-        console.log(`⚠️ No category-specific pricelist items found, trying all public pricelist items...`);
-        // Fallback: fetch all public pricelist items
-        domain = [
-          ['pricelist_id', 'in', publicIds],
-          ['active', '=', true]
-        ];
-        items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
-        
-        if (items && items.length > 0) {
-          console.log(`✅ Found ${items.length} public pricelist items (not category-specific)`);
-        } else {
-          console.log(`❌ No public pricelist items found at all`);
-          return 0;
-        }
+      // 🔥 TEST 1: Try to fetch ALL public pricelist items first (no product filter)
+      let testDomain = [
+        ['pricelist_id', 'in', publicIds],
+        ['active', '=', true]
+      ];
+      
+      console.log(`🔍 TEST 1: Fetching ALL public pricelist items with domain:`, JSON.stringify(testDomain, null, 2));
+      let allItems = await odooService.fetchPricelistItems(testDomain, 100, 0);
+      console.log(`🔍 TEST 1 RESULT: Found ${allItems ? allItems.length : 0} total public pricelist items`);
+      
+      if (allItems && allItems.length > 0) {
+        console.log(`🔍 TEST 1 SAMPLE:`, allItems.slice(0, 3).map(item => ({
+          id: item.id,
+          product_id: item.product_id,
+          pricelist_id: item.pricelist_id,
+          fixed_price: item.fixed_price,
+          write_date: item.write_date
+        })));
+      }
+      
+      // 🔥 TEST 2: Try to fetch category-specific items
+      let categoryDomain = [
+        ['pricelist_id', 'in', publicIds],
+        ['product_id', 'in', productIds],
+        ['active', '=', true]
+      ];
+      
+      console.log(`🔍 TEST 2: Fetching category-specific pricelist items with domain:`, JSON.stringify(categoryDomain, null, 2));
+      let categoryItems = await odooService.fetchPricelistItems(categoryDomain, 100, 0);
+      console.log(`🔍 TEST 2 RESULT: Found ${categoryItems ? categoryItems.length : 0} category-specific pricelist items`);
+      
+      if (categoryItems && categoryItems.length > 0) {
+        console.log(`🔍 TEST 2 SAMPLE:`, categoryItems.slice(0, 3).map(item => ({
+          id: item.id,
+          product_id: item.product_id,
+          pricelist_id: item.pricelist_id,
+          fixed_price: item.fixed_price,
+          write_date: item.write_date
+        })));
+      }
+      
+      // 🔥 DECISION: Use the domain that actually returns data
+      let finalDomain, finalItems;
+      if (categoryItems && categoryItems.length > 0) {
+        console.log(`✅ Using category-specific domain (found ${categoryItems.length} items)`);
+        finalDomain = categoryDomain;
+        finalItems = categoryItems;
+      } else if (allItems && allItems.length > 0) {
+        console.log(`⚠️ No category-specific items found, using all public items (found ${allItems.length} items)`);
+        finalDomain = testDomain;
+        finalItems = allItems;
       } else {
-        console.log(`✅ Found ${items.length} category-specific pricelist items`);
+        console.log(`❌ No pricelist items found at all - this indicates a deeper issue`);
+        return 0;
       }
       
       let offset = 0;
@@ -878,7 +915,7 @@ class OdooSyncService {
       
       while (hasMore) {
         console.log(`📡 Fetching pricelist items with offset ${offset}, batch size ${this.batchSize}...`);
-        const batchItems = await odooService.fetchPricelistItems(domain, this.batchSize, offset);
+        const batchItems = await odooService.fetchPricelistItems(finalDomain, this.batchSize, offset);
         
         if (!batchItems || batchItems.length === 0) {
           console.log(`⚠️ No pricelist items found for this batch, stopping...`);
