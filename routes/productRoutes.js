@@ -388,7 +388,7 @@ router.get('/test-category-hierarchy', testCategoryHierarchy);
 // Live import status check for Odoo products
 router.post('/check-imported', async (req, res) => {
   try {
-    const { odooProductIds } = req.body;
+    const { odooProductIds, autoUpdateUnits = false } = req.body;
     if (!Array.isArray(odooProductIds) || odooProductIds.length === 0) {
       return res.status(400).json({ success: false, message: 'odooProductIds must be a non-empty array' });
     }
@@ -528,26 +528,45 @@ router.post('/check-imported', async (req, res) => {
       }
     }
     
-    // Group results by status for easy frontend consumption
-    const imported = results.filter(r => r.status === 'imported').map(r => r.odooId);
-    const needsUpdate = results.filter(r => r.status === 'needs_update').map(r => r.odooId);
-    const notImported = results.filter(r => r.status === 'not_imported').map(r => r.odooId);
-    
-    res.json({ 
-      success: true, 
-      imported,
-      needsUpdate,
-      notImported,
-      autoUpdatedCount,
-      summary: {
-        total: odooProductIds.length,
-        imported: imported.length,
-        needsUpdate: needsUpdate.length,
-        notImported: notImported.length,
-        autoUpdated: autoUpdatedCount
-      },
-      details: results // Full details for debugging
-    });
+            // 🔄 AUTO-UPDATE UNITS: Update unit prices if requested
+        let unitUpdateResults = null;
+        if (autoUpdateUnits) {
+          try {
+            console.log('🏷️ Starting unit price auto-update...');
+            const unitAutoUpdateService = require('../services/unitAutoUpdateService');
+            unitUpdateResults = await unitAutoUpdateService.autoUpdateUnits(odooProductIds);
+            console.log('✅ Unit price auto-update completed');
+          } catch (unitError) {
+            console.error('❌ Unit price auto-update failed:', unitError.message);
+            unitUpdateResults = {
+              success: false,
+              error: unitError.message,
+              summary: { unitsUpdated: 0, unitsInserted: 0, unitsSkipped: 0, errors: 1 }
+            };
+          }
+        }
+
+        // Group results by status for easy frontend consumption
+        const imported = results.filter(r => r.status === 'imported').map(r => r.odooId);
+        const needsUpdate = results.filter(r => r.status === 'needs_update').map(r => r.odooId);
+        const notImported = results.filter(r => r.status === 'not_imported').map(r => r.odooId);
+        
+        res.json({ 
+          success: true, 
+          imported,
+          needsUpdate,
+          notImported,
+          autoUpdatedCount,
+          unitUpdateResults,
+          summary: {
+            total: odooProductIds.length,
+            imported: imported.length,
+            needsUpdate: needsUpdate.length,
+            notImported: notImported.length,
+            autoUpdated: autoUpdatedCount
+          },
+          details: results // Full details for debugging
+        });
     
   } catch (error) {
     console.error('Error checking import status:', error);
