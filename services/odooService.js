@@ -1133,6 +1133,25 @@ class OdooService {
         // Don't fail the entire sync, just log the error
       }
 
+      // 🔥 STEP 3.7: SYNC PRICELIST ITEMS FOR CATEGORY PRODUCTS
+      console.log(`🎯 Starting pricelist items sync for category ${category.complete_name}...`);
+      let totalPricelistItemsProcessed = 0;
+      
+      try {
+        const odooSyncService = require('./odooSyncService');
+        const syncService = new odooSyncService();
+        
+        totalPricelistItemsProcessed = await syncService.syncPricelistItemsForCategory(
+          category.id,
+          progressCallback
+        );
+        
+        console.log(`✅ Pricelist items sync completed: ${totalPricelistItemsProcessed} items processed for category ${category.complete_name}`);
+      } catch (pricelistSyncError) {
+        console.error(`❌ Error in pricelist items sync:`, pricelistSyncError.message);
+        // Don't fail the entire sync, just log the error
+      }
+
       // 🔥 STEP 4: Only sync to store database if explicitly requested (preserve custom changes)
       console.log(`📋 Odoo data updated in odoo_* tables for category ${category.complete_name}`);
       console.log(`💡 To sync to store database, use the 'Sync to Store' function separately`);
@@ -1158,6 +1177,7 @@ class OdooService {
         categoryName: category.complete_name,
         totalProducts: effectiveMaxLimit,
         syncedProducts: syncedCount,
+        pricelistItems: totalPricelistItemsProcessed,
         errors: errors.length
       });
       
