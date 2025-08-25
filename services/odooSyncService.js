@@ -839,26 +839,37 @@ class OdooSyncService {
       const productIds = categoryProducts.map(p => p.id);
       console.log(`🎯 Found ${productIds.length} products in category for pricelist sync`);
       
-      // 🔥 FIXED: Always fetch ALL public pricelist items during category sync
-      // This ensures we get price updates for any product, not just category-specific ones
+      // 🔥 IMPROVED: Try category-specific first, then fallback to all public pricelist items
       let domain = [
         ['pricelist_id', 'in', publicIds],
+        ['product_id', 'in', productIds],
         ['active', '=', true]
       ];
       
       console.log(`🔍 Domain for pricelist items:`, JSON.stringify(domain, null, 2));
       console.log(`🎯 Public pricelist IDs:`, publicIds);
       console.log(`🎯 Product IDs in category:`, productIds);
-      console.log(`💡 Fetching ALL public pricelist items to ensure price updates are captured`);
       
-      // Fetch all public pricelist items (this will include price updates for any product)
+      // First try to fetch category-specific items
       let items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
       
-      if (items && items.length > 0) {
-        console.log(`✅ Found ${items.length} public pricelist items (including price updates)`);
+      if (!items || items.length === 0) {
+        console.log(`⚠️ No category-specific pricelist items found, trying all public pricelist items...`);
+        // Fallback: fetch all public pricelist items
+        domain = [
+          ['pricelist_id', 'in', publicIds],
+          ['active', '=', true]
+        ];
+        items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
+        
+        if (items && items.length > 0) {
+          console.log(`✅ Found ${items.length} public pricelist items (not category-specific)`);
+        } else {
+          console.log(`❌ No public pricelist items found at all`);
+          return 0;
+        }
       } else {
-        console.log(`❌ No public pricelist items found at all`);
-        return 0;
+        console.log(`✅ Found ${items.length} category-specific pricelist items`);
       }
       
       let offset = 0;
@@ -875,23 +886,7 @@ class OdooSyncService {
           break;
         }
         
-        console.log(`📦 Processing ${batchItems.length} pricelist items...`);
-        
-        // 🔥 NEW: Check for price changes before processing
-        for (const item of batchItems) {
-          const productId = item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null;
-          if (productId) {
-            const existingItem = await OdooPricelistItem.findOne({ id: item.id }).lean();
-            if (existingItem && existingItem.fixed_price !== item.fixed_price) {
-              console.log(`💰 PRICE CHANGE DETECTED for product ${productId}: ${existingItem.fixed_price} → ${item.fixed_price}`);
-            } else if (existingItem) {
-              console.log(`✅ Price unchanged for product ${productId}: ${item.fixed_price}`);
-            } else {
-              console.log(`🆕 New pricelist item for product ${productId}: ${item.fixed_price}`);
-            }
-          }
-        }
-        
+        console.log(`📦 Processing ${batchItems.length} category-specific pricelist items...`);
         console.log(`📋 Sample items:`, batchItems.slice(0, 2).map(item => ({
           id: item.id,
           product_id: item.product_id,
@@ -899,49 +894,58 @@ class OdooSyncService {
           fixed_price: item.fixed_price
         })));
         
-        const operations = batchItems.map(item => ({
-          updateOne: {
-            filter: { id: item.id },
-            update: {
-              $set: {
-                id: item.id,
-                pricelist_id: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[0] : item.pricelist_id) : null,
-                pricelist_name: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[1] : null) : null,
-                product_tmpl_id: item.product_tmpl_id ? (Array.isArray(item.product_tmpl_id) ? item.product_tmpl_id[0] : item.product_tmpl_id) : null,
-                product_id: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null,
-                product_name: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[1] : null) : null,
-                barcode_unit_id: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[0] : item.barcode_unit_id) : null,
-                barcode_unit_name: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[1] : null) : null,
-                applied_on: item.applied_on || '1_product',
-                compute_price: item.compute_price || 'fixed',
-                fixed_price: item.fixed_price,
-                price_discount: item.price_discount || 0,
-                price_surcharge: item.price_surcharge || 0,
-                price_round: item.price_round || 0,
-                price_min_margin: item.price_min_margin || 0,
-                price_max_margin: item.price_max_margin || 0,
-                percent_price: item.percent_price || 0,
-                min_quantity: item.min_quantity || 0,
-                max_quantity: item.max_quantity,
-                date_start: item.date_start ? new Date(item.date_start) : null,
-                date_end: item.date_end ? new Date(item.date_end) : null,
-                base_pricelist_id: item.base_pricelist_id ? (Array.isArray(item.base_pricelist_id) ? item.base_pricelist_id[0] : item.base_pricelist_id) : null,
-                base: item.base || 'list_price',
-                company_id: item.company_id ? (Array.isArray(item.company_id) ? item.company_id[0] : item.company_id) : null,
-                currency_id: item.currency_id ? (Array.isArray(item.currency_id) ? item.currency_id[0] : item.currency_id) : null,
-                active: item.active !== false,
-                create_date: item.create_date ? new Date(item.create_date) : new Date(),
-                write_date: item.write_date ? new Date(item.write_date) : new Date(),
-                _sync_status: 'pending',
-                is_active: true,
-                last_sync_date: new Date(),
-                category_sync: true, // Mark as synced during category sync
-                category_id: categoryId
-              }
-            },
-            upsert: true
-          }
-        }));
+        // 🔥 FIXED: Use the EXACT same mapping logic as "Fetch Data" button
+        const operations = batchItems.map(item => {
+          // 🔥 IMPROVED: Better data extraction and validation (same as fetchPricelistItems)
+          const pricelistId = item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[0] : item.pricelist_id) : null;
+          const productId = item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null;
+          const productTmplId = item.product_tmpl_id ? (Array.isArray(item.product_tmpl_id) ? item.product_tmpl_id[0] : item.product_tmpl_id) : null;
+          const barcodeUnitId = item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[0] : item.barcode_unit_id) : null;
+          
+          return {
+            updateOne: {
+              filter: { id: item.id },
+              update: {
+                $set: {
+                  id: item.id,
+                  pricelist_id: pricelistId,  // ✅ Fixed: Use extracted variable
+                  pricelist_name: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[1] : null) : null,
+                  product_tmpl_id: productTmplId,  // ✅ Fixed: Use extracted variable
+                  product_id: productId,  // ✅ Fixed: Use extracted variable
+                  product_name: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[1] : null) : null,
+                  barcode_unit_id: barcodeUnitId,  // ✅ Fixed: Use extracted variable
+                  barcode_unit_name: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[1] : null) : null,
+                  applied_on: item.applied_on || '1_product',
+                  compute_price: item.compute_price || 'fixed',
+                  fixed_price: item.fixed_price,
+                  price_discount: item.price_discount || 0,
+                  price_surcharge: item.price_surcharge || 0,
+                  price_round: item.price_round || 0,
+                  price_min_margin: item.price_min_margin || 0,
+                  price_max_margin: item.price_max_margin || 0,
+                  percent_price: item.percent_price || 0,
+                  min_quantity: item.min_quantity || 0,
+                  max_quantity: item.max_quantity,
+                  date_start: item.date_start ? new Date(item.date_start) : null,
+                  date_end: item.date_end ? new Date(item.date_end) : null,
+                  base_pricelist_id: item.base_pricelist_id ? (Array.isArray(item.base_pricelist_id) ? item.base_pricelist_id[0] : item.base_pricelist_id) : null,
+                  base: item.base || 'list_price',
+                  company_id: item.company_id ? (Array.isArray(item.company_id) ? item.company_id[0] : item.company_id) : null,
+                  currency_id: item.currency_id ? (Array.isArray(item.currency_id) ? item.currency_id[0] : item.currency_id) : null,
+                  active: item.active !== false,
+                  create_date: item.create_date ? new Date(item.create_date) : new Date(),
+                  write_date: item.write_date ? new Date(item.write_date) : new Date(),
+                  _sync_status: 'pending',
+                  is_active: true,
+                  last_sync_date: new Date(),
+                  category_sync: true, // Mark as synced during category sync
+                  category_id: categoryId
+                }
+              },
+              upsert: true
+            }
+          };
+        });
         
         if (operations.length > 0) {
           await OdooPricelistItem.bulkWrite(operations, { ordered: false });
