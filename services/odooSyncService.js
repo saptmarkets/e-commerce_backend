@@ -109,6 +109,16 @@ class OdooSyncService {
       }
     }
 
+    // 🚀 OPTIMIZATION: Always filter for active categories by default
+    // This prevents fetching inactive/deleted categories unnecessarily
+    if (domain.length === 0) {
+      domain = [['active', '=', true]];
+    } else {
+      domain.push(['active', '=', true]);
+    }
+
+    console.log(`🔍 Fetching categories with domain:`, domain);
+
     let offset = 0;
     let totalProcessed = 0;
     let hasMore = true;
@@ -175,6 +185,16 @@ class OdooSyncService {
       }
     }
 
+    // 🚀 OPTIMIZATION: Always filter for active UoM by default
+    // This prevents fetching inactive/deleted UoM unnecessarily
+    if (domain.length === 0) {
+      domain = [['active', '=', true]];
+    } else {
+      domain.push(['active', '=', true]);
+    }
+
+    console.log(`🔍 Fetching UoM with domain:`, domain);
+
     let offset = 0;
     let totalProcessed = 0;
     let hasMore = true;
@@ -239,10 +259,14 @@ class OdooSyncService {
     // Build dynamic domain
     let domain = [];
     
+    // 🚀 OPTIMIZATION: Always filter for active products by default
+    // This prevents fetching inactive/deleted products unnecessarily
+    domain.push(['active', '=', true]);
+    
     // Add filters if specified
     if (activeOnly) {
       console.log('🔍 Filtering for active products only');
-      domain.push(['active', '=', true]);
+      // Already added above
     }
     if (types && Array.isArray(types) && types.length) {
       console.log('🔍 Filtering for product types:', types);
@@ -383,6 +407,16 @@ class OdooSyncService {
         domain = [['write_date', '>', lastSync.write_date.toISOString()]];
       }
     }
+
+    // 🚀 OPTIMIZATION: Add default domain to only fetch active barcode units
+    // This prevents fetching inactive/deleted units unnecessarily
+    if (domain.length === 0) {
+      domain = [['active', '=', true]];
+    } else {
+      domain.push(['active', '=', true]);
+    }
+
+    console.log(`🔍 Fetching barcode units with domain:`, domain);
 
     let offset = 0;
     let totalProcessed = 0;
@@ -668,6 +702,12 @@ class OdooSyncService {
         domain.push(['write_date', '>', lastSync.write_date.toISOString()]);
       }
     }
+
+    // 🚀 OPTIMIZATION: Add additional filters to reduce unnecessary data
+    // Only fetch stock with positive quantities to avoid empty records
+    domain.push(['quantity', '>', 0]);
+
+    console.log(`🔍 Fetching stock with domain:`, domain);
 
     let offset = 0;
     let totalProcessed = 0;
