@@ -99,6 +99,29 @@ router.get('/sync-category/:categoryId/progress', async (req, res) => {
       success: false,
       message: 'Failed to get sync progress',
       error: error.message
+        });
+  }
+});
+
+// 🔥 NEW: Force refresh all pricelist items to get latest prices
+router.post('/force-refresh-pricelist-items', async (req, res) => {
+  try {
+    console.log('🔄 Force refresh pricelist items requested');
+    
+    const odooSyncService = require('../services/odooSyncService');
+    const result = await odooSyncService.forceRefreshPricelistItems();
+    
+    res.json({
+      success: true,
+      message: `Successfully force refreshed ${result} pricelist items`,
+      data: { itemsRefreshed: result }
+    });
+  } catch (error) {
+    console.error('❌ Error force refreshing pricelist items:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to force refresh pricelist items',
+      error: error.message
     });
   }
 });
