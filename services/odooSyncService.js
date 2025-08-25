@@ -839,37 +839,26 @@ class OdooSyncService {
       const productIds = categoryProducts.map(p => p.id);
       console.log(`🎯 Found ${productIds.length} products in category for pricelist sync`);
       
-      // 🔥 IMPROVED: Try category-specific first, then fallback to all public pricelist items
+      // 🔥 FIXED: Always fetch ALL public pricelist items during category sync
+      // This ensures we get price updates for any product, not just category-specific ones
       let domain = [
         ['pricelist_id', 'in', publicIds],
-        ['product_id', 'in', productIds],
         ['active', '=', true]
       ];
       
       console.log(`🔍 Domain for pricelist items:`, JSON.stringify(domain, null, 2));
       console.log(`🎯 Public pricelist IDs:`, publicIds);
       console.log(`🎯 Product IDs in category:`, productIds);
+      console.log(`💡 Fetching ALL public pricelist items to ensure price updates are captured`);
       
-      // First try to fetch category-specific items
+      // Fetch all public pricelist items (this will include price updates for any product)
       let items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
       
-      if (!items || items.length === 0) {
-        console.log(`⚠️ No category-specific pricelist items found, trying all public pricelist items...`);
-        // Fallback: fetch all public pricelist items
-        domain = [
-          ['pricelist_id', 'in', publicIds],
-          ['active', '=', true]
-        ];
-        items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
-        
-        if (items && items.length > 0) {
-          console.log(`✅ Found ${items.length} public pricelist items (not category-specific)`);
-        } else {
-          console.log(`❌ No public pricelist items found at all`);
-          return 0;
-        }
+      if (items && items.length > 0) {
+        console.log(`✅ Found ${items.length} public pricelist items (including price updates)`);
       } else {
-        console.log(`✅ Found ${items.length} category-specific pricelist items`);
+        console.log(`❌ No public pricelist items found at all`);
+        return 0;
       }
       
       let offset = 0;
@@ -886,7 +875,23 @@ class OdooSyncService {
           break;
         }
         
-        console.log(`📦 Processing ${batchItems.length} category-specific pricelist items...`);
+        console.log(`📦 Processing ${batchItems.length} pricelist items...`);
+        
+        // 🔥 NEW: Check for price changes before processing
+        for (const item of batchItems) {
+          const productId = item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null;
+          if (productId) {
+            const existingItem = await OdooPricelistItem.findOne({ id: item.id }).lean();
+            if (existingItem && existingItem.fixed_price !== item.fixed_price) {
+              console.log(`💰 PRICE CHANGE DETECTED for product ${productId}: ${existingItem.fixed_price} → ${item.fixed_price}`);
+            } else if (existingItem) {
+              console.log(`✅ Price unchanged for product ${productId}: ${item.fixed_price}`);
+            } else {
+              console.log(`🆕 New pricelist item for product ${productId}: ${item.fixed_price}`);
+            }
+          }
+        }
+        
         console.log(`📋 Sample items:`, batchItems.slice(0, 2).map(item => ({
           id: item.id,
           product_id: item.product_id,
