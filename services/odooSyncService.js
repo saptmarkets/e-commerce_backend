@@ -771,7 +771,6 @@ class OdooSyncService {
       console.log(`🎯 Found ${publicIds.length} public pricelists for category sync`);
       
       // Get products in this category from odoo_products
-      const OdooProduct = require('../models/OdooProduct');
       const categoryProducts = await OdooProduct.find({ 
         categ_id: categoryId,
         active: true 
@@ -785,28 +784,62 @@ class OdooSyncService {
       const productIds = categoryProducts.map(p => p.id);
       console.log(`🎯 Found ${productIds.length} products in category for pricelist sync`);
       
-      // Fetch pricelist items for these specific products
-      const domain = [
+      // 🔥 IMPROVED: Try category-specific first, then fallback to all public pricelist items
+      let domain = [
         ['pricelist_id', 'in', publicIds],
         ['product_id', 'in', productIds],
         ['active', '=', true]
       ];
+      
+      console.log(`🔍 Domain for pricelist items:`, JSON.stringify(domain, null, 2));
+      console.log(`🎯 Public pricelist IDs:`, publicIds);
+      console.log(`🎯 Product IDs in category:`, productIds);
+      
+      // First try to fetch category-specific items
+      let items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
+      
+      if (!items || items.length === 0) {
+        console.log(`⚠️ No category-specific pricelist items found, trying all public pricelist items...`);
+        // Fallback: fetch all public pricelist items
+        domain = [
+          ['pricelist_id', 'in', publicIds],
+          ['active', '=', true]
+        ];
+        items = await odooService.fetchPricelistItems(domain, this.batchSize, 0);
+        
+        if (items && items.length > 0) {
+          console.log(`✅ Found ${items.length} public pricelist items (not category-specific)`);
+        } else {
+          console.log(`❌ No public pricelist items found at all`);
+          return 0;
+        }
+      } else {
+        console.log(`✅ Found ${items.length} category-specific pricelist items`);
+      }
       
       let offset = 0;
       let totalProcessed = 0;
       let hasMore = true;
       
       while (hasMore) {
-        const items = await odooService.fetchPricelistItems(domain, this.batchSize, offset);
+        console.log(`📡 Fetching pricelist items with offset ${offset}, batch size ${this.batchSize}...`);
+        const batchItems = await odooService.fetchPricelistItems(domain, this.batchSize, offset);
         
-        if (!items || items.length === 0) {
+        if (!batchItems || batchItems.length === 0) {
+          console.log(`⚠️ No pricelist items found for this batch, stopping...`);
           hasMore = false;
           break;
         }
         
-        console.log(`📦 Processing ${items.length} category-specific pricelist items...`);
+        console.log(`📦 Processing ${batchItems.length} category-specific pricelist items...`);
+        console.log(`📋 Sample items:`, batchItems.slice(0, 2).map(item => ({
+          id: item.id,
+          product_id: item.product_id,
+          pricelist_id: item.pricelist_id,
+          fixed_price: item.fixed_price
+        })));
         
-        const operations = items.map(item => ({
+        const operations = batchItems.map(item => ({
           updateOne: {
             filter: { id: item.id },
             update: {
@@ -865,7 +898,7 @@ class OdooSyncService {
         }
         
         offset += this.batchSize;
-        if (items.length < this.batchSize) {
+        if (batchItems.length < this.batchSize) {
           hasMore = false;
         }
       }
