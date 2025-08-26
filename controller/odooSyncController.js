@@ -522,8 +522,9 @@ const getOdooPricelistItems = async (req, res) => {
       pricelist_id,
       product_id,
       active_only = 'true',
-      search = '', // 🔥 NEW: Search parameter
+      search = '', // 🔥 FIXED: Search parameter
       status = null, // 🔥 NEW: Status filter
+      import_status = null, // 🔥 NEW: Import status filter (imported/pending/failed)
     } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -536,18 +537,27 @@ const getOdooPricelistItems = async (req, res) => {
     // Only fixed price lines by default
     filter.compute_price = 'fixed';
 
-    // 🔥 NEW: Search functionality
+    // 🔥 FIXED: Search functionality - properly handle $or filter
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
-      filter.$or = [
+      const searchConditions = [
         { product_name: searchRegex },
-        { barcode_unit_name: searchRegex },
-        { product_id: isNaN(search) ? null : parseInt(search) },
-        { barcode_unit_id: isNaN(search) ? null : parseInt(search) },
+        { barcode_unit_name: searchRegex }
       ];
+      
+      // Only add numeric conditions if search is actually a number
+      if (!isNaN(search.trim())) {
+        const numericValue = parseInt(search.trim());
+        searchConditions.push(
+          { product_id: numericValue },
+          { barcode_unit_id: numericValue }
+        );
+      }
+      
+      filter.$or = searchConditions;
     }
 
-    // 🔥 NEW: Status filter
+    // 🔥 NEW: Status filter (date-based)
     if (status) {
       const now = new Date();
       if (status === 'active') {
@@ -562,6 +572,20 @@ const getOdooPricelistItems = async (req, res) => {
       }
     }
 
+    // 🔥 NEW: Import status filter (imported/pending/failed)
+    if (import_status) {
+      if (import_status === 'imported') {
+        filter.store_promotion_id = { $exists: true, $ne: null };
+      } else if (import_status === 'pending') {
+        filter.$or = [
+          { store_promotion_id: { $exists: false } },
+          { store_promotion_id: null }
+        ];
+      } else if (import_status === 'failed') {
+        filter._sync_status = 'failed';
+      }
+    }
+
     // Active validity window check (only current/future promos when active_only truthy)
     if (active_only !== 'false') {
       const endOfToday = new Date();
@@ -572,6 +596,10 @@ const getOdooPricelistItems = async (req, res) => {
       ];
     }
 
+    // 🔥 DEBUG: Log the filter being used
+    console.log('🔍 Search filter:', JSON.stringify(filter, null, 2));
+    console.log('🔍 Search params:', { search, status, import_status, page, limit });
+
     const [items, total] = await Promise.all([
       OdooPricelistItem.find(filter)
         .sort({ write_date: -1 })
@@ -579,6 +607,8 @@ const getOdooPricelistItems = async (req, res) => {
         .limit(parseInt(limit)),
       OdooPricelistItem.countDocuments(filter),
     ]);
+
+    console.log(`🔍 Found ${items.length} items out of ${total} total`);
 
     res.status(200).json({
       success: true,
