@@ -295,6 +295,27 @@ router.post('/refresh-public-pricelist-items', async (req, res) => {
     // Step 5: Insert all new items
     console.log(`💾 Inserting ${newItems.length} new pricelist items...`);
     await OdooPricelistItem.insertMany(newItems);
+
+    // Step 6: Backfill links to existing promotions using Odoo IDs
+    try {
+      console.log('🔗 Backfilling store_promotion_id links using Promotion.odoo_pricelist_item_id...');
+      const Promotion = require('../models/Promotion');
+      const linkedPromos = await Promotion.find({ odoo_pricelist_item_id: { $ne: null } }, '_id odoo_pricelist_item_id').lean();
+      if (linkedPromos && linkedPromos.length) {
+        const bulkOps = linkedPromos.map(p => ({
+          updateOne: {
+            filter: { id: p.odoo_pricelist_item_id },
+            update: { $set: { store_promotion_id: p._id, _sync_status: 'imported' } }
+          }
+        }));
+        if (bulkOps.length) {
+          const resBF = await OdooPricelistItem.bulkWrite(bulkOps, { ordered: false });
+          console.log('✅ Backfill result:', JSON.stringify(resBF));
+        }
+      }
+    } catch (bfErr) {
+      console.warn('⚠️ Backfill linking failed (non-fatal):', bfErr.message);
+    }
     
     console.log(`✅ Successfully refreshed public pricelist items`);
     

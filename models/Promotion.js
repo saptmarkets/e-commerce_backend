@@ -133,6 +133,12 @@ const PromotionSchema = new mongoose.Schema(
       default: "pcs",
     },
   },
+  
+  // Link to Odoo pricelist item (for sync/status)
+  odoo_pricelist_item_id: {
+    type: Number,
+    index: true,
+  },
   {
     timestamps: true,
   }
@@ -287,5 +293,6 @@ PromotionSchema.index({ productUnit: 1, isActive: 1 });
 PromotionSchema.index({ productUnits: 1, isActive: 1 });
 PromotionSchema.index({ 'name.en': 1 });
 PromotionSchema.index({ 'name.ar': 1 });
+PromotionSchema.index({ odoo_pricelist_item_id: 1 });
 
 module.exports = mongoose.model("Promotion", PromotionSchema); 
