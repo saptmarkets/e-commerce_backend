@@ -135,14 +135,12 @@ router.post('/promotions/check-imported', async (req, res) => {
         const odooImportService = require('../services/odooImportService');
         const importService = new odooImportService();
         
-        // Get IDs of pending items
-        const pendingIds = itemsWithStatus
-          .filter(item => item._sync_status === 'imported')
-          .map(item => item.id);
+        // Build target IDs for auto-sync: update all items (handles create/update internally)
+        const targetIds = allPricelistItems.map(i => i.id);
         
-        if (pendingIds.length > 0) {
-          updateResult = await importService.importPromotions(pendingIds);
-          console.log('✅ Auto-update completed:', updateResult);
+        if (targetIds.length > 0) {
+          updateResult = await importService.importPromotions(targetIds);
+          console.log('✅ Auto-sync completed for', targetIds.length, 'items');
         }
       } catch (error) {
         console.error('❌ Auto-update failed:', error);
