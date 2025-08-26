@@ -996,7 +996,7 @@ class OdooImportService {
           continue;
         }
 
-        // Check if already imported
+        // 🔥 FIXED: Check if already imported and UPDATE if needed
         if (plc.store_promotion_id) {
           // Validate that the promotion actually exists
           const existingPromotion = await Promotion.findById(plc.store_promotion_id);
@@ -1010,8 +1010,59 @@ class OdooImportService {
               }
             );
           } else {
-            console.log(`✅ Item ${plc.id} already has valid promotion, skipping`);
-            continue;
+            console.log(`🔄 Item ${plc.id} already has valid promotion, checking for price updates...`);
+            
+            // Check if price needs updating
+            const currentPrice = existingPromotion.value;
+            const newPrice = plc.fixed_price;
+            
+            if (currentPrice !== newPrice) {
+              console.log(`💰 Price update needed: ${currentPrice} → ${newPrice} for promotion ${existingPromotion._id}`);
+              
+              // Update the existing promotion with new price
+              await Promotion.updateOne(
+                { _id: existingPromotion._id },
+                { 
+                  $set: { 
+                    value: newPrice,
+                    lastUpdated: new Date(),
+                    _last_odoo_sync: new Date()
+                  }
+                }
+              );
+              
+              console.log(`✅ Updated promotion ${existingPromotion._id} with new price: ${newPrice}`);
+              
+              // Update sync status
+              await OdooPricelistItem.updateOne(
+                { id: plc.id },
+                { 
+                  $set: { 
+                    _sync_status: 'updated',
+                    _last_price_update: new Date(),
+                    _last_sync_date: new Date()
+                  }
+                }
+              );
+              
+              imported += 1; // Count as updated
+              continue; // Skip to next item
+            } else {
+              console.log(`✅ Promotion ${existingPromotion._id} already has correct price: ${currentPrice}`);
+              
+              // Update sync status to show it's current
+              await OdooPricelistItem.updateOne(
+                { id: plc.id },
+                { 
+                  $set: { 
+                    _sync_status: 'current',
+                    _last_sync_date: new Date()
+                  }
+                }
+              );
+              
+              continue; // Skip to next item
+            }
           }
         }
 
@@ -1202,7 +1253,7 @@ class OdooImportService {
       }
     }
 
-    console.log(`🎉 Promotion import completed: ${imported} imported, ${errors.length} errors`);
+    console.log(`🎉 Promotion import completed: ${imported} imported/updated, ${errors.length} errors`);
     return { imported, errors };
   }
 

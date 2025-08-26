@@ -572,7 +572,7 @@ const getOdooPricelistItems = async (req, res) => {
       }
     }
 
-    // 🔥 NEW: Import status filter (imported/pending/failed)
+    // 🔥 ENHANCED: Import status filter (imported/pending/failed/updated/current)
     if (import_status) {
       if (import_status === 'imported') {
         filter.store_promotion_id = { $exists: true, $ne: null };
@@ -583,6 +583,10 @@ const getOdooPricelistItems = async (req, res) => {
         ];
       } else if (import_status === 'failed') {
         filter._sync_status = 'failed';
+      } else if (import_status === 'updated') {
+        filter._sync_status = 'updated';
+      } else if (import_status === 'current') {
+        filter._sync_status = 'current';
       }
     }
 
