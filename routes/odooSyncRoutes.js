@@ -58,6 +58,118 @@ router.post('/import-promotions', importPromotions);
 router.post('/push-back/stock', pushBackStock);
 router.post('/download-report', downloadPushBackReport);
 
+// 🔥 NEW: Promotion import status and auto-update
+router.post('/promotions/check-imported', async (req, res) => {
+  try {
+    const { autoUpdatePromotions = true } = req.body || {};
+    console.log('🔍 Checking promotion import status...');
+    
+    const OdooPricelistItem = require('../models/OdooPricelistItem');
+    const Promotion = require('../models/Promotion');
+    
+    // Get all pricelist items
+    const allPricelistItems = await OdooPricelistItem.find({ is_active: true }).lean();
+    
+    if (allPricelistItems.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No pricelist items found',
+        data: {
+          total: 0,
+          imported: 0,
+          pending: 0,
+          failed: 0,
+          skipped: 0
+        }
+      });
+    }
+    
+    // Check import status for each item
+    const statusCounts = {
+      total: allPricelistItems.length,
+      imported: 0,
+      pending: 0,
+      failed: 0,
+      skipped: 0
+    };
+    
+    const itemsWithStatus = [];
+    
+    for (const item of allPricelistItems) {
+      try {
+        // Check if this item has a corresponding store promotion
+        const storePromotion = await Promotion.findOne({
+          odoo_pricelist_item_id: item.id
+        });
+        
+        if (storePromotion) {
+          statusCounts.imported++;
+          itemsWithStatus.push({
+            ...item,
+            _sync_status: 'imported',
+            store_promotion_id: storePromotion._id
+          });
+        } else {
+          statusCounts.pending++;
+          itemsWithStatus.push({
+            ...item,
+            _sync_status: 'pending'
+          });
+        }
+      } catch (error) {
+        console.error(`Error checking item ${item.id}:`, error);
+        statusCounts.failed++;
+        itemsWithStatus.push({
+          ...item,
+          _sync_status: 'failed',
+          error: error.message
+        });
+      }
+    }
+    
+    // Auto-update promotions if requested
+    let updateResult = null;
+    if (autoUpdatePromotions && statusCounts.pending > 0) {
+      try {
+        console.log(`🔄 Auto-updating ${statusCounts.pending} pending promotions...`);
+        const odooImportService = require('../services/odooImportService');
+        const importService = new odooImportService();
+        
+        // Get IDs of pending items
+        const pendingIds = itemsWithStatus
+          .filter(item => item._sync_status === 'imported')
+          .map(item => item.id);
+        
+        if (pendingIds.length > 0) {
+          updateResult = await importService.importPromotions(pendingIds);
+          console.log('✅ Auto-update completed:', updateResult);
+        }
+      } catch (error) {
+        console.error('❌ Auto-update failed:', error);
+        updateResult = { error: error.message };
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Promotion import status checked successfully`,
+      data: {
+        ...statusCounts,
+        items: itemsWithStatus,
+        updateResult
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error checking promotion import status:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check promotion import status',
+      error: error.message
+    });
+  }
+});
+
 // 🔥 NEW: Force refresh pricelist items route
 router.post('/force-refresh-pricelist-items', async (req, res) => {
   try {
@@ -203,6 +315,118 @@ router.post('/refresh-public-pricelist-items', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to refresh public pricelist items',
+      error: error.message
+    });
+  }
+});
+
+// 🔥 NEW: Check promotion import status and auto-update (similar to products check-imported)
+router.post('/promotions/check-imported', async (req, res) => {
+  try {
+    const { autoUpdatePromotions = true } = req.body || {};
+    console.log('🔍 Checking promotion import status...');
+    
+    const OdooPricelistItem = require('../models/OdooPricelistItem');
+    const Promotion = require('../models/Promotion');
+    
+    // Get all pricelist items
+    const allPricelistItems = await OdooPricelistItem.find({ is_active: true }).lean();
+    
+    if (allPricelistItems.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No pricelist items found',
+        data: {
+          total: 0,
+          imported: 0,
+          pending: 0,
+          failed: 0,
+          skipped: 0
+        }
+      });
+    }
+    
+    // Check import status for each item
+    const statusCounts = {
+      total: allPricelistItems.length,
+      imported: 0,
+      pending: 0,
+      failed: 0,
+      skipped: 0
+    };
+    
+    const itemsWithStatus = [];
+    
+    for (const item of allPricelistItems) {
+      try {
+        // Check if this item has a corresponding store promotion
+        const storePromotion = await Promotion.findOne({
+          odoo_pricelist_item_id: item.id
+        });
+        
+        if (storePromotion) {
+          statusCounts.imported++;
+          itemsWithStatus.push({
+            ...item,
+            _sync_status: 'imported',
+            store_promotion_id: storePromotion._id
+          });
+        } else {
+          statusCounts.pending++;
+          itemsWithStatus.push({
+            ...item,
+            _sync_status: 'pending'
+          });
+        }
+      } catch (error) {
+        console.error(`Error checking item ${item.id}:`, error);
+        statusCounts.failed++;
+        itemsWithStatus.push({
+          ...item,
+          _sync_status: 'failed',
+          error: error.message
+        });
+      }
+    }
+    
+    // Auto-update promotions if requested
+    let updateResult = null;
+    if (autoUpdatePromotions && statusCounts.pending > 0) {
+      try {
+        console.log(`🔄 Auto-updating ${statusCounts.pending} pending promotions...`);
+        const odooImportService = require('../services/odooImportService');
+        const importService = new odooImportService();
+        
+        // Get IDs of pending items
+        const pendingIds = itemsWithStatus
+          .filter(item => item._sync_status === 'pending')
+          .map(item => item.id);
+        
+        if (pendingIds.length > 0) {
+          updateResult = await importService.importPromotions(pendingIds);
+          console.log('✅ Auto-update completed:', updateResult);
+        }
+      } catch (error) {
+        console.error('❌ Auto-update failed:', error);
+        updateResult = { error: error.message };
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Promotion import status checked successfully`,
+      data: {
+        ...statusCounts,
+        items: itemsWithStatus,
+        updateResult
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error checking promotion import status:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check promotion import status',
       error: error.message
     });
   }

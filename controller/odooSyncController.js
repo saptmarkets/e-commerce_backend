@@ -522,6 +522,8 @@ const getOdooPricelistItems = async (req, res) => {
       pricelist_id,
       product_id,
       active_only = 'true',
+      search = '', // 🔥 NEW: Search parameter
+      status = null, // 🔥 NEW: Status filter
     } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -533,6 +535,32 @@ const getOdooPricelistItems = async (req, res) => {
 
     // Only fixed price lines by default
     filter.compute_price = 'fixed';
+
+    // 🔥 NEW: Search functionality
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      filter.$or = [
+        { product_name: searchRegex },
+        { barcode_unit_name: searchRegex },
+        { product_id: isNaN(search) ? null : parseInt(search) },
+        { barcode_unit_id: isNaN(search) ? null : parseInt(search) },
+      ];
+    }
+
+    // 🔥 NEW: Status filter
+    if (status) {
+      const now = new Date();
+      if (status === 'active') {
+        filter.$and = [
+          { $or: [{ date_start: null }, { date_start: { $lte: now } }] },
+          { $or: [{ date_end: null }, { date_end: { $gte: now } }] }
+        ];
+      } else if (status === 'expired') {
+        filter.date_end = { $lt: now };
+      } else if (status === 'future') {
+        filter.date_start = { $gt: now };
+      }
+    }
 
     // Active validity window check (only current/future promos when active_only truthy)
     if (active_only !== 'false') {
