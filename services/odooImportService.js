@@ -1026,7 +1026,8 @@ class OdooImportService {
                   $set: { 
                     value: newPrice,
                     lastUpdated: new Date(),
-                    _last_odoo_sync: new Date()
+                    _last_odoo_sync: new Date(),
+                    odoo_pricelist_item_id: plc.id
                   }
                 }
               );
@@ -1294,7 +1295,8 @@ class OdooImportService {
 
         const promo = await Promotion.create(promoDoc);
 
-        // Update mapping
+        // Link both directions
+        await Promotion.updateOne({ _id: promo._id }, { $set: { odoo_pricelist_item_id: plc.id } });
         await OdooPricelistItem.updateOne({ id: plc.id }, { $set: { store_promotion_id: promo._id, _sync_status: 'imported' } });
 
         console.log(`🆕 Successfully created NEW promotion ${promo._id} for item ${plc.id}`);
