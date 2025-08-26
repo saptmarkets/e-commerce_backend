@@ -1219,6 +1219,59 @@ class OdooImportService {
           throw new Error(`No mapped ProductUnit for item ${plc.id} (barcode_unit_id: ${plc.barcode_unit_id}, product_id: ${plc.product_id})`);
         }
 
+        // 🔥 FIXED: Check if promotion already exists for this product/unit combination
+        const existingPromotion = await Promotion.findOne({
+          productUnit: storeProductUnitId,
+          type: 'fixed_price',
+          isActive: true
+        });
+
+        if (existingPromotion) {
+          console.log(`🔄 Found existing promotion ${existingPromotion._id} for product/unit ${storeProductUnitId}, updating price...`);
+          
+          // Check if price needs updating
+          const currentPrice = existingPromotion.value;
+          const newPrice = plc.fixed_price;
+          
+          if (currentPrice !== newPrice) {
+            console.log(`💰 Updating existing promotion price: ${currentPrice} → ${newPrice}`);
+            
+            // Update the existing promotion with new price and dates
+            await Promotion.updateOne(
+              { _id: existingPromotion._id },
+              { 
+                $set: { 
+                  value: newPrice,
+                  startDate: plc.date_start || existingPromotion.startDate,
+                  endDate: plc.date_end || existingPromotion.endDate,
+                  lastUpdated: new Date(),
+                  _last_odoo_sync: new Date()
+                }
+              }
+            );
+            
+            console.log(`✅ Updated existing promotion ${existingPromotion._id} with new price: ${newPrice}`);
+          } else {
+            console.log(`✅ Existing promotion ${existingPromotion._id} already has correct price: ${currentPrice}`);
+          }
+          
+          // Link this odoo item to the existing promotion
+          await OdooPricelistItem.updateOne(
+            { id: plc.id },
+            { 
+              $set: { 
+                store_promotion_id: existingPromotion._id,
+                _sync_status: currentPrice !== newPrice ? 'updated' : 'current',
+                _last_price_update: currentPrice !== newPrice ? new Date() : existingPromotion.lastUpdated,
+                _last_sync_date: new Date()
+              }
+            }
+          );
+          
+          imported += 1; // Count as updated
+          continue; // Skip to next item
+        }
+
         // Select promotion list (fixed_price)
         let promoListId = null;
         const fixedList = await (require('../models/PromotionList')).findOne({ type: 'fixed_price', isActive: true }).sort({ priority: 1 });
@@ -1244,7 +1297,7 @@ class OdooImportService {
         // Update mapping
         await OdooPricelistItem.updateOne({ id: plc.id }, { $set: { store_promotion_id: promo._id, _sync_status: 'imported' } });
 
-        console.log(`✅ Successfully imported promotion ${promo._id} for item ${plc.id}`);
+        console.log(`🆕 Successfully created NEW promotion ${promo._id} for item ${plc.id}`);
         imported += 1;
       } catch (err) {
         console.error(`❌ Failed importing pricelist item ${plc.id}:`, err.message);
@@ -1284,6 +1337,52 @@ class OdooImportService {
             $set: { _sync_status: 'pending', _import_error: null } 
           }
         );
+      }
+
+      // 🔥 NEW: Clean up duplicate promotions by product/unit combination
+      console.log('🧹 Checking for duplicate promotions...');
+      const allPromotions = await Promotion.find({ type: 'fixed_price', isActive: true });
+      const duplicateGroups = new Map();
+      
+      for (const promotion of allPromotions) {
+        const key = `${promotion.productUnit}_${promotion.type}`;
+        if (!duplicateGroups.has(key)) {
+          duplicateGroups.set(key, []);
+        }
+        duplicateGroups.get(key).push(promotion);
+      }
+      
+      let duplicatesRemoved = 0;
+      for (const [key, promotions] of duplicateGroups) {
+        if (promotions.length > 1) {
+          console.log(`⚠️ Found ${promotions.length} duplicate promotions for key: ${key}`);
+          
+          // Keep the most recent one, remove others
+          const sortedPromotions = promotions.sort((a, b) => 
+            new Date(b.createdAt || b._id.getTimestamp()) - new Date(a.createdAt || a._id.getTimestamp())
+          );
+          
+          const keepPromotion = sortedPromotions[0];
+          const removePromotions = sortedPromotions.slice(1);
+          
+          console.log(`🔄 Keeping promotion ${keepPromotion._id}, removing ${removePromotions.length} duplicates`);
+          
+          // Remove duplicate promotions
+          for (const dupPromotion of removePromotions) {
+            await Promotion.deleteOne({ _id: dupPromotion._id });
+            duplicatesRemoved++;
+          }
+          
+          // Update all odoo items to point to the kept promotion
+          await OdooPricelistItem.updateMany(
+            { store_promotion_id: { $in: removePromotions.map(p => p._id) } },
+            { $set: { store_promotion_id: keepPromotion._id } }
+          );
+        }
+      }
+      
+      if (duplicatesRemoved > 0) {
+        console.log(`🧹 Cleaned up ${duplicatesRemoved} duplicate promotions`);
       }
 
       // 2. Ensure products are imported for all items (both product_id and product_tmpl_id)
