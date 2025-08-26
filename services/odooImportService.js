@@ -985,9 +985,8 @@ class OdooImportService {
     const items = await OdooPricelistItem.find(itemFilter).lean();
     console.log(`Found ${items.length} pricelist items to import`);
 
-    // Pre-validate and fix data consistency issues
-    console.log('🔧 Pre-validating data consistency...');
-    await this.validateAndFixDataConsistency(items);
+    // Skip validation for speed - just update existing promotions
+    console.log('🚀 Fast sync mode: skipping validation for speed');
 
     for (const plc of items) {
       try {
@@ -1220,7 +1219,7 @@ class OdooImportService {
           throw new Error(`No mapped ProductUnit for item ${plc.id} (barcode_unit_id: ${plc.barcode_unit_id}, product_id: ${plc.product_id})`);
         }
 
-        // 🔥 FIXED: Check if promotion already exists for this product/unit combination
+        // 🔥 FAST SYNC: Check if promotion already exists and just update fields
         const existingPromotion = await Promotion.findOne({
           productUnit: storeProductUnitId,
           type: 'fixed_price',
@@ -1228,65 +1227,38 @@ class OdooImportService {
         });
 
         if (existingPromotion) {
-          console.log(`🔄 Found existing promotion ${existingPromotion._id} for product/unit ${storeProductUnitId}, checking for updates...`);
+          console.log(`🚀 Fast update for existing promotion ${existingPromotion._id}`);
           
-          // Check if price, quantities, dates, or unit assignment need updating
-          const currentPrice = existingPromotion.value;
-          const newPrice = plc.fixed_price;
-          const currentMinQty = existingPromotion.minQty;
-          const newMinQty = plc.min_quantity || 1;
-          const currentMaxQty = existingPromotion.maxQty;
-          const newMaxQty = plc.max_quantity || null;
-          const currentProductUnit = existingPromotion.productUnit;
-          const newProductUnit = storeProductUnitId;
-          
-          const needsUpdate = currentPrice !== newPrice || 
-                             currentMinQty !== newMinQty || 
-                             currentMaxQty !== newMaxQty ||
-                             currentProductUnit.toString() !== newProductUnit.toString() ||
-                             (plc.date_start && new Date(plc.date_start).getTime() !== existingPromotion.startDate.getTime()) ||
-                             (plc.date_end && new Date(plc.date_end).getTime() !== existingPromotion.endDate.getTime());
-          
-          if (needsUpdate) {
-            console.log(`🔄 Updating existing promotion: price ${currentPrice}→${newPrice}, minQty ${currentMinQty}→${newMinQty}, maxQty ${currentMaxQty}→${newMaxQty}, unit ${currentProductUnit}→${newProductUnit}`);
-            
-            // Update the existing promotion with new data including unit assignment
-            await Promotion.updateOne(
-              { _id: existingPromotion._id },
-              { 
-                $set: { 
-                  value: newPrice,
-                  minQty: newMinQty,
-                  maxQty: newMaxQty,
-                  productUnit: newProductUnit, // Update unit assignment if changed
-                  startDate: plc.date_start || existingPromotion.startDate,
-                  endDate: plc.date_end || existingPromotion.endDate,
-                  lastUpdated: new Date(),
-                  _last_odoo_sync: new Date()
-                }
+          // Simple field update without complex checks
+          await Promotion.updateOne(
+            { _id: existingPromotion._id },
+            { 
+              $set: { 
+                value: plc.fixed_price,
+                minQty: plc.min_quantity || 1,
+                maxQty: plc.max_quantity || null,
+                startDate: plc.date_start || existingPromotion.startDate,
+                endDate: plc.date_end || existingPromotion.endDate,
+                lastUpdated: new Date(),
+                _last_odoo_sync: new Date()
               }
-            );
-            
-            console.log(`✅ Updated existing promotion ${existingPromotion._id}`);
-          } else {
-            console.log(`✅ Existing promotion ${existingPromotion._id} already up to date`);
-          }
+            }
+          );
           
-          // Link this odoo item to the existing promotion
+          // Link and mark as updated
           await OdooPricelistItem.updateOne(
             { id: plc.id },
             { 
               $set: { 
                 store_promotion_id: existingPromotion._id,
-                _sync_status: needsUpdate ? 'updated' : 'current',
-                _last_price_update: needsUpdate ? new Date() : existingPromotion.lastUpdated,
+                _sync_status: 'updated',
                 _last_sync_date: new Date()
               }
             }
           );
           
-          imported += 1; // Count as updated
-          continue; // Skip to next item
+          imported += 1;
+          continue;
         }
 
         // Select promotion list (fixed_price)
