@@ -132,12 +132,12 @@ const PromotionSchema = new mongoose.Schema(
       enum: ["pcs", "kg", "ctn", "outer", "g", "ml", "ltr", "piece"],
       default: "pcs",
     },
-  },
-  
-  // Link to Odoo pricelist item (for sync/status)
-  odoo_pricelist_item_id: {
-    type: Number,
-    index: true,
+    
+    // Link to Odoo pricelist item (for sync/status)
+    odoo_pricelist_item_id: {
+      type: Number,
+      index: true,
+    },
   },
   {
     timestamps: true,
