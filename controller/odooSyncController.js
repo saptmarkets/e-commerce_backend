@@ -537,7 +537,7 @@ const getOdooPricelistItems = async (req, res) => {
     // Only fixed price lines by default
     filter.compute_price = 'fixed';
 
-    // 🔥 FIXED: Search functionality - properly handle $or filter
+    // 🔥 FIXED: Search functionality - compose into $and to avoid overwrites
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
       const searchConditions = [
@@ -554,14 +554,14 @@ const getOdooPricelistItems = async (req, res) => {
         );
       }
       
-      filter.$or = searchConditions;
+      filter.$and = [...(filter.$and || []), { $or: searchConditions }];
     }
 
     // 🔥 NEW: Status filter (date-based)
     if (status) {
       const now = new Date();
       if (status === 'active') {
-        filter.$and = [
+        filter.$and = [...(filter.$and || []),
           { $or: [{ date_start: null }, { date_start: { $lte: now } }] },
           { $or: [{ date_end: null }, { date_end: { $gte: now } }] }
         ];
@@ -577,10 +577,10 @@ const getOdooPricelistItems = async (req, res) => {
       if (import_status === 'imported') {
         filter.store_promotion_id = { $exists: true, $ne: null };
       } else if (import_status === 'pending') {
-        filter.$or = [
+        filter.$and = [...(filter.$and || []), { $or: [
           { store_promotion_id: { $exists: false } },
           { store_promotion_id: null }
-        ];
+        ]}];
       } else if (import_status === 'failed') {
         filter._sync_status = 'failed';
       } else if (import_status === 'updated') {
@@ -594,10 +594,10 @@ const getOdooPricelistItems = async (req, res) => {
     if (active_only !== 'false') {
       const endOfToday = new Date();
       endOfToday.setHours(23, 59, 59, 999);
-      filter.$or = [
+      filter.$and = [...(filter.$and || []), { $or: [
         { date_end: null },
         { date_end: { $gte: endOfToday } },
-      ];
+      ]}];
     }
 
     // 🔥 DEBUG: Log the filter being used
