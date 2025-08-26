@@ -129,17 +129,29 @@ router.post('/promotions/check-imported', async (req, res) => {
     
     // Auto-update promotions if requested
     let updateResult = null;
-    if (autoUpdatePromotions && statusCounts.pending > 0) {
+    if (autoUpdatePromotions) {
       try {
-        console.log(`🔄 Auto-updating ${statusCounts.pending} pending promotions...`);
-        const importService = require('../services/odooImportService');
+        // 🔥 FIXED: Only sync already imported promotions, not create new ones
+        const importedItems = allPricelistItems.filter(item => 
+          itemsWithStatus.find(statusItem => 
+            statusItem.id === item.id && statusItem._sync_status === 'imported'
+          )
+        );
         
-        // Build target IDs for auto-sync: update all items (handles create/update internally)
-        const targetIds = allPricelistItems.map(i => i.id);
-        
-        if (targetIds.length > 0) {
-          updateResult = await importService.importPromotions(targetIds);
-          console.log('✅ Auto-sync completed for', targetIds.length, 'items');
+        if (importedItems.length > 0) {
+          console.log(`🔄 Auto-updating ${importedItems.length} already imported promotions...`);
+          const importService = require('../services/odooImportService');
+          
+          // Only process items that are already imported
+          const targetIds = importedItems.map(i => i.id);
+          
+          if (targetIds.length > 0) {
+            updateResult = await importService.importPromotions(targetIds);
+            console.log('✅ Auto-sync completed for', targetIds.length, 'imported items');
+          }
+        } else {
+          console.log('ℹ️ No imported promotions to update');
+          updateResult = { message: 'No imported promotions to update' };
         }
       } catch (error) {
         console.error('❌ Auto-update failed:', error);
