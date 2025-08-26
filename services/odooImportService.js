@@ -1228,21 +1228,33 @@ class OdooImportService {
         });
 
         if (existingPromotion) {
-          console.log(`🔄 Found existing promotion ${existingPromotion._id} for product/unit ${storeProductUnitId}, updating price...`);
+          console.log(`🔄 Found existing promotion ${existingPromotion._id} for product/unit ${storeProductUnitId}, checking for updates...`);
           
-          // Check if price needs updating
+          // Check if price, quantities, or dates need updating
           const currentPrice = existingPromotion.value;
           const newPrice = plc.fixed_price;
+          const currentMinQty = existingPromotion.minQty;
+          const newMinQty = plc.min_quantity || 1;
+          const currentMaxQty = existingPromotion.maxQty;
+          const newMaxQty = plc.max_quantity || null;
           
-          if (currentPrice !== newPrice) {
-            console.log(`💰 Updating existing promotion price: ${currentPrice} → ${newPrice}`);
+          const needsUpdate = currentPrice !== newPrice || 
+                             currentMinQty !== newMinQty || 
+                             currentMaxQty !== newMaxQty ||
+                             (plc.date_start && new Date(plc.date_start).getTime() !== existingPromotion.startDate.getTime()) ||
+                             (plc.date_end && new Date(plc.date_end).getTime() !== existingPromotion.endDate.getTime());
+          
+          if (needsUpdate) {
+            console.log(`🔄 Updating existing promotion: price ${currentPrice}→${newPrice}, minQty ${currentMinQty}→${newMinQty}, maxQty ${currentMaxQty}→${newMaxQty}`);
             
-            // Update the existing promotion with new price and dates
+            // Update the existing promotion with new data
             await Promotion.updateOne(
               { _id: existingPromotion._id },
               { 
                 $set: { 
                   value: newPrice,
+                  minQty: newMinQty,
+                  maxQty: newMaxQty,
                   startDate: plc.date_start || existingPromotion.startDate,
                   endDate: plc.date_end || existingPromotion.endDate,
                   lastUpdated: new Date(),
@@ -1251,9 +1263,9 @@ class OdooImportService {
               }
             );
             
-            console.log(`✅ Updated existing promotion ${existingPromotion._id} with new price: ${newPrice}`);
+            console.log(`✅ Updated existing promotion ${existingPromotion._id}`);
           } else {
-            console.log(`✅ Existing promotion ${existingPromotion._id} already has correct price: ${currentPrice}`);
+            console.log(`✅ Existing promotion ${existingPromotion._id} already up to date`);
           }
           
           // Link this odoo item to the existing promotion
@@ -1262,8 +1274,8 @@ class OdooImportService {
             { 
               $set: { 
                 store_promotion_id: existingPromotion._id,
-                _sync_status: currentPrice !== newPrice ? 'updated' : 'current',
-                _last_price_update: currentPrice !== newPrice ? new Date() : existingPromotion.lastUpdated,
+                _sync_status: needsUpdate ? 'updated' : 'current',
+                _last_price_update: needsUpdate ? new Date() : existingPromotion.lastUpdated,
                 _last_sync_date: new Date()
               }
             }
