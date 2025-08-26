@@ -63,8 +63,9 @@ router.post('/force-refresh-pricelist-items', async (req, res) => {
   try {
     console.log('🔄 Force refresh pricelist items requested...');
     
-    const odooSyncService = require('../services/odooSyncService');
-    const syncService = new odooSyncService();
+    // Import odooSyncService to fetch and update local collection
+    const OdooSyncService = require('../services/odooSyncService');
+    const syncService = new OdooSyncService();
     
     const result = await syncService.fetchPricelistItems(false, true); // forceRefresh = true
     
@@ -78,55 +79,6 @@ router.post('/force-refresh-pricelist-items', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to force refresh pricelist items',
-      error: error.message
-    });
-  }
-});
-
-// 🔥 NEW: Fetch-only public pricelist promotions (with optional import)
-router.post('/fetch-public-pricelist-items', async (req, res) => {
-  try {
-    const { incremental = false, forceRefresh = false, importToStore = true } = req.body || {};
-    console.log(`🎯 Fetch public pricelist items requested (incremental=${incremental}, forceRefresh=${forceRefresh}, importToStore=${importToStore})`);
-
-    const odooSyncService = require('../services/odooSyncService');
-    const syncService = new odooSyncService();
-
-    const totalFetched = await syncService.fetchPricelistItems(!!incremental, !!forceRefresh);
-
-    let importSummary = null;
-    if (importToStore && totalFetched > 0) {
-      try {
-        const OdooPricelistItem = require('../models/OdooPricelistItem');
-        const odooImportService = require('../services/odooImportService');
-        const importService = new odooImportService();
-
-        // Import only pending fixed-price items updated recently (write_date within 24h) to limit scope
-        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const pendingItems = await OdooPricelistItem.find({
-          _sync_status: 'pending',
-          compute_price: 'fixed',
-          write_date: { $gte: since }
-        }).select('id').lean();
-
-        const itemIds = pendingItems.map(i => i.id);
-        console.log(`🛒 Importing ${itemIds.length} pending pricelist items into store promotions...`);
-        importSummary = await importService.importPromotions(itemIds);
-      } catch (importErr) {
-        console.error('⚠️ Import after fetch failed:', importErr);
-      }
-    }
-
-    res.json({
-      success: true,
-      message: `Fetched ${totalFetched} public pricelist items${importToStore ? ' and imported to store (if pending)' : ''}`,
-      data: { totalFetched, importSummary }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching public pricelist items:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch public pricelist items',
       error: error.message
     });
   }
