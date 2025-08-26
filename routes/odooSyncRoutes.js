@@ -84,6 +84,130 @@ router.post('/force-refresh-pricelist-items', async (req, res) => {
   }
 });
 
+// 🔥 NEW: Lightweight route for refreshing ONLY public pricelist items
+router.post('/refresh-public-pricelist-items', async (req, res) => {
+  try {
+    console.log('🎯 Lightweight refresh of public pricelist items requested...');
+    
+    const odooService = require('../services/odooService');
+    const OdooPricelistItem = require('../models/OdooPricelistItem');
+    
+    // Step 1: Get public pricelist IDs (from local collection for speed)
+    const publicPricelists = await require('../models/OdooPricelist').find({ 
+      name: /public/i,
+      active: true 
+    }).select('id').lean();
+    
+    if (publicPricelists.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No public pricelists found in local collection'
+      });
+    }
+    
+    const publicIds = publicPricelists.map(pl => pl.id);
+    console.log(`🎯 Found ${publicIds.length} public pricelists, fetching their items...`);
+    
+    // Step 2: Fetch ALL public pricelist items from Odoo (no incremental, no date filters)
+    const domain = [
+      ['pricelist_id', 'in', publicIds],
+      ['active', '=', true]
+    ];
+    
+    console.log(`🔍 Fetching with domain:`, JSON.stringify(domain, null, 2));
+    
+    let allItems = [];
+    let offset = 0;
+    const batchSize = 500;
+    
+    // Fetch all items in batches
+    while (true) {
+      const batch = await odooService.fetchPricelistItems(domain, batchSize, offset);
+      if (!batch || batch.length === 0) break;
+      
+      allItems.push(...batch);
+      offset += batchSize;
+      
+      if (batch.length < batchSize) break;
+    }
+    
+    console.log(`📦 Fetched ${allItems.length} total pricelist items from Odoo`);
+    
+    if (allItems.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No pricelist items found in public pricelists',
+        data: { totalFetched: 0, totalReplaced: 0 }
+      });
+    }
+    
+    // Step 3: Clear existing collection and insert new items (complete replacement)
+    console.log(`🗑️ Clearing existing ${publicIds.length} public pricelist items...`);
+    await OdooPricelistItem.deleteMany({ 
+      pricelist_id: { $in: publicIds } 
+    });
+    
+    // Step 4: Prepare new items with proper mapping
+    const newItems = allItems.map(item => ({
+      id: item.id,
+      pricelist_id: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[0] : item.pricelist_id) : null,
+      pricelist_name: item.pricelist_id ? (Array.isArray(item.pricelist_id) ? item.pricelist_id[1] : null) : null,
+      product_tmpl_id: item.product_tmpl_id ? (Array.isArray(item.product_tmpl_id) ? item.product_tmpl_id[0] : item.product_tmpl_id) : null,
+      product_id: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[0] : item.product_id) : null,
+      product_name: item.product_id ? (Array.isArray(item.product_id) ? item.product_id[1] : null) : null,
+      barcode_unit_id: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[0] : item.barcode_unit_id) : null,
+      barcode_unit_name: item.barcode_unit_id ? (Array.isArray(item.barcode_unit_id) ? item.barcode_unit_id[1] : null) : null,
+      applied_on: item.applied_on || '1_product',
+      compute_price: item.compute_price || 'fixed',
+      fixed_price: item.fixed_price,
+      price_discount: item.price_discount || 0,
+      price_surcharge: item.price_surcharge || 0,
+      price_round: item.price_round || 0,
+      price_min_margin: item.price_min_margin || 0,
+      price_max_margin: item.price_max_margin || 0,
+      percent_price: item.percent_price || 0,
+      min_quantity: item.min_quantity || 0,
+      max_quantity: item.max_quantity,
+      date_start: item.date_start ? new Date(item.date_start) : null,
+      date_end: item.date_end ? new Date(item.date_end) : null,
+      base_pricelist_id: item.base_pricelist_id ? (Array.isArray(item.base_pricelist_id) ? item.base_pricelist_id[0] : item.base_pricelist_id) : null,
+      base: item.base || 'list_price',
+      company_id: item.company_id ? (Array.isArray(item.company_id) ? item.company_id[0] : item.company_id) : null,
+      currency_id: item.currency_id ? (Array.isArray(item.currency_id) ? item.currency_id[0] : item.currency_id) : null,
+      active: item.active !== false,
+      create_date: item.create_date ? new Date(item.create_date) : new Date(),
+      write_date: item.write_date ? new Date(item.write_date) : new Date(),
+      _sync_status: 'pending',
+      is_active: true,
+      last_sync_date: new Date()
+    }));
+    
+    // Step 5: Insert all new items
+    console.log(`💾 Inserting ${newItems.length} new pricelist items...`);
+    await OdooPricelistItem.insertMany(newItems);
+    
+    console.log(`✅ Successfully refreshed public pricelist items`);
+    
+    res.json({
+      success: true,
+      message: `Successfully refreshed ${newItems.length} public pricelist items`,
+      data: { 
+        totalFetched: allItems.length, 
+        totalReplaced: newItems.length,
+        publicPricelistIds: publicIds
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error refreshing public pricelist items:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh public pricelist items',
+      error: error.message
+    });
+  }
+});
+
 // Category-based sync routes
 router.post('/sync-category/:categoryId', async (req, res) => {
   try {
