@@ -146,7 +146,8 @@ router.post('/promotions/check-imported', async (req, res) => {
           const targetIds = importedItems.map(i => i.id);
           
           if (targetIds.length > 0) {
-            updateResult = await importService.importPromotions(targetIds);
+            // 🔥 Use the dedicated update function instead of import
+            updateResult = await importService.updateExistingPromotions(targetIds);
             console.log('✅ Auto-sync completed for', targetIds.length, 'imported items');
           }
         } else {

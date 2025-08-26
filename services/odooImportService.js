@@ -1561,6 +1561,78 @@ class OdooImportService {
   }
 
   /**
+   * 🔥 NEW: Fast update function for existing promotions only
+   * Updates all fields (price, quantities, dates) without creating new ones
+   */
+  async updateExistingPromotions(itemIds = []) {
+    const errors = [];
+    let updated = 0;
+
+    // Fetch items that are already imported
+    const itemFilter = { 
+      compute_price: 'fixed',
+      store_promotion_id: { $exists: true, $ne: null }
+    };
+    if (itemIds && itemIds.length > 0) {
+      itemFilter.id = { $in: itemIds.map(Number) };
+    }
+
+    const items = await OdooPricelistItem.find(itemFilter).lean();
+    console.log(`🚀 Fast update: Found ${items.length} already imported promotions to update`);
+
+    for (const plc of items) {
+      try {
+        // Skip inactive / expired
+        if (plc.date_end && plc.date_end < new Date()) {
+          continue;
+        }
+
+        // Update the existing promotion with all new data
+        const existingPromotion = await Promotion.findById(plc.store_promotion_id);
+        if (existingPromotion) {
+          console.log(`🔄 Updating promotion ${existingPromotion._id} with new data from item ${plc.id}`);
+          
+          // Update all fields from pricelist item
+          await Promotion.updateOne(
+            { _id: existingPromotion._id },
+            { 
+              $set: { 
+                value: plc.fixed_price,
+                minQty: plc.min_quantity || 1,
+                maxQty: plc.max_quantity || null,
+                startDate: plc.date_start || existingPromotion.startDate,
+                endDate: plc.date_end || existingPromotion.endDate,
+                lastUpdated: new Date(),
+                _last_odoo_sync: new Date()
+              }
+            }
+          );
+          
+          // Mark as updated in pricelist item
+          await OdooPricelistItem.updateOne(
+            { id: plc.id },
+            { 
+              $set: { 
+                _sync_status: 'updated',
+                _last_sync_date: new Date()
+              }
+            }
+          );
+          
+          updated++;
+          console.log(`✅ Updated promotion ${existingPromotion._id}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error updating promotion for item ${plc.id}:`, error.message);
+        errors.push(`Item ${plc.id}: ${error.message}`);
+      }
+    }
+
+    console.log(`🎉 Promotion update completed: ${updated} updated, ${errors.length} errors`);
+    return { updated, errors };
+  }
+
+  /**
    * Get or create a basic unit for products without units
    */
   async getOrCreateBasicUnit() {
