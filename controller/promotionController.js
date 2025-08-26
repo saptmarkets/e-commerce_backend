@@ -238,7 +238,7 @@ const addPromotion = async (req, res) => {
 
 // Get all promotions with pagination
 const getAllPromotions = async (req, res) => {
-  const { page = 1, limit = 100, status, promotionList } = req.query;
+  const { page = 1, limit = 1000, status, promotionList } = req.query; // 🔥 FIXED: Increased default limit from 100 to 1000
   
   console.log('🔍 getAllPromotions called with params:', req.query);
   console.log('📊 Extracted params:', { page, limit, status, promotionList });
@@ -261,6 +261,10 @@ const getAllPromotions = async (req, res) => {
 
     const count = await Promotion.countDocuments(queryObject);
     console.log('📊 Total promotions found in DB:', count);
+    
+    // 🔥 NEW: Validate and cap the limit to prevent performance issues
+    const validatedLimit = Math.min(parseInt(limit), 5000); // Cap at 5000 for safety
+    console.log('📊 Validated limit:', validatedLimit);
     
     const promotions = await Promotion.find(queryObject)
       .populate({
@@ -292,16 +296,16 @@ const getAllPromotions = async (req, res) => {
       .populate('categories', 'name description image')
       .populate('promotionList', 'name description type priority defaultValue')
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+      .limit(validatedLimit)
+      .skip((parseInt(page) - 1) * validatedLimit);
 
     console.log('📊 Promotions returned after limit/skip:', promotions.length);
-    console.log('📊 Limit applied:', parseInt(limit));
-    console.log('📊 Skip applied:', (parseInt(page) - 1) * parseInt(limit));
+    console.log('📊 Limit applied:', validatedLimit);
+    console.log('📊 Skip applied:', (parseInt(page) - 1) * validatedLimit);
 
     res.send({
       promotions,
-      totalPages: Math.ceil(count / parseInt(limit)),
+      totalPages: Math.ceil(count / validatedLimit),
       currentPage: parseInt(page),
       totalPromotions: count,
     });

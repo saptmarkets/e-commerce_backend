@@ -31,7 +31,7 @@ const addPromotionList = async (req, res) => {
 
 // Get all promotion lists with pagination
 const getAllPromotionLists = async (req, res) => {
-  const { page = 1, limit = 100, type, isActive } = req.query;
+  const { page = 1, limit = 1000, type, isActive } = req.query; // 🔥 FIXED: Increased default limit from 100 to 1000
   
   try {
     const queryObject = {};
@@ -43,14 +43,18 @@ const getAllPromotionLists = async (req, res) => {
     }
 
     const count = await PromotionList.countDocuments(queryObject);
+    
+    // 🔥 NEW: Validate and cap the limit to prevent performance issues
+    const validatedLimit = Math.min(parseInt(limit), 5000); // Cap at 5000 for safety
+    
     const promotionLists = await PromotionList.find(queryObject)
       .sort({ priority: 1, createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+      .limit(validatedLimit)
+      .skip((parseInt(page) - 1) * validatedLimit);
 
     res.send({
       promotionLists,
-      totalPages: Math.ceil(count / parseInt(limit)),
+      totalPages: Math.ceil(count / validatedLimit),
       currentPage: parseInt(page),
       totalPromotionLists: count,
     });
