@@ -132,8 +132,7 @@ router.post('/promotions/check-imported', async (req, res) => {
     if (autoUpdatePromotions && statusCounts.pending > 0) {
       try {
         console.log(`🔄 Auto-updating ${statusCounts.pending} pending promotions...`);
-        const odooImportService = require('../services/odooImportService');
-        const importService = new odooImportService();
+        const importService = require('../services/odooImportService');
         
         // Build target IDs for auto-sync: update all items (handles create/update internally)
         const targetIds = allPricelistItems.map(i => i.id);
