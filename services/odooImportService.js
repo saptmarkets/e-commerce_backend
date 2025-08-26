@@ -1230,24 +1230,27 @@ class OdooImportService {
         if (existingPromotion) {
           console.log(`🔄 Found existing promotion ${existingPromotion._id} for product/unit ${storeProductUnitId}, checking for updates...`);
           
-          // Check if price, quantities, or dates need updating
+          // Check if price, quantities, dates, or unit assignment need updating
           const currentPrice = existingPromotion.value;
           const newPrice = plc.fixed_price;
           const currentMinQty = existingPromotion.minQty;
           const newMinQty = plc.min_quantity || 1;
           const currentMaxQty = existingPromotion.maxQty;
           const newMaxQty = plc.max_quantity || null;
+          const currentProductUnit = existingPromotion.productUnit;
+          const newProductUnit = storeProductUnitId;
           
           const needsUpdate = currentPrice !== newPrice || 
                              currentMinQty !== newMinQty || 
                              currentMaxQty !== newMaxQty ||
+                             currentProductUnit.toString() !== newProductUnit.toString() ||
                              (plc.date_start && new Date(plc.date_start).getTime() !== existingPromotion.startDate.getTime()) ||
                              (plc.date_end && new Date(plc.date_end).getTime() !== existingPromotion.endDate.getTime());
           
           if (needsUpdate) {
-            console.log(`🔄 Updating existing promotion: price ${currentPrice}→${newPrice}, minQty ${currentMinQty}→${newMinQty}, maxQty ${currentMaxQty}→${newMaxQty}`);
+            console.log(`🔄 Updating existing promotion: price ${currentPrice}→${newPrice}, minQty ${currentMinQty}→${newMinQty}, maxQty ${currentMaxQty}→${newMaxQty}, unit ${currentProductUnit}→${newProductUnit}`);
             
-            // Update the existing promotion with new data
+            // Update the existing promotion with new data including unit assignment
             await Promotion.updateOne(
               { _id: existingPromotion._id },
               { 
@@ -1255,6 +1258,7 @@ class OdooImportService {
                   value: newPrice,
                   minQty: newMinQty,
                   maxQty: newMaxQty,
+                  productUnit: newProductUnit, // Update unit assignment if changed
                   startDate: plc.date_start || existingPromotion.startDate,
                   endDate: plc.date_end || existingPromotion.endDate,
                   lastUpdated: new Date(),
