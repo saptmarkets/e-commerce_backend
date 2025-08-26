@@ -110,8 +110,8 @@ router.post('/refresh-public-pricelist-items', async (req, res) => {
     
     // Step 2: Fetch ALL public pricelist items from Odoo (no incremental, no date filters)
     const domain = [
-      ['pricelist_id', 'in', publicIds],
-      ['active', '=', true]
+      ['pricelist_id', 'in', publicIds]
+      // Removed 'active' filter as it doesn't exist in product.pricelist.item model
     ];
     
     console.log(`🔍 Fetching with domain:`, JSON.stringify(domain, null, 2));
@@ -174,7 +174,7 @@ router.post('/refresh-public-pricelist-items', async (req, res) => {
       base: item.base || 'list_price',
       company_id: item.company_id ? (Array.isArray(item.company_id) ? item.company_id[0] : item.company_id) : null,
       currency_id: item.currency_id ? (Array.isArray(item.currency_id) ? item.currency_id[0] : item.currency_id) : null,
-      active: item.active !== false,
+      // Removed active field as it doesn't exist in Odoo product.pricelist.item model
       create_date: item.create_date ? new Date(item.create_date) : new Date(),
       write_date: item.write_date ? new Date(item.write_date) : new Date(),
       _sync_status: 'pending',
