@@ -1562,7 +1562,7 @@ class OdooImportService {
 
   /**
    * 🔥 NEW: Fast update function for existing promotions only
-   * Updates all fields (price, quantities, dates) without creating new ones
+   * Updates all fields (price, quantities, dates, AND units) without creating new ones
    */
   async updateExistingPromotions(itemIds = []) {
     const errors = [];
@@ -1592,7 +1592,38 @@ class OdooImportService {
         if (existingPromotion) {
           console.log(`🔄 Updating promotion ${existingPromotion._id} with new data from item ${plc.id}`);
           
-          // Update all fields from pricelist item
+          // 🔥 NEW: Resolve the new unit assignment if it changed
+          let newProductUnitId = existingPromotion.productUnit; // Keep existing by default
+          
+          if (plc.barcode_unit_id) {
+            // Unit assignment changed - find the new unit
+            console.log(`🔄 Unit assignment changed for item ${plc.id}, resolving new unit...`);
+            
+            const barcodeUnit = await OdooBarcodeUnit.findOne({ id: plc.barcode_unit_id });
+            if (barcodeUnit && barcodeUnit.store_product_unit_id) {
+              newProductUnitId = barcodeUnit.store_product_unit_id;
+              console.log(`✅ Resolved new unit: ${newProductUnitId} for barcode unit ${plc.barcode_unit_id}`);
+            } else {
+              console.warn(`⚠️ Barcode unit ${plc.barcode_unit_id} not mapped to store ProductUnit`);
+            }
+          } else if (plc.product_id) {
+            // Product-level promotion - find the basic unit
+            console.log(`🔄 Product-level promotion for item ${plc.id}, finding basic unit...`);
+            
+            const odooProduct = await OdooProduct.findOne({ id: plc.product_id });
+            if (odooProduct && odooProduct.store_product_id) {
+              const basicProductUnit = await ProductUnit.findOne({ 
+                product: odooProduct.store_product_id, 
+                isDefault: true 
+              });
+              if (basicProductUnit) {
+                newProductUnitId = basicProductUnit._id;
+                console.log(`✅ Resolved basic unit: ${newProductUnitId} for product ${plc.product_id}`);
+              }
+            }
+          }
+          
+          // Update all fields from pricelist item INCLUDING the unit
           await Promotion.updateOne(
             { _id: existingPromotion._id },
             { 
@@ -1602,6 +1633,7 @@ class OdooImportService {
                 maxQty: plc.max_quantity || null,
                 startDate: plc.date_start || existingPromotion.startDate,
                 endDate: plc.date_end || existingPromotion.endDate,
+                productUnit: newProductUnitId, // 🔥 NEW: Update the unit assignment
                 lastUpdated: new Date(),
                 _last_odoo_sync: new Date()
               }
@@ -1620,7 +1652,7 @@ class OdooImportService {
           );
           
           updated++;
-          console.log(`✅ Updated promotion ${existingPromotion._id}`);
+          console.log(`✅ Updated promotion ${existingPromotion._id} with new unit: ${newProductUnitId}`);
         }
       } catch (error) {
         console.error(`❌ Error updating promotion for item ${plc.id}:`, error.message);
