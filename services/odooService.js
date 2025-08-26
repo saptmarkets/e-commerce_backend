@@ -1674,7 +1674,45 @@ class OdooService {
       database: this.database,
       username: this.username,
       uid: this.uid,
+      lastChecked: new Date(),
+      status: this.isAuthenticated ? 'Connected' : 'Disconnected'
     };
+  }
+
+  /**
+   * 🔥 NEW: Get real-time connection status with actual test
+   */
+  async getRealTimeConnectionStatus() {
+    try {
+      // Quick connection test
+      const testResult = await this.testConnection();
+      
+      return {
+        connected: testResult.success,
+        host: this.host,
+        port: this.port,
+        database: this.database,
+        username: this.username,
+        uid: this.uid,
+        lastChecked: new Date(),
+        status: testResult.success ? 'Connected' : 'Disconnected',
+        message: testResult.message || (testResult.success ? 'Connection successful' : 'Connection failed'),
+        responseTime: testResult.responseTime || null
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        host: this.host,
+        port: this.port,
+        database: this.database,
+        username: this.username,
+        uid: null,
+        lastChecked: new Date(),
+        status: 'Error',
+        message: `Connection test failed: ${error.message}`,
+        error: error.message
+      };
+    }
   }
 
   /**

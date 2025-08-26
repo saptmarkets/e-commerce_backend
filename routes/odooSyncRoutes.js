@@ -29,6 +29,52 @@ const odooService = require('../services/odooService');
 // Connection management
 router.get('/connection/test', testConnection);
 router.get('/connection/status', getConnectionStatus);
+router.get('/connection/status/realtime', async (req, res) => {
+  try {
+    const realtimeStatus = await odooService.getRealTimeConnectionStatus();
+    res.status(200).json({
+      success: true,
+      data: realtimeStatus
+    });
+  } catch (error) {
+    console.error('Error getting real-time connection status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get real-time connection status',
+      error: error.message
+    });
+  }
+});
+
+// 🔥 NEW: Auto-refresh connection status endpoint
+router.get('/connection/auto-refresh', async (req, res) => {
+  try {
+    const realtimeStatus = await odooService.getRealTimeConnectionStatus();
+    
+    // Return minimal data for auto-refresh (frontend can poll this)
+    res.status(200).json({
+      success: true,
+      data: {
+        connected: realtimeStatus.connected,
+        status: realtimeStatus.status,
+        message: realtimeStatus.message,
+        lastChecked: realtimeStatus.lastChecked,
+        timestamp: Date.now()
+      }
+    });
+  } catch (error) {
+    res.status(200).json({
+      success: false,
+      data: {
+        connected: false,
+        status: 'Error',
+        message: 'Connection check failed',
+        lastChecked: new Date(),
+        timestamp: Date.now()
+      }
+    });
+  }
+});
 
 // Data operations
 router.post('/fetch', fetchFromOdoo);
