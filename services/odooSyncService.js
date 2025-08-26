@@ -829,7 +829,7 @@ class OdooSyncService {
       const categoryProducts = await OdooProduct.find({ 
         categ_id: categoryId,
         active: true 
-      }).select('id').lean();
+      }).select('id product_tmpl_id').lean();
       
       if (categoryProducts.length === 0) {
         console.log(`⚠️ No products found in category ${categoryId} for pricelist sync`);
@@ -837,18 +837,35 @@ class OdooSyncService {
       }
       
       const productIds = categoryProducts.map(p => p.id);
-      console.log(`🎯 Found ${productIds.length} products in category for pricelist sync`);
+      const productTmplIds = categoryProducts
+        .map(p => Array.isArray(p.product_tmpl_id) ? p.product_tmpl_id[0] : p.product_tmpl_id)
+        .filter(Boolean);
+      console.log(`🎯 Found ${productIds.length} products and ${productTmplIds.length} templates in category for pricelist sync`);
+
+      // Also collect barcode unit IDs for these products (promotions can target barcode units)
+      const relatedBarcodeUnits = await OdooBarcodeUnit.find({
+        product_id: { $in: productIds },
+        active: true
+      }).select('id').lean();
+      const barcodeUnitIds = relatedBarcodeUnits.map(bu => bu.id).filter(Boolean);
+      console.log(`🎯 Found ${barcodeUnitIds.length} barcode units related to category products`);
       
-      // 🔥 IMPROVED: Try category-specific first, then fallback to all public pricelist items
+      // 🔥 IMPROVED: Category-specific domain should include product_id OR product_tmpl_id OR barcode_unit_id
+      // Build Odoo OR domain: ['|','|', condA, condB, condC]
       let domain = [
         ['pricelist_id', 'in', publicIds],
+        '|', '|',
         ['product_id', 'in', productIds],
+        ['product_tmpl_id', 'in', productTmplIds],
+        ['barcode_unit_id', 'in', barcodeUnitIds],
         ['active', '=', true]
       ];
       
       console.log(`🔍 Domain for pricelist items:`, JSON.stringify(domain, null, 2));
       console.log(`🎯 Public pricelist IDs:`, publicIds);
       console.log(`🎯 Product IDs in category:`, productIds);
+      console.log(`🎯 Product template IDs in category:`, productTmplIds);
+      console.log(`🎯 Barcode unit IDs in category:`, barcodeUnitIds);
       
       // 🔥 DEBUG: Let's see what's actually happening with the sync
       console.log(`🔍 DEBUGGING PRICELIST SYNC FOR CATEGORY ${categoryId}`);
@@ -874,11 +891,7 @@ class OdooSyncService {
       }
       
       // 🔥 TEST 2: Try to fetch category-specific items
-      let categoryDomain = [
-        ['pricelist_id', 'in', publicIds],
-        ['product_id', 'in', productIds],
-        ['active', '=', true]
-      ];
+      let categoryDomain = domain;
       
       console.log(`🔍 TEST 2: Fetching category-specific pricelist items with domain:`, JSON.stringify(categoryDomain, null, 2));
       let categoryItems = await odooService.fetchPricelistItems(categoryDomain, 100, 0);
@@ -992,7 +1005,7 @@ class OdooSyncService {
             progressCallback({
               type: 'pricelist_items',
               current: totalProcessed,
-              total: items.length,
+              total: (typeof finalItems !== 'undefined' && finalItems) ? finalItems.length : undefined,
               status: 'processing'
             });
           }
