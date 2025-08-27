@@ -97,9 +97,32 @@ router.post("/validate", validateUnitData);
 // Low stock alert route
 router.get("/low-stock", async (req, res) => {
   try {
-    // Find all product units with stock less than 10
-    const lowStockUnits = await ProductUnit.find({ stock: { $lt: 10 } });
-    res.json(lowStockUnits);
+    // Find all product units with stock less than 10 and populate product information
+    const lowStockUnits = await ProductUnit.find({ stock: { $lt: 10 } })
+      .populate({
+        path: 'product',
+        select: 'title images sku barcode'
+      })
+      .populate({
+        path: 'unit',
+        select: 'name shortCode'
+      });
+    
+    // Transform the data to include both unit and product information
+    const transformedUnits = lowStockUnits.map(unit => ({
+      _id: unit._id,
+      stock: unit.stock,
+      packQty: unit.packQty,
+      price: unit.price,
+      sku: unit.sku || unit.product?.sku,
+      barcode: unit.barcode || unit.product?.barcode,
+      title: unit.product?.title || 'Unknown Product',
+      images: unit.product?.images || [],
+      unitName: unit.unit?.name || 'Unit',
+      unitShortCode: unit.unit?.shortCode || 'pcs'
+    }));
+    
+    res.json(transformedUnits);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
