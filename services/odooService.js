@@ -498,6 +498,9 @@ class OdooService {
 
   /**
    * Sync products by category with progress tracking
+   * IMPORTANT: This method ONLY syncs products within the specified category.
+   * It does NOT create new categories or sync other categories.
+   * Categories must be imported separately before using this method.
    */
   async syncProductsByCategory(categoryId, progressCallback = null) {
     try {
@@ -519,11 +522,13 @@ class OdooService {
       const category = categoryInfo[0];
       console.log(`📂 Syncing category: ${category.complete_name}`);
 
-      // 🚀 USE SAME METHOD AS FETCH DATA - but filtered by category
+      // 🚀 SCOPE TO SPECIFIC CATEGORY ONLY - ensure we only sync products in this category
       const domain = [
         ['categ_id', '=', categoryId],
         ['active', '=', true]
       ];
+      
+      console.log(`🔒 Domain scoped to category ${categoryId}:`, JSON.stringify(domain));
 
       // Get total count first
       const totalCount = await this.searchCount('product.product', domain);
@@ -565,23 +570,21 @@ class OdooService {
         try {
           console.log(`\n🔄 Fetching batch for category ${categoryId} (offset: ${offset})`);
           
-          // Use same comprehensive field list as fetchFromOdoo
+          // Use same comprehensive field list as fetchProducts method for consistency
           const products = await this.searchRead(
             'product.product',
             domain,
             [
-              'id', 'name', 'default_code', 'barcode', 
-              'list_price', 'standard_price', 'lst_price',
-              'price', 'pricelist_price', 'pricelist_ids',
-              'categ_id', 'description', 'description_sale', 'image_1920',
-              'product_template_attribute_value_ids', 'attribute_line_ids',
-              'uom_id', 'uom_po_id', 'product_tmpl_id',
-              'qty_available', 'virtual_available', 'barcode_unit_ids',
-              'write_date', 'create_date', 'write_uid', 'create_uid'
+              'id', 'product_tmpl_id', 'name', 'default_code', 'barcode',
+              'list_price', 'standard_price', 'qty_available', 'virtual_available',
+              'categ_id', 'uom_id', 'uom_po_id', 'type', 'sale_ok', 'purchase_ok',
+              'active', 'description_sale', 'weight', 'volume',
+              'barcode_unit_ids', 'barcode_unit_count',
+              'create_date', 'write_date'
             ],
             offset,
             batchSize,
-            'write_date desc'  // Get most recently updated first
+            'id'  // Sort by ID for consistent pagination like fetchProducts
           );
 
           if (!products || products.length === 0) {
@@ -599,21 +602,23 @@ class OdooService {
             const uom_id = Array.isArray(product.uom_id) ? product.uom_id[0] : product.uom_id;
             const product_tmpl_id = Array.isArray(product.product_tmpl_id) ? product.product_tmpl_id[0] : product.product_tmpl_id;
 
+            // Clean up default_code like in fetchProducts method
+            let default_code = product.default_code;
+            if (default_code === false || default_code === 'false' || default_code === undefined) {
+              default_code = null;
+            }
+
             const processedProduct = {
-              id: product.id,
-              name: product.name,
-              default_code: product.default_code,
-              barcode: product.barcode,
-              list_price: product.list_price,
-              standard_price: product.standard_price,
-              lst_price: product.lst_price,
-              price: product.price,
-              categ_id: categ_id,
-              uom_id: uom_id,
-              product_tmpl_id: product_tmpl_id,
-              qty_available: product.qty_available,
-              virtual_available: product.virtual_available,
-              barcode_unit_ids: product.barcode_unit_ids || [],
+              ...product,
+              product_tmpl_id,
+              uom_id,
+              uom_po_id,
+              categ_id,
+              default_code,
+              list_price: Number(product.list_price || 0),
+              standard_price: Number(product.standard_price || 0),
+              qty_available: Number(product.qty_available || 0),
+              virtual_available: Number(product.virtual_available || 0),
               write_date: product.write_date ? new Date(product.write_date) : new Date(),
               create_date: product.create_date ? new Date(product.create_date) : new Date(),
               _sync_status: 'pending',
