@@ -109,18 +109,44 @@ router.get("/low-stock", async (req, res) => {
       });
     
     // Transform the data to include both unit and product information
-    const transformedUnits = lowStockUnits.map(unit => ({
-      _id: unit._id,
-      stock: unit.stock,
-      packQty: unit.packQty,
-      price: unit.price,
-      sku: unit.sku || unit.product?.sku,
-      barcode: unit.barcode || unit.product?.barcode,
-      title: unit.product?.title || 'Unknown Product',
-      images: unit.product?.images || [],
-      unitName: unit.unit?.name || 'Unit',
-      unitShortCode: unit.unit?.shortCode || 'pcs'
-    }));
+    const transformedUnits = lowStockUnits.map(unit => {
+      // Extract title from multilingual object (default to English, fallback to Arabic, then to 'Unknown Product')
+      let productTitle = 'Unknown Product';
+      if (unit.product?.title) {
+        if (typeof unit.product.title === 'string') {
+          productTitle = unit.product.title;
+        } else if (unit.product.title.en) {
+          productTitle = unit.product.title.en;
+        } else if (unit.product.title.ar) {
+          productTitle = unit.product.title.ar;
+        }
+      }
+
+      // Extract unit name from multilingual object
+      let unitName = 'Unit';
+      if (unit.unit?.name) {
+        if (typeof unit.unit.name === 'string') {
+          unitName = unit.unit.name;
+        } else if (unit.unit.name.en) {
+          unitName = unit.unit.name.en;
+        } else if (unit.unit.name.ar) {
+          unitName = unit.unit.name.ar;
+        }
+      }
+
+      return {
+        _id: unit._id,
+        stock: unit.stock,
+        packQty: unit.packQty,
+        price: unit.price,
+        sku: unit.sku || unit.product?.sku,
+        barcode: unit.barcode || unit.product?.barcode,
+        title: productTitle,
+        images: unit.product?.images || [],
+        unitName: unitName,
+        unitShortCode: unit.unit?.shortCode || 'pcs'
+      };
+    });
     
     res.json(transformedUnits);
   } catch (err) {
