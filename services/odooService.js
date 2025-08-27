@@ -545,17 +545,15 @@ class OdooService {
       const OdooPricelistItem = require('../models/OdooPricelistItem');
       const odooImportService = require('./odooImportService');
 
-      // Ensure category exists in store
+      // Find existing category in store - don't create new ones during sync
       let storeCategory = await Category.findOne({ odoo_id: category.id });
       if (!storeCategory) {
-        console.log(`📂 Creating store category for: ${category.complete_name}`);
-        storeCategory = await Category.create({
-          name: { en: category.name, ar: category.name },
-          slug: category.name.toLowerCase().replace(/\s+/g, '-'),
-          odoo_id: category.id,
-          parent: null
-        });
+        console.log(`⚠️ Category ${category.complete_name} (ID: ${category.id}) not found in store database`);
+        console.log(`💡 Please import categories first using the category import feature`);
+        throw new Error(`Category ${category.complete_name} not found in store. Import categories first.`);
       }
+      
+      console.log(`✅ Using existing store category: ${storeCategory.name.en || storeCategory.name.ar || 'Unknown'}`);
 
       // 🔥 FIRST: Fetch products in batches using same comprehensive approach as fetchFromOdoo
       const batchSize = 100;
@@ -823,17 +821,15 @@ class OdooService {
       let syncedCount = 0;
       const errors = [];
 
-      // First, ensure category exists in store
+      // Find existing category in store - don't create new ones during sync
       let storeCategory = await Category.findOne({ odoo_id: category.id });
       if (!storeCategory) {
-        console.log(`📂 Creating store category for: ${category.complete_name}`);
-        storeCategory = await Category.create({
-          name: { en: category.name, ar: category.name },
-          slug: category.name.toLowerCase().replace(/\s+/g, '-'),
-          odoo_id: category.id,
-          parent: null // You might want to handle parent categories
-        });
+        console.log(`⚠️ Category ${category.complete_name} (ID: ${category.id}) not found in store database`);
+        console.log(`💡 Please import categories first using the category import feature`);
+        throw new Error(`Category ${category.complete_name} not found in store. Import categories first.`);
       }
+      
+      console.log(`✅ Using existing store category: ${storeCategory.name.en || storeCategory.name.ar || 'Unknown'}`);
 
       // Process products in parallel batches
       const batchSize = 10;
