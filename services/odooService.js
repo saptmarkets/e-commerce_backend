@@ -424,7 +424,7 @@ class OdooService {
       domain,
         [
           'id', 'name', 'default_code', 'barcode', 
-          'list_price', 'standard_price', 'lst_price', 'cost',
+          'list_price', 'standard_price', 'lst_price',
           'price', 'pricelist_price', 'pricelist_ids',
           'categ_id', 'description', 'description_sale', 'image_1920',
           'product_template_attribute_value_ids', 'attribute_line_ids',
@@ -445,7 +445,6 @@ class OdooService {
         console.log(`   List Price: ${sample.list_price}`);
         console.log(`   Standard Price: ${sample.standard_price}`);
         console.log(`   LST Price: ${sample.lst_price}`);
-        console.log(`   Cost: ${sample.cost}`);
         console.log(`   Price: ${sample.price}`);
         console.log(`   Last Updated: ${sample.write_date}`);
       }
@@ -574,7 +573,7 @@ class OdooService {
             domain,
             [
               'id', 'name', 'default_code', 'barcode', 
-              'list_price', 'standard_price', 'lst_price', 'cost',
+              'list_price', 'standard_price', 'lst_price',
               'price', 'pricelist_price', 'pricelist_ids',
               'categ_id', 'description', 'description_sale', 'image_1920',
               'product_template_attribute_value_ids', 'attribute_line_ids',
@@ -610,7 +609,6 @@ class OdooService {
               list_price: product.list_price,
               standard_price: product.standard_price,
               lst_price: product.lst_price,
-              cost: product.cost,
               price: product.price,
               categ_id: categ_id,
               uom_id: uom_id,
@@ -691,7 +689,7 @@ class OdooService {
               
               // 🔥 APPLY PRICELIST PRICING (like full fetch does)
               let finalPrice = product.list_price || product.lst_price || product.price || 0;
-              let originalPrice = product.standard_price || product.cost || product.list_price || 0;
+              let originalPrice = product.standard_price || product.list_price || 0;
 
               // Check for active pricelist items for this product
               const activeItems = await OdooPricelistItem.find({
@@ -852,7 +850,7 @@ class OdooService {
               const updateData = {
                 title: { en: odooProduct.name, ar: odooProduct.name },
                 price: odooProduct.list_price || odooProduct.lst_price || 0,
-                originalPrice: odooProduct.standard_price || odooProduct.cost || odooProduct.list_price || 0,
+                originalPrice: odooProduct.standard_price || odooProduct.list_price || 0,
                 category: storeCategory._id,
                 categories: [storeCategory._id],
                 odoo_id: odooProduct.id,
