@@ -631,6 +631,10 @@ const updateProduct = async (req, res) => {
       }
     }
     
+    // Save the product with all updated fields (including image)
+    await product.save();
+    console.log('✅ Product saved successfully with updated fields');
+    
     const populatedProduct = await Product.findById(product._id)
                                 .populate('basicUnit', 'name shortCode')
                                 .populate('category', '_id name')
