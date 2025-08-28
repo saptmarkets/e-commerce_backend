@@ -831,21 +831,21 @@ const syncToStore = async (req, res) => {
     
     // 1. Pre-fetch all store products that match these Odoo products
     const odooProductIds = odooProducts.map(op => op.id);
-    console.log(`🔍 Looking for store products with odoo_id in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
+    console.log(`🔍 Looking for store products with odooProductId in:`, odooProductIds.slice(0, 5), `... (${odooProductIds.length} total)`);
     
     const allStoreProducts = await Product.find({ 
-      odoo_id: { $in: odooProductIds } 
+      odooProductId: { $in: odooProductIds } 
     }).lean();
     
-    // Create a map for fast lookup: odoo_id -> storeProduct
+    // Create a map for fast lookup: odooProductId -> storeProduct
     const storeProductMap = new Map(
-      allStoreProducts.map(sp => [sp.odoo_id, sp])
+      allStoreProducts.map(sp => [sp.odooProductId, sp])
     );
     
     console.log(`📦 Pre-fetched ${allStoreProducts.length} store products`);
     console.log(`🔍 Sample store products found:`, allStoreProducts.slice(0, 3).map(sp => ({
       _id: sp._id,
-      odoo_id: sp.odoo_id,
+      odooProductId: sp.odooProductId,
       title: sp.title,
       price: sp.price,
       stock: sp.stock
@@ -854,14 +854,14 @@ const syncToStore = async (req, res) => {
     // Debug: Check if we're finding the right products
     if (allStoreProducts.length === 0) {
       console.log(`⚠️ WARNING: No store products found! This means sync will update 0 products.`);
-      console.log(`🔍 Check if store products have correct odoo_id values that match Odoo product IDs.`);
+      console.log(`🔍 Check if store products have correct odooProductId values that match Odoo product IDs.`);
     } else {
       console.log(`✅ Found ${allStoreProducts.length} store products to potentially update`);
       
-      // Debug: Show sample store products and their odoo_id values
-      console.log(`🔍 Sample store products with odoo_id:`, allStoreProducts.slice(0, 5).map(sp => ({
+      // Debug: Show sample store products and their odooProductId values
+      console.log(`🔍 Sample store products with odooProductId:`, allStoreProducts.slice(0, 5).map(sp => ({
         _id: sp._id,
-        odoo_id: sp.odoo_id,
+        odooProductId: sp.odooProductId,
         title: sp.title,
         price: sp.price,
         stock: sp.stock
@@ -876,10 +876,10 @@ const syncToStore = async (req, res) => {
       })));
       
       // Debug: Check for matching IDs
-      const storeOdooIds = allStoreProducts.map(sp => sp.odoo_id).filter(Boolean);
+      const storeOdooIds = allStoreProducts.map(sp => sp.odooProductId).filter(Boolean);
       const odooIds = odooProducts.map(op => op.id);
       
-      console.log(`🔍 Store products with odoo_id: ${storeOdooIds.length}`);
+      console.log(`🔍 Store products with odooProductId: ${storeOdooIds.length}`);
       console.log(`🔍 Odoo products available: ${odooIds.length}`);
       
       // Find matches
@@ -888,7 +888,7 @@ const syncToStore = async (req, res) => {
       
       if (matches.length === 0) {
         console.log(`⚠️ NO MATCHES FOUND! This explains why 0 products are updated.`);
-        console.log(`🔍 Sample store odoo_ids:`, storeOdooIds.slice(0, 10));
+        console.log(`🔍 Sample store odooProductIds:`, storeOdooIds.slice(0, 10));
         console.log(`🔍 Sample Odoo IDs:`, odooIds.slice(0, 10));
       } else {
         console.log(`✅ Found ${matches.length} matching products that can be updated`);
@@ -1069,7 +1069,7 @@ const syncToStore = async (req, res) => {
       for (const storeProduct of allStoreProducts) {
         try {
           // Get pre-fetched Odoo product data
-          const odooProduct = storeProductMap.get(storeProduct.odoo_id);
+          const odooProduct = storeProductMap.get(storeProduct.odooProductId);
           if (!odooProduct) continue;
           
           // Get pre-fetched stock data
@@ -1125,7 +1125,7 @@ const syncToStore = async (req, res) => {
       for (const storeProduct of allStoreProducts) {
         try {
           // Get pre-fetched Odoo product data
-          const odooProduct = storeProductMap.get(storeProduct.odoo_id);
+          const odooProduct = storeProductMap.get(storeProduct.odooProductId);
           
           if (!odooProduct || !odooProduct.list_price) continue;
           
@@ -1470,9 +1470,9 @@ const pushBackStock = async (req, res) => {
         // If still not found, try to get from Product model directly
         if (!productIdForStock) {
           const Product = require('../models/Product');
-          const product = await Product.findById(unit.product).select('odoo_id title');
-          if (product && product.odoo_id) {
-            productIdForStock = product.odoo_id;
+          const product = await Product.findById(unit.product).select('odooProductId title');
+          if (product && product.odooProductId) {
+            productIdForStock = product.odooProductId;
             odooProductName = product.title?.en || product.title || 'Store Product';
             console.log(`🎯 Found product through Product model: ${odooProductName} (Odoo ID: ${productIdForStock})`);
           }
