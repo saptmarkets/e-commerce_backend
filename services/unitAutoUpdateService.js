@@ -47,9 +47,10 @@ class UnitAutoUpdateService {
       }).populate('unit', 'name shortCode');
 
       // 3. Get Odoo barcode units for these products
+      // Be permissive about activity flag (some writers use is_active)
       const odooBarcodeUnits = await OdooBarcodeUnit.find({ 
         product_id: { $in: odooProductIds },
-        active: true 
+        $or: [ { active: true }, { is_active: true } ]
       });
 
       console.log(`🏷️ Found ${odooBarcodeUnits.length} Odoo barcode units to process`);
@@ -212,13 +213,18 @@ class UnitAutoUpdateService {
       }
     }
 
-    // Fallback: match by unit name and packQty
-    const unitName = odooUnit.unit || 'unknown';
-    const packQty = odooUnit.quantity || 1;
+    // Fallback: match by unit name/shortCode (case-insensitive) and packQty
+    const unitNameRaw = odooUnit.unit || 'unknown';
+    const unitName = String(unitNameRaw).trim().toLowerCase();
+    const packQty = Number(odooUnit.quantity || 1);
 
-    return existingUnits.find(pu => 
-      pu.unit.name === unitName && pu.packQty === packQty
-    );
+    return existingUnits.find(pu => {
+      const existingName = (pu.unit && pu.unit.name) ? String(pu.unit.name).trim().toLowerCase() : '';
+      const existingShort = (pu.unit && pu.unit.shortCode) ? String(pu.unit.shortCode).trim().toLowerCase() : '';
+      const matchName = existingName && (existingName === unitName);
+      const matchShort = existingShort && (existingShort === unitName);
+      return (matchName || matchShort) && pu.packQty === packQty;
+    });
   }
 
   /**
