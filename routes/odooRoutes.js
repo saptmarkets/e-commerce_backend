@@ -45,23 +45,58 @@ router.get('/server-info', async (req, res) => {
   }
 });
 
-// Get categories for sync selection
+// Get categories for sync selection - using local Odoo data instead of live API calls
 router.get('/categories', async (req, res) => {
   try {
-    console.log('📂 Fetching categories for sync selection...');
+    console.log('📂 Fetching categories for sync selection from local Odoo data...');
     
-    const categories = await odooService.getCategoriesForSync();
+    // Use local OdooCategory data instead of live Odoo API calls
+    const OdooCategory = require('../models/OdooCategory');
+    
+    const categories = await OdooCategory.find({ is_active: true })
+      .sort({ complete_name: 1 })
+      .lean();
+    
+    // Group by main categories (parent_id = null) and count products
+    const mainCategories = categories.filter(cat => !cat.parent_id);
+    const categoriesWithCount = mainCategories.map(mainCat => {
+      const subCategories = categories.filter(cat => 
+        cat.parent_id === mainCat.id || 
+        (cat.parent_id && categories.find(p => p.id === cat.parent_id)?.parent_id === mainCat.id)
+      );
+      
+      const totalProducts = subCategories.reduce((sum, cat) => sum + (cat.product_count || 0), 0);
+      
+      return {
+        id: mainCat.id,
+        name: mainCat.name,
+        complete_name: mainCat.name,
+        product_count: totalProducts,
+        is_main_category: true,
+        description: `Main category containing ${totalProducts} products across all subcategories`
+      };
+    });
+    
+    // Sort by product count (highest first) then by name
+    categoriesWithCount.sort((a, b) => {
+      if (b.product_count !== a.product_count) {
+        return b.product_count - a.product_count;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    
+    console.log(`✅ Found ${categoriesWithCount.length} main categories from local data`);
     
     res.json({
       success: true,
-      categories: categories,
-      total: categories.length
+      categories: categoriesWithCount,
+      total: categoriesWithCount.length
     });
   } catch (error) {
-    console.error('❌ Error fetching categories:', error.message);
+    console.error('❌ Error fetching categories from local data:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch categories',
+      message: 'Failed to fetch categories from local data',
       error: error.message
     });
   }
