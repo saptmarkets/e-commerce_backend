@@ -18,6 +18,7 @@ class UnitAutoUpdateService {
 
       // 1. Get store products that match these Odoo IDs
       const Product = require('../models/Product');
+      const OdooProduct = require('../models/OdooProduct');
       const storeProducts = await Product.find({ 
         odooProductId: { $in: odooProductIds } 
       }).select('_id odooProductId basicUnit hasMultiUnits');
@@ -52,6 +53,17 @@ class UnitAutoUpdateService {
         product_id: { $in: odooProductIds },
         $or: [ { active: true }, { is_active: true } ]
       });
+      // 3b. Prefetch Odoo product base prices for fallback (when no barcode units exist)
+      const odooProducts = await OdooProduct.find({ id: { $in: odooProductIds } })
+        .select('id list_price standard_price')
+        .lean();
+      const odooProductPriceMap = new Map();
+      odooProducts.forEach(op => {
+        // Prefer list_price; fallback to standard_price
+        const base = (op && typeof op.list_price === 'number') ? op.list_price : (op?.standard_price || 0);
+        odooProductPriceMap.set(op.id, Number(base || 0));
+      });
+
 
       console.log(`🏷️ Found ${odooBarcodeUnits.length} Odoo barcode units to process`);
 
@@ -88,11 +100,18 @@ class UnitAutoUpdateService {
 
         console.log(`🔄 Processing units for product ${storeProduct.odooProductId} (${odooUnits.length} Odoo units, ${existingUnits.length} existing units)`);
 
-        const productResults = await this.processProductUnits(
-          storeProduct,
-          odooUnits,
-          existingUnits
-        );
+        let productResults;
+        if (odooUnits.length === 0) {
+          // Fallback: ensure default unit exists and set its price from Odoo list_price
+          const basePrice = odooProductPriceMap.get(storeProduct.odooProductId) || 0;
+          productResults = await this.ensureDefaultUnitFromOdooPrice(storeProduct, existingUnits, basePrice);
+        } else {
+          productResults = await this.processProductUnits(
+            storeProduct,
+            odooUnits,
+            existingUnits
+          );
+        }
 
         results.push({
           odooProductId: storeProduct.odooProductId,
@@ -202,6 +221,62 @@ class UnitAutoUpdateService {
   }
 
   /**
+   * Ensure default ProductUnit exists and is priced from Odoo list_price when no barcode units exist
+   */
+  async ensureDefaultUnitFromOdooPrice(storeProduct, existingUnits, odooListPrice) {
+    const results = {
+      unitsUpdated: 0,
+      unitsInserted: 0,
+      unitsSkipped: 0,
+      errors: 0,
+      details: []
+    };
+
+    try {
+      // Find an existing default unit or a basic unit candidate (same basicUnit and packQty 1)
+      let defaultUnit = existingUnits.find(pu => pu.isDefault === true)
+        || existingUnits.find(pu => String(pu.unit) === String(storeProduct.basicUnit) && Number(pu.packQty) === 1);
+
+      if (!defaultUnit) {
+        // Create a new basic default unit using storeProduct.basicUnit
+        const insert = await this.createInsertOperation(storeProduct, {
+          unit: null, // resolveUnit not needed; we will use existing basicUnit directly
+          quantity: 1,
+          price: Number(odooListPrice || 0),
+          av_cost: 0,
+          purchase_cost: 0,
+          barcode: null,
+          id: storeProduct.odooProductId,
+          name: 'Default'
+        }, /*forceBasic*/ true);
+
+        if (insert && insert.insertOne && insert.insertOne.document) {
+          // Override unit to use product.basicUnit explicitly for the basic default
+          insert.insertOne.document.unit = storeProduct.basicUnit;
+          defaultUnit = await (await require('../models/ProductUnit')).create(insert.insertOne.document);
+          results.unitsInserted++;
+          results.details.push({ action: 'inserted_default', price: insert.insertOne.document.price });
+        }
+      } else {
+        // Update price if needed
+        const newPrice = Number(odooListPrice || 0);
+        if (typeof newPrice === 'number' && newPrice >= 0 && defaultUnit.price !== newPrice) {
+          await require('../models/ProductUnit').updateOne({ _id: defaultUnit._id }, { $set: { price: newPrice, isDefault: true } });
+          results.unitsUpdated++;
+          results.details.push({ action: 'updated_default', unitId: defaultUnit._id, oldPrice: defaultUnit.price, newPrice });
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Error ensuring default unit for product ${storeProduct._id}:`, error.message);
+      results.errors++;
+      results.details.push({ action: 'error_default', error: error.message });
+    }
+
+    return results;
+  }
+
+  /**
    * Find matching ProductUnit for an Odoo barcode unit
    */
   findMatchingProductUnit(odooUnit, existingUnits) {
@@ -277,26 +352,28 @@ class UnitAutoUpdateService {
   /**
    * Create insert operation for new ProductUnit
    */
-  async createInsertOperation(storeProduct, odooUnit) {
+  async createInsertOperation(storeProduct, odooUnit, forceBasic = false) {
     try {
       // Resolve or create Unit
-      const unit = await this.resolveUnit(odooUnit.unit);
+      const unit = forceBasic ? null : await this.resolveUnit(odooUnit.unit);
       if (!unit) {
-        console.warn(`⚠️ Could not resolve unit for Odoo unit ${odooUnit.id}`);
-        return null;
+        if (!forceBasic) {
+          console.warn(`⚠️ Could not resolve unit for Odoo unit ${odooUnit.id}`);
+          return null;
+        }
       }
 
       const insertData = {
         product: storeProduct._id,
-        unit: unit._id,
-        unitType: odooUnit.quantity === 1 ? 'basic' : 'multi',
+        unit: forceBasic ? storeProduct.basicUnit : unit._id,
+        unitType: (forceBasic || odooUnit.quantity === 1) ? 'basic' : 'multi',
         unitValue: 1,
         packQty: Number(odooUnit.quantity || 1),
         price: Number(odooUnit.price || 0),
         costPrice: Number(odooUnit.av_cost || odooUnit.purchase_cost || 0),
         barcode: odooUnit.barcode || null,
         sku: odooUnit.barcode ? `ODOO-${odooUnit.id}` : null,
-        isDefault: odooUnit.quantity === 1, // Basic unit is default
+        isDefault: (forceBasic || odooUnit.quantity === 1), // Basic unit is default
         isActive: true,
         isAvailable: true,
         minOrderQuantity: 1,
