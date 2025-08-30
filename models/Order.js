@@ -278,20 +278,50 @@ const orderSchema = new mongoose.Schema(
       status: {
         type: String,
         enum: ['pending', 'synced', 'failed', 'partial'],
-        default: null
+        default: null,
+        required: false
       },
-      odooOrderId: Number,              // Odoo sales order ID
-      odooCustomerId: Number,           // Odoo customer/partner ID
-      sessionId: String,                // Links to OrderPushSession
-      syncedAt: Date,                   // When sync was completed
-      attempts: { type: Number, default: 0 },
-      errorMessage: String,              // Error details if sync failed
+      odooOrderId: {
+        type: Number,
+        required: false,
+        default: null
+      },              // Odoo sales order ID
+      odooCustomerId: {
+        type: Number,
+        required: false,
+        default: null
+      },           // Odoo customer/partner ID
+      sessionId: {
+        type: String,
+        required: false,
+        default: null
+      },                // Links to OrderPushSession
+      syncedAt: {
+        type: Date,
+        required: false,
+        default: null
+      },                   // When sync was completed
+      attempts: { 
+        type: Number, 
+        default: 0,
+        required: false
+      },
+      errorMessage: {
+        type: String,
+        required: false,
+        default: null
+      },              // Error details if sync failed
       errorType: {
         type: String,
         enum: ['customer_creation_failed', 'product_not_found', 'odoo_api_error', 'validation_error'],
-        default: null
+        default: null,
+        required: false
       },
-      lastAttemptAt: Date
+      lastAttemptAt: {
+        type: Date,
+        required: false,
+        default: null
+      }
     },
   },
   {
@@ -314,6 +344,25 @@ orderSchema.index({ 'odooSync.odooOrderId': 1 });
 orderSchema.index({ 'odooSync.odooCustomerId': 1 });
 orderSchema.index({ status: 1, 'odooSync.status': 1 }); // For finding delivered orders pending sync
 orderSchema.index({ 'odooSync.lastAttemptAt': 1 }); // For retry logic
+
+// Pre-save middleware to ensure odooSync is properly initialized
+orderSchema.pre('save', function(next) {
+  // If this is a new order and odooSync is not provided, initialize it
+  if (this.isNew && !this.odooSync) {
+    this.odooSync = {
+      status: null,
+      odooOrderId: null,
+      odooCustomerId: null,
+      sessionId: null,
+      syncedAt: null,
+      attempts: 0,
+      errorMessage: null,
+      errorType: null,
+      lastAttemptAt: null
+    };
+  }
+  next();
+});
 
 // Auto-increment invoice number
   orderSchema.plugin(AutoIncrement, {
