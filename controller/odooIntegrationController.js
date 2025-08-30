@@ -57,6 +57,25 @@ class OdooIntegrationController {
 
       console.log(`🚀 Processing orders for date: ${targetDate}`);
       
+      // Resolve admin ID from email if needed
+      let resolvedAdminId = adminId;
+      
+      // Check if adminId looks like an email
+      if (adminId.includes('@')) {
+        const Admin = require('../models/Admin');
+        const admin = await Admin.findOne({ email: adminId });
+        
+        if (!admin) {
+          return res.status(400).json({
+            success: false,
+            error: `Admin not found with email: ${adminId}`
+          });
+        }
+        
+        resolvedAdminId = admin._id;
+        console.log(`✅ Resolved admin email ${adminId} to ID: ${resolvedAdminId}`);
+      }
+      
       // Generate session ID
       const sessionId = `BATCH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
@@ -64,7 +83,7 @@ class OdooIntegrationController {
       const result = await this.odooService.processOrderBatch(
         sessionId,
         new Date(targetDate),
-        adminId
+        resolvedAdminId
       );
       
       console.log(`✅ Batch processing completed: ${result.results.successful}/${result.results.processed} orders synced`);
