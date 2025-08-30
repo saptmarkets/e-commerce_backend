@@ -603,7 +603,15 @@ const markAsDelivered = async (req, res) => {
       };
     }
     
+    // NEW: Update Odoo sync status when order is delivered
+    order.odooSync = {
+      ...order.odooSync,
+      status: 'pending'  // Mark for Odoo sync
+    };
+    
     await order.save();
+    
+    console.log(`✅ Order ${order.invoice} delivered and marked for Odoo sync`);
     
     // Update driver stats and availability
     const driver = await Admin.findById(driverId);

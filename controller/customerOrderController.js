@@ -10,6 +10,7 @@ const { handleProductQuantity, handleLoyaltyPoints, handleOrderCancellation } = 
 const customerInvoiceEmailBody = require("../lib/email-sender/templates/order-to-customer");
 const VerificationCodeGenerator = require("../lib/verification-code/generator");
 const { createOrderNotification } = require("./notificationController");
+const { validateOrderForOdooSync, enhanceCustomerData, enhanceProductData } = require("../utils/odooValidation");
 
 // Feature flag for revert-to-checkout functionality (default enabled if not set)
 const REVERT_TO_CHECKOUT_ENABLED = (process.env.REVERT_TO_CHECKOUT_ENABLED ?? 'true') === 'true';
@@ -68,6 +69,18 @@ const addOrder = async (req, res) => {
       });
     }
 
+    // NEW: Validate order for Odoo sync
+    try {
+      validateOrderForOdooSync(req.body);
+    } catch (validationError) {
+      console.log('Odoo validation warning:', validationError.message);
+      // Don't fail the order creation, just log the warning
+    }
+
+    // NEW: Enhance customer and product data for Odoo sync
+    const enhancedUserInfo = enhanceCustomerData(req.body.user_info);
+    const enhancedCartItems = enhanceProductData(req.body.cart);
+
     // Detailed logging for incoming user_info
     console.log('Received req.body.user_info:', req.body.user_info);
     console.log('Received req.body.user_info.contact:', req.body.user_info?.contact);
@@ -77,9 +90,11 @@ const addOrder = async (req, res) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const productChecklist = VerificationCodeGenerator.generateProductChecklist(req.body.cart);
 
-    // Create and save order
+    // Create and save order with enhanced data and Odoo sync initialization
     const newOrder = new Order({
       ...req.body,
+      user_info: enhancedUserInfo,
+      cart: enhancedCartItems,
       user: req.user._id,
       paymentStatus: 'Pending', // For COD, payment is pending until delivery
       status: 'Received',
@@ -89,6 +104,11 @@ const addOrder = async (req, res) => {
       deliveryInfo: {
         productChecklist: productChecklist,
         allItemsCollected: false
+      },
+      // NEW: Initialize Odoo sync status
+      odooSync: {
+        status: 'pending',
+        attempts: 0
       }
     });
     

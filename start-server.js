@@ -32,6 +32,7 @@ const mobileDeliveryRoutes = require("./routes/mobileDeliveryRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const odooRoutes = require("./routes/odooRoutes");
 const odooSyncRoutes = require("./routes/odooSyncRoutes");
+const odooIntegrationRoutes = require("./routes/odooIntegrationRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const orderController = require("./controller/orderController");
 const productRoutes = require("./routes/productRoutes");
@@ -201,6 +202,7 @@ app.use("/api/mobile-delivery", mobileDeliveryRoutes);
 app.use("/api/notification", notificationRoutes);
 app.use("/api/odoo", odooRoutes);
 app.use("/api/odoo-sync", odooSyncRoutes);
+app.use("/api/odoo-integration", odooIntegrationRoutes);
 // Admin and Customer order routes
 app.use("/api/order", isAuth, customerOrderRoutes);
 app.use("/api/orders", orderRoutes); // compatibility alias for admin
