@@ -504,6 +504,63 @@ const sendEmailInvoiceToCustomer = async (req, res) => {
   }
 };
 
+// Test endpoint to verify Order model
+const testOrderModel = async (req, res) => {
+  try {
+    console.log('Testing Order model...');
+    
+    const Order = require('../models/Order');
+    
+    // Test creating a minimal order
+    const testOrder = new Order({
+      user: req.user._id,
+      cart: [{
+        productId: 'test-product',
+        title: 'Test Product',
+        price: 100,
+        quantity: 1
+      }],
+      user_info: {
+        name: 'Test User',
+        contact: '1234567890',
+        address: 'Test Address'
+      },
+      subTotal: 100,
+      shippingCost: 0,
+      total: 100,
+      paymentMethod: 'COD',
+      status: 'Received'
+    });
+    
+    console.log('Test order created, checking odooSync...');
+    console.log('odooSync before save:', testOrder.odooSync);
+    
+    const savedOrder = await testOrder.save();
+    
+    console.log('Test order saved successfully');
+    console.log('odooSync after save:', savedOrder.odooSync);
+    
+    res.status(200).send({
+      message: 'Order model test successful',
+      orderId: savedOrder._id,
+      invoice: savedOrder.invoice,
+      odooSync: savedOrder.odooSync
+    });
+    
+    // Clean up test order
+    await Order.findByIdAndDelete(savedOrder._id);
+    
+  } catch (error) {
+    console.error('Order model test failed:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).send({
+      message: 'Order model test failed',
+      error: error.message,
+      stack: error.stack
+    });
+  }
+};
+
 module.exports = {
   addOrder,
   getOrderById,
@@ -511,4 +568,5 @@ module.exports = {
   getOrderByInvoice,
   sendEmailInvoiceToCustomer,
   revertToCheckout,
+  testOrderModel
 };

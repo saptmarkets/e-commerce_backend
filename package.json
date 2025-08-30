@@ -21,7 +21,8 @@
     "migrate:odoo-sync": "node migrations/add-odoo-sync-fields.js",
     "test:odoo-schema": "node scripts/test-odoo-sync-schema.js",
     "test:order-creation": "node scripts/test-order-creation-with-odoo.js",
-    "test:order-creation-fix": "node scripts/test-order-creation-fix.js"
+    "test:order-creation-fix": "node scripts/test-order-creation-fix.js",
+    "diagnose:order-issue": "node scripts/diagnose-order-issue.js"
   },
   "author": "htmlLover",
   "license": "ISC",
