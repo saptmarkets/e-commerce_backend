@@ -33,15 +33,22 @@ const tokenForVerify = (user) => {
 };
 
 const isAuth = (req, res, next) => {
+  console.log('🔍 DEBUG: isAuth middleware called for:', req.method, req.path);
+  console.log('🔍 DEBUG: Request headers:', req.headers);
+  
   const token = req.header("authorization");
   if (!token) {
+    console.log('🔍 DEBUG: No authorization token provided');
     return res.status(401).json({ message: "Access denied. No token provided." });
   }
+
+  console.log('🔍 DEBUG: Token found:', token.substring(0, 20) + '...');
 
   try {
     const tokenWithoutBearer = token.replace("Bearer ", "");
     
     const decoded = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+    console.log('🔍 DEBUG: Token decoded successfully for user:', decoded._id);
     
     // Check if the token contains corrupted data
     if (decoded._id === "banners" || typeof decoded._id === "string" && decoded._id.includes("banners")) {
@@ -54,6 +61,7 @@ const isAuth = (req, res, next) => {
     }
     
     req.user = decoded;
+    console.log('🔍 DEBUG: User authenticated successfully');
     next();
   } catch (error) {
     console.error("JWT verification error:", error.message);

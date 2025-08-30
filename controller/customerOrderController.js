@@ -15,6 +15,10 @@ const { createOrderNotification } = require("./notificationController");
 const REVERT_TO_CHECKOUT_ENABLED = (process.env.REVERT_TO_CHECKOUT_ENABLED ?? 'true') === 'true';
 
 const addOrder = async (req, res) => {
+  console.log('🔍 DEBUG: addOrder controller called');
+  console.log('🔍 DEBUG: Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🔍 DEBUG: User:', req.user);
+  
   try {
     // Check payment method
     if (req.body.paymentMethod !== 'COD') {
