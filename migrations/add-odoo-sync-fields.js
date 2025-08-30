@@ -52,7 +52,7 @@ const migrateOrdersForOdooSync = async () => {
           // Add odooSync field with default values
           await Order.findByIdAndUpdate(order._id, {
             $set: {
-              'odooSync.status': null,
+              'odooSync.status': 'pending',
               'odooSync.attempts': 0
             }
           }, { new: true });
