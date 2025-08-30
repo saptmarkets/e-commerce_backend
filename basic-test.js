@@ -4,6 +4,7 @@ try {
   console.log('1️⃣ Testing basic imports...');
   
   const OdooService = require('./services/odooService');
+const odooService = new OdooService();
   console.log('✅ OdooService imported');
   
   const OdooIntegrationService = require('./services/odooIntegrationService');

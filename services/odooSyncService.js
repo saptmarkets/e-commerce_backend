@@ -1,4 +1,5 @@
-const odooService = require('./odooService');
+const OdooService = require('./odooService');
+const odooService = new OdooService();
 const OdooProduct = require('../models/OdooProduct');
 const OdooCategory = require('../models/OdooCategory');
 const OdooUom = require('../models/OdooUom');

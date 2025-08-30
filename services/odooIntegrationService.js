@@ -4,7 +4,7 @@ const OrderPushSession = require('../models/OrderPushSession');
 
 class OdooIntegrationService extends OdooService {
   constructor() {
-    super(); // Inherit existing Odoo connection
+    super(); // Call parent constructor
   }
 
   // Core methods

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const odooService = require('../services/odooService');
+const OdooService = require('../services/odooService');
+const odooService = new OdooService();
 const odooSyncController = require('../controller/odooSyncController');
 
 // Test Odoo connection

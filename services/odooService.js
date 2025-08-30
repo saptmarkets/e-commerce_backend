@@ -1765,4 +1765,4 @@ class OdooService {
   }
 }
 
-module.exports = new OdooService(); 
+module.exports = OdooService; 

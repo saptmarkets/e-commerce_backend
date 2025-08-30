@@ -24,7 +24,8 @@ const {
   importAllOdooCategories,
 } = require('../controller/odooSyncController');
 
-const odooService = require('../services/odooService');
+const OdooService = require('../services/odooService');
+const odooService = new OdooService();
 
 // Connection management
 router.get('/connection/test', testConnection);
@@ -257,7 +258,8 @@ router.post('/refresh-public-pricelist-items', async (req, res) => {
   try {
     console.log('🎯 Lightweight refresh of public pricelist items requested...');
     
-    const odooService = require('../services/odooService');
+    const OdooService = require('../services/odooService');
+    const odooService = new OdooService();
     const OdooPricelistItem = require('../models/OdooPricelistItem');
     
     // Step 1: Get public pricelist IDs (from local collection for speed)
