@@ -272,6 +272,27 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+
+    // Odoo Integration Fields
+    odooSync: {
+      status: {
+        type: String,
+        enum: ['pending', 'synced', 'failed', 'partial'],
+        default: null
+      },
+      odooOrderId: Number,              // Odoo sales order ID
+      odooCustomerId: Number,           // Odoo customer/partner ID
+      sessionId: String,                // Links to OrderPushSession
+      syncedAt: Date,                   // When sync was completed
+      attempts: { type: Number, default: 0 },
+      errorMessage: String,              // Error details if sync failed
+      errorType: {
+        type: String,
+        enum: ['customer_creation_failed', 'product_not_found', 'odoo_api_error', 'validation_error'],
+        default: null
+      },
+      lastAttemptAt: Date
+    },
   },
   {
     timestamps: true,
@@ -285,6 +306,14 @@ orderSchema.index({ invoice: 1 });
 orderSchema.index({ version: 1 });
 orderSchema.index({ lockedAt: 1 });
 orderSchema.index({ previousOrderId: 1 });
+
+// Odoo sync indexes for better performance
+orderSchema.index({ 'odooSync.status': 1 });
+orderSchema.index({ 'odooSync.sessionId': 1 });
+orderSchema.index({ 'odooSync.odooOrderId': 1 });
+orderSchema.index({ 'odooSync.odooCustomerId': 1 });
+orderSchema.index({ status: 1, 'odooSync.status': 1 }); // For finding delivered orders pending sync
+orderSchema.index({ 'odooSync.lastAttemptAt': 1 }); // For retry logic
 
 // Auto-increment invoice number
   orderSchema.plugin(AutoIncrement, {
